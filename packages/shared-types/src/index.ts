@@ -330,3 +330,81 @@ export interface PaginatedResponse<T> {
   pageSize: number;
   totalPages: number;
 }
+
+// ============================================================
+// SOLO MODE — Discover what you can do around you
+// ============================================================
+
+export type TripMode = 'solo' | 'group';
+
+export interface SoloTrip {
+  id: string;
+  userId: string;
+  name: string;
+  origin: GeoPoint;
+  originLabel: string;
+  modes: TransportMode[];
+  maxTime: number;       // minutes
+  maxBudget: number;     // EUR
+  category: VenueCategory | 'all';
+  createdAt: string;
+  destinations: SoloDestination[];
+}
+
+export interface SoloDestination {
+  id: string;
+  venue: Venue;
+  distanceKm: number;
+  durations: Record<TransportMode, number>;  // mode -> minutes
+  costs: Record<TransportMode, number>;       // mode -> EUR
+  matchScore: number;    // 0-100, how well it fits the constraints
+  highlights: string[];  // tags like "great rating", "fast", "cheap"
+}
+
+// ============================================================
+// GROUP CHAT
+// ============================================================
+
+export interface ChatMessage {
+  id: string;
+  tripId: string;
+  userId: string;
+  user?: User;
+  content: string;
+  type: 'text' | 'system' | 'vote_update' | 'cagnotte_update';
+  createdAt: string;
+}
+
+// ============================================================
+// CAGNOTTE (Group Kitty)
+// ============================================================
+
+export interface Cagnotte {
+  id: string;
+  tripId: string;
+  totalTarget: number;       // EUR — total amount needed
+  collected: number;          // EUR — currently collected
+  contributions: Contribution[];
+  status: 'open' | 'completed' | 'refunded';
+  createdAt: string;
+}
+
+export interface Contribution {
+  id: string;
+  cagnotteId: string;
+  userId: string;
+  user?: User;
+  amount: number;             // EUR
+  status: 'pending' | 'paid' | 'refunded';
+  paidAt: string | null;
+}
+
+// ============================================================
+// EXTENDED TRIP (with mode discriminator)
+// ============================================================
+
+export interface TripExtended extends Trip {
+  mode: TripMode;
+  chat?: ChatMessage[];
+  cagnotte?: Cagnotte;
+}
