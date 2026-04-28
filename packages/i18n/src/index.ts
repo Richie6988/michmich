@@ -6,7 +6,7 @@ export const resources = {
   en: { translation: en },
 } as const;
 
-export const defaultLocale = 'fr';
+export const defaultLocale = 'en';
 export const supportedLocales = ['fr', 'en'] as const;
 export type SupportedLocale = (typeof supportedLocales)[number];
 

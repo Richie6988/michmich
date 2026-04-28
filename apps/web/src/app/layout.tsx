@@ -22,9 +22,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Barry — Barry knows where.',
+  title: 'Barry — Where the smart group meets.',
   description:
-    'Find the fairest meeting point for your group. Equity in distance, simplicity in decision.',
+    'The map app that finds the fairest meeting point for any group. No more endless debates. No more unfair commutes. Barry knows where.',
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.svg',
@@ -47,7 +47,7 @@ export default function RootLayout({
 }) {
   return (
     <html
-      lang="fr"
+      lang="en"
       className={`${inter.variable} ${manrope.variable} ${jetbrainsMono.variable}`}
     >
       <body className="font-sans antialiased">{children}</body>

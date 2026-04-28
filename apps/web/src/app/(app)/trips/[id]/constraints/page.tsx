@@ -39,8 +39,8 @@ export default function ConstraintsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
         <BarryMascot mood="celebrating" size={80} />
-        <h2 className="font-display font-bold text-xl mt-6 text-barry-black">Contraintes envoyees !</h2>
-        <p className="text-barry-grey text-sm mt-2">Barry calcule le point ideal...</p>
+        <h2 className="font-display font-bold text-xl mt-6 text-barry-black">Preferences sent !</h2>
+        <p className="text-barry-grey text-sm mt-2">Barry's calculating the perfect spot...</p>
         <div className="mt-6 flex gap-1">
           {[0, 1, 2].map(i => (
             <div
@@ -60,16 +60,16 @@ export default function ConstraintsPage() {
       <div className="text-center mb-6">
         <BarryMascot mood="default" size={72} />
         <h1 className="font-display font-bold text-xl text-barry-black mt-3">
-          Tes contraintes
+          Your preferences
         </h1>
         <p className="text-barry-grey text-sm mt-1">
-          Dis a Barry tes limites, il trouvera le compromis ideal.
+          Tell Barry your limits, and he'll find the fairest spot ideal.
         </p>
       </div>
 
       {/* Transport mode */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-barry-black mb-3">Comment tu te deplaceras ?</label>
+        <label className="block text-sm font-medium text-barry-black mb-3">How will you travel ?</label>
         <div className="flex gap-2">
           {MODES.map(m => (
             <button
@@ -98,7 +98,7 @@ export default function ConstraintsPage() {
       {/* Max time slider */}
       <div className="mb-6 barry-card">
         <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-medium text-barry-black">Temps max de trajet</label>
+          <label className="text-sm font-medium text-barry-black">Max travel time</label>
           <span className="text-lg font-bold text-barry-blue">{maxTime} min</span>
         </div>
         <input
@@ -120,7 +120,7 @@ export default function ConstraintsPage() {
       {/* Max budget slider */}
       <div className="mb-6 barry-card">
         <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-medium text-barry-black">Budget transport max</label>
+          <label className="text-sm font-medium text-barry-black">Max transport budget</label>
           <span className="text-lg font-bold text-barry-coral">{maxBudget} EUR</span>
         </div>
         <input
@@ -142,7 +142,7 @@ export default function ConstraintsPage() {
       {/* Priority weight */}
       <div className="mb-8 barry-card">
         <label className="block text-sm font-medium text-barry-black mb-3">
-          Qu'est-ce qui compte le plus ?
+          What matters most ?
         </label>
         <div className="flex items-center gap-3">
           <span className={`text-sm font-semibold ${weight < 0.4 ? 'text-barry-blue' : 'text-barry-grey'}`}>
@@ -163,11 +163,11 @@ export default function ConstraintsPage() {
         </div>
       </div>
 
-      {/* Participants status */}
+      {/* Members status */}
       {activeTrip && (
         <div className="mb-6">
           <h3 className="text-xs font-semibold text-barry-grey uppercase tracking-wider mb-3">
-            Statut du groupe
+            Group status
           </h3>
           <div className="space-y-2">
             {activeTrip.participants.map(p => (
@@ -183,7 +183,7 @@ export default function ConstraintsPage() {
                   p.status === 'accepted' ? 'bg-amber-50 text-amber-700' :
                   'bg-gray-50 text-gray-500'
                 }`}>
-                  {p.status === 'constraints_set' ? 'Pret' : p.status === 'accepted' ? 'En attente' : 'Invite'}
+                  {p.status === 'constraints_set' ? 'Ready' : p.status === 'accepted' ? 'Waiting' : 'Invited'}
                 </span>
               </div>
             ))}
@@ -192,7 +192,7 @@ export default function ConstraintsPage() {
       )}
 
       <button onClick={handleSubmit} className="btn-primary w-full">
-        Envoyer mes contraintes
+        Send my preferences
       </button>
     </div>
   );

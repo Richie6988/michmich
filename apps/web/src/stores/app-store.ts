@@ -22,7 +22,7 @@ const MOCK_USERS: User[] = [
 
 const MOCK_TRIPS: Trip[] = [
   {
-    id: 't1', name: 'Diner Vendredi', description: 'On se retrouve pour un diner sympa !',
+    id: 't1', name: 'Friday Dinner', description: 'Catching up over a nice dinner!',
     organizerId: 'u1', organizer: MOCK_USERS[0],
     tripType: 'dinner', status: 'constraints',
     scheduledAt: new Date(Date.now() + 3 * 86400000).toISOString(),
@@ -37,7 +37,7 @@ const MOCK_TRIPS: Trip[] = [
     ],
   },
   {
-    id: 't2', name: "Weekend at Barry's", description: 'Un weekend entre potes, Barry trouve la ville !',
+    id: 't2', name: "Weekend at Barry's", description: 'A friend weekend, Barry picks the city!',
     organizerId: 'u4', organizer: MOCK_USERS[3],
     tripType: 'weekend', status: 'draft',
     scheduledAt: new Date(Date.now() + 14 * 86400000).toISOString(),
@@ -71,10 +71,10 @@ const PARIS_VENUES: Venue[] = [
 
 const MOCK_CHATS: Record<string, ChatMessage[]> = {
   t1: [
-    { id: 'm1', tripId: 't1', userId: 'u1', user: MOCK_USERS[0], content: 'Salut la team ! Pret pour vendredi ?', type: 'text', createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
-    { id: 'm2', tripId: 't1', userId: 'u2', user: MOCK_USERS[1], content: 'Carrement, j\'ai mis mes contraintes', type: 'text', createdAt: new Date(Date.now() - 2 * 86400000 + 3600000).toISOString() },
-    { id: 'm3', tripId: 't1', userId: 'system', user: undefined, content: 'Marc a defini ses contraintes', type: 'system', createdAt: new Date(Date.now() - 86400000).toISOString() },
-    { id: 'm4', tripId: 't1', userId: 'u3', user: MOCK_USERS[2], content: 'Je viens en velo, faut pas que ca soit trop loin', type: 'text', createdAt: new Date(Date.now() - 86400000 + 7200000).toISOString() },
+    { id: 'm1', tripId: 't1', userId: 'u1', user: MOCK_USERS[0], content: 'Hey team! Ready for Friday?', type: 'text', createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+    { id: 'm2', tripId: 't1', userId: 'u2', user: MOCK_USERS[1], content: 'Yep, just set my preferences', type: 'text', createdAt: new Date(Date.now() - 2 * 86400000 + 3600000).toISOString() },
+    { id: 'm3', tripId: 't1', userId: 'system', user: undefined, content: 'Marc just set his preferences', type: 'system', createdAt: new Date(Date.now() - 86400000).toISOString() },
+    { id: 'm4', tripId: 't1', userId: 'u3', user: MOCK_USERS[2], content: 'Coming by bike, can't be too far', type: 'text', createdAt: new Date(Date.now() - 86400000 + 7200000).toISOString() },
   ],
 };
 
@@ -243,7 +243,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       participants: [{
         id: `p${Date.now()}`, tripId: id, userId: user.id, user, status: 'accepted',
         transportMode: user.defaultTransportMode, timeWeight: user.defaultTimeWeight, moneyWeight: user.defaultMoneyWeight,
-        maxTime: null, maxMoney: null, originLocation: user.homeLocation, originLabel: 'Domicile',
+        maxTime: null, maxMoney: null, originLocation: user.homeLocation, originLabel: 'Home',
         burdenScore: null, routeDuration: null, routeDistance: null, routeCost: null, routeGeometry: null, voteVenueId: null,
       }],
     };

@@ -4,7 +4,6 @@ import React, { useEffect } from 'react';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMark } from '@/components/barry/brand';
 
 export default function TripLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,12 +19,12 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
   const basePath = `/trips/${id}`;
 
   const tabs = [
-    { href: `${basePath}`, label: 'Apercu', icon: 'overview' },
-    { href: `${basePath}/constraints`, label: 'Contraintes', icon: 'sliders' },
-    { href: `${basePath}/map`, label: 'Carte', icon: 'map' },
+    { href: `${basePath}`, label: 'Overview', icon: 'overview' },
+    { href: `${basePath}/constraints`, label: 'My setup', icon: 'sliders' },
+    { href: `${basePath}/map`, label: 'Map', icon: 'map' },
     { href: `${basePath}/vote`, label: 'Vote', icon: 'vote' },
     { href: `${basePath}/chat`, label: 'Chat', icon: 'chat' },
-    { href: `${basePath}/cagnotte`, label: 'Cagnotte', icon: 'wallet' },
+    { href: `${basePath}/cagnotte`, label: 'Kitty', icon: 'wallet' },
   ];
 
   const currentTab = tabs.findIndex(t =>
@@ -34,7 +33,6 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-barry-canvas">
-      {/* Header */}
       <header className="sticky top-0 z-30 bg-white border-b border-gray-100">
         <div className="px-4 py-3 max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-3">
@@ -45,15 +43,14 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="font-display font-bold text-base text-barry-black truncate">
-                {trip?.name || 'Sortie'}
+                {trip?.name || 'Trip'}
               </h1>
               {trip?.scheduledAt && (
                 <p className="text-[11px] text-barry-grey">
-                  {new Date(trip.scheduledAt).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}
+                  {new Date(trip.scheduledAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
                 </p>
               )}
             </div>
-            {/* Avatars stack */}
             {trip && (
               <div className="flex -space-x-1.5">
                 {trip.participants.slice(0, 3).map((p, i) => (
@@ -74,7 +71,6 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
             )}
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-1 overflow-x-auto -mx-4 px-4 scrollbar-hide">
             {tabs.map((tab, i) => {
               const isActive = i === currentTab;
@@ -83,9 +79,7 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
                   key={tab.href}
                   href={tab.href as any}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-                    isActive
-                      ? 'bg-barry-blue text-white shadow-sm'
-                      : 'bg-gray-50 text-barry-grey hover:bg-gray-100'
+                    isActive ? 'bg-barry-blue text-white shadow-sm' : 'bg-gray-50 text-barry-grey hover:bg-gray-100'
                   }`}
                 >
                   <TabIcon name={tab.icon} active={isActive} />

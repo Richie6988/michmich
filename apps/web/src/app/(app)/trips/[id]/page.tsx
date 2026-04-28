@@ -16,19 +16,19 @@ export default function TripOverviewPage() {
     return (
       <div className="flex flex-col items-center justify-center pt-20">
         <BarryMascot mood="thinking" size={100} />
-        <p className="text-barry-grey mt-4">Sortie introuvable</p>
+        <p className="text-barry-grey mt-4">Trip not found</p>
       </div>
     );
   }
 
   const cagnotte = cagnottes[trip.id];
-  const messages = chats[trip.id] || [];
+  const message = chats[trip.id] || [];
   const isAdmin = trip.organizerId === currentUser?.id;
   const constraintsReady = trip.participants.filter(p => p.status === 'constraints_set' || p.status === 'voted').length;
-  const totalParticipants = trip.participants.length;
-  const progress = (constraintsReady / Math.max(totalParticipants, 1)) * 100;
+  const totalMembers = trip.participants.length;
+  const progress = (constraintsReady / Math.max(totalMembers, 1)) * 100;
 
-  const handleCopyInvite = () => {
+  const handleCopyInvited = () => {
     navigator.clipboard?.writeText(`https://barry.app/join/${trip.inviteToken}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -41,7 +41,7 @@ export default function TripOverviewPage() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-xs text-blue-100 uppercase tracking-wider font-semibold mb-1">
-              {isAdmin ? 'Tu organises' : 'Sortie organisee par ' + trip.organizer?.firstName}
+              {isAdmin ? 'You're hosting' : 'Hosted by ' + trip.organizer?.firstName}
             </p>
             <h2 className="font-display font-extrabold text-2xl">{trip.name}</h2>
           </div>
@@ -51,8 +51,8 @@ export default function TripOverviewPage() {
         {/* Progress */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-blue-100">Progression du groupe</span>
-            <span className="text-xs font-bold">{constraintsReady}/{totalParticipants} prets</span>
+            <span className="text-xs text-blue-100">Group progress</span>
+            <span className="text-xs font-bold">{constraintsReady}/{totalMembers} ready</span>
           </div>
           <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
             <div
@@ -69,35 +69,35 @@ export default function TripOverviewPage() {
           href={`/trips/${trip.id}/constraints`}
           icon="settings"
           color="#F97316"
-          label="Mes contraintes"
-          hint={trip.participants.find(p => p.userId === currentUser?.id)?.status === 'constraints_set' ? 'Defini' : 'A definir'}
+          label="My setup"
+          hint={trip.participants.find(p => p.userId === currentUser?.id)?.status === 'constraints_set' ? 'Done' : 'To do'}
         />
         <ActionCard
           href={`/trips/${trip.id}/chat`}
           icon="chat"
           color="#8B5CF6"
           label="Chat"
-          hint={`${messages.length} message${messages.length > 1 ? 's' : ''}`}
-          badge={messages.length}
+          hint={`${message.length} message${message.length > 1 ? 's' : ''}`}
+          badge={message.length}
         />
         <ActionCard
           href={`/trips/${trip.id}/map`}
           icon="map"
           color="#10B981"
-          label="Voir la carte"
-          hint={trip.status === 'voting' || trip.status === 'booked' ? 'Zones trouvees' : 'En attente'}
+          label="See map"
+          hint={trip.status === 'voting' || trip.status === 'booked' ? 'Zones found' : 'Waiting'}
           disabled={['draft', 'inviting', 'constraints'].includes(trip.status)}
         />
         <ActionCard
           href={`/trips/${trip.id}/cagnotte`}
           icon="wallet"
           color="#EC4899"
-          label="Cagnotte"
-          hint={cagnotte ? `${cagnotte.collected}/${cagnotte.totalTarget} EUR` : 'Non lancee'}
+          label="Kitty"
+          hint={cagnotte ? `${cagnotte.collected}/${cagnotte.totalTarget} EUR` : 'Not yet'}
         />
       </div>
 
-      {/* Cagnotte highlight (when active) */}
+      {/* Kitty highlight (when active) */}
       {cagnotte && cagnotte.status === 'open' && (
         <a
           href={`/trips/${trip.id}/cagnotte`}
@@ -110,7 +110,7 @@ export default function TripOverviewPage() {
                   <path d="M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5" /><circle cx="16" cy="14" r="1.5" />
                 </svg>
               </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-pink-100">Cagnotte du groupe</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-pink-100">Kitty of the group</span>
             </div>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" className="opacity-70">
               <polyline points="9 18 15 12 9 6" />
@@ -127,16 +127,16 @@ export default function TripOverviewPage() {
             />
           </div>
           <p className="text-[11px] text-pink-100 mt-2">
-            {cagnotte.contributions.filter(c => c.status === 'paid').length}/{cagnotte.contributions.length} contributions payees
+            {cagnotte.contributions.filter(c => c.status === 'paid').length}/{cagnotte.contributions.length} contributions paides
           </p>
         </a>
       )}
 
-      {/* Invite section */}
+      {/* Invited section */}
       <div className="bg-white rounded-2xl p-4 mb-4 border border-gray-100">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-barry-black">Inviter des amis</h3>
-          <span className="text-xs text-barry-grey">{totalParticipants} pers.</span>
+          <h3 className="font-semibold text-barry-black">Invited friends</h3>
+          <span className="text-xs text-barry-grey">{totalMembers} pers.</span>
         </div>
 
         <div className="flex gap-2 mb-3">
@@ -149,8 +149,8 @@ export default function TripOverviewPage() {
               barry.app/join/{trip.inviteToken.slice(0, 8)}
             </span>
           </div>
-          <button onClick={handleCopyInvite} className="bg-barry-blue text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 active:scale-95 transition-all">
-            {copied ? 'Copie !' : 'Copier'}
+          <button onClick={handleCopyInvited} className="bg-barry-blue text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-700 active:scale-95 transition-all">
+            {copied ? 'Copied !' : 'Copy'}
           </button>
         </div>
 
@@ -158,13 +158,13 @@ export default function TripOverviewPage() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="#1F8B4F">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
           </svg>
-          Partager via WhatsApp
+          Share on WhatsApp
         </button>
       </div>
 
-      {/* Participants list */}
+      {/* Members list */}
       <div className="bg-white rounded-2xl p-4 mb-4 border border-gray-100">
-        <h3 className="font-semibold text-barry-black mb-3">Participants</h3>
+        <h3 className="font-semibold text-barry-black mb-3">Members</h3>
         <div className="space-y-2.5">
           {trip.participants.map(p => (
             <div key={p.id} className="flex items-center justify-between">
@@ -194,16 +194,16 @@ export default function TripOverviewPage() {
       </div>
 
       {/* Help / next step */}
-      {trip.status === 'inviting' && constraintsReady < totalParticipants && (
+      {trip.status === 'inviting' && constraintsReady < totalMembers && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 mb-4">
           <div className="flex items-start gap-2.5">
             <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0 mt-0.5">
               <span className="text-white font-bold text-xs">!</span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-amber-900">En attente</p>
+              <p className="text-sm font-semibold text-amber-900">Waiting</p>
               <p className="text-xs text-amber-800 mt-0.5">
-                {totalParticipants - constraintsReady} personne(s) doivent encore definir leurs contraintes pour que Barry puisse calculer.
+                {totalMembers - constraintsReady} people still need to set their preferences before Barry can calculate.
               </p>
             </div>
           </div>
@@ -255,11 +255,11 @@ function ActionCard({
 
 function ParticipantStatusBadge({ status }: { status: string }) {
   const config: Record<string, { color: string; bg: string; label: string }> = {
-    constraints_set: { color: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Pret' },
-    voted: { color: 'text-blue-700', bg: 'bg-blue-50', label: 'A vote' },
-    accepted: { color: 'text-amber-700', bg: 'bg-amber-50', label: 'En attente' },
-    invited: { color: 'text-gray-600', bg: 'bg-gray-100', label: 'Invite' },
-    declined: { color: 'text-red-700', bg: 'bg-red-50', label: 'Refuse' },
+    constraints_set: { color: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Ready' },
+    voted: { color: 'text-blue-700', bg: 'bg-blue-50', label: 'Voted' },
+    accepted: { color: 'text-amber-700', bg: 'bg-amber-50', label: 'Waiting' },
+    invited: { color: 'text-gray-600', bg: 'bg-gray-100', label: 'Invited' },
+    declined: { color: 'text-red-700', bg: 'bg-red-50', label: 'Declined' },
   };
   const c = config[status] || config.invited;
   return (

@@ -39,13 +39,13 @@ export default function EquityMapPage() {
       const participants = participantsToApiFormat(trip.participants);
 
       if (participants.length < 2) {
-        setError('Au moins 2 participants doivent avoir defini leurs contraintes.');
+        setError('At least 2 members must set their preferences.');
         setLoading(false);
         return;
       }
 
       if (!up) {
-        setError('Le moteur d\'equite n\'est pas accessible (port 8000). Lance la partie Python pour avoir les vrais calculs OSRM.');
+        setError('Le moteur d\'equite n\'est pas accessible (port 8000). Launch the Python service for real calculations OSRM.');
         setLoading(false);
         return;
       }
@@ -82,7 +82,7 @@ export default function EquityMapPage() {
     return (
       <div className="flex flex-col items-center justify-center pt-20">
         <BarryMascot mood="thinking" size={100} />
-        <p className="text-barry-grey mt-4">Sortie introuvable</p>
+        <p className="text-barry-grey mt-4">Trip not found</p>
       </div>
     );
   }
@@ -92,10 +92,10 @@ export default function EquityMapPage() {
       <div className="px-4 py-12 flex flex-col items-center justify-center min-h-[60vh]">
         <BarryMascot mood="searching" size={140} />
         <h2 className="font-display font-bold text-xl mt-6 text-barry-black">
-          Barry calcule en temps reel...
+          Barry's calculating en temps reel...
         </h2>
         <p className="text-barry-grey text-sm mt-2 text-center max-w-xs">
-          Analyse de centaines de points + routes OSRM pour chaque participant
+          Analyzing hundreds of points + OSRM routes for each member
         </p>
         <div className="mt-6 flex gap-1.5">
           {[0, 1, 2].map(i => (
@@ -119,14 +119,14 @@ export default function EquityMapPage() {
         <div className="text-center mb-6">
           <BarryMascot mood="thinking" size={100} />
           <h2 className="font-display font-bold text-xl mt-4 text-barry-black">
-            Calcul impossible
+            Calculation failed
           </h2>
           <p className="text-sm text-barry-grey mt-2 max-w-sm mx-auto">{error}</p>
         </div>
 
         {engineUp === false && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
-            <p className="text-xs font-semibold text-amber-900 mb-2">Comment lancer le moteur ?</p>
+            <p className="text-xs font-semibold text-amber-900 mb-2">How to launch the engine ?</p>
             <pre className="text-[10px] text-amber-800 font-mono leading-relaxed bg-white/50 p-2 rounded">
 {`cd services\\equity-engine
 python -m venv venv
@@ -141,7 +141,7 @@ uvicorn app.main:app --port 8000`}
         )}
 
         <button onClick={() => window.location.reload()} className="w-full bg-barry-blue text-white font-semibold py-3 rounded-xl">
-          Re-essayer
+          Retry
         </button>
       </div>
     );
@@ -151,9 +151,9 @@ uvicorn app.main:app --port 8000`}
     return (
       <div className="px-4 py-12 flex flex-col items-center text-center">
         <BarryMascot mood="thinking" size={120} />
-        <h2 className="font-display font-bold text-xl mt-4">Aucune zone trouvee</h2>
+        <h2 className="font-display font-bold text-xl mt-4">No zones found</h2>
         <p className="text-sm text-barry-grey mt-2 max-w-xs">
-          Les contraintes du groupe sont peut-etre trop restrictives. Essaie d'augmenter les budgets temps/argent.
+          Les contraintes of the group sont peut-etre trop restrictives. Try increasing les budgets temps/argent.
         </p>
       </div>
     );
@@ -208,7 +208,7 @@ uvicorn app.main:app --port 8000`}
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
           <span className="text-[11px] font-medium text-emerald-800">
-            Calcul reel en {(calcTime / 1000).toFixed(1)}s
+            Calculated in {(calcTime / 1000).toFixed(1)}s
           </span>
         </div>
         <span className="text-[10px] text-emerald-600 font-mono">OSRM · Minimax</span>
@@ -232,7 +232,7 @@ uvicorn app.main:app --port 8000`}
         onClick={handleConfirm}
         className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-4 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
       >
-        Lancer le vote dans la zone {selectedZone?.label || zones[selectedZoneIdx].rank}
+        Start voting dans la zone {selectedZone?.label || zones[selectedZoneIdx].rank}
       </button>
     </div>
   );

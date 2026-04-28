@@ -51,10 +51,10 @@ export default function ItineraryPage() {
     (async () => {
       setLoading(true);
       const colors = ['#2563EB', '#F97316', '#10B981', '#8B5CF6', '#EC4899'];
-      const validParticipants = trip.participants.filter(p => p.originLocation && p.transportMode);
+      const validMembers = trip.participants.filter(p => p.originLocation && p.transportMode);
 
       const results = await Promise.all(
-        validParticipants.map(async (p, i) => {
+        validMembers.map(async (p, i) => {
           const route = await getRoute(p.originLocation!, venue.location, p.transportMode!);
           return {
             participant: p,
@@ -79,7 +79,7 @@ export default function ItineraryPage() {
     return (
       <div className="px-4 py-12 text-center">
         <BarryMascot mood="thinking" size={100} />
-        <p className="text-barry-grey mt-4">Sortie introuvable</p>
+        <p className="text-barry-grey mt-4">Trip not found</p>
       </div>
     );
   }
@@ -92,10 +92,10 @@ export default function ItineraryPage() {
 
   const date = trip.scheduledAt
     ? new Date(trip.scheduledAt).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
-    : 'Date a fixer';
+    : 'Date TBD';
 
   const handleCopy = () => {
-    navigator.clipboard?.writeText(`Rendez-vous: ${venue.name} (${venue.address.street}, ${venue.address.city}) ${date}`);
+    navigator.clipboard?.writeText(`Meet-up: ${venue.name} (${venue.address.street}, ${venue.address.city}) ${date}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -120,16 +120,16 @@ export default function ItineraryPage() {
       <div className="text-center mb-4">
         <BarryMascot mood="celebrating" size={80} />
         <h1 className="font-display font-extrabold text-2xl text-barry-black mt-2 tracking-tight">
-          C'est parti !
+          Let's go !
         </h1>
-        <p className="text-barry-grey text-sm mt-1">Tout est cale.</p>
+        <p className="text-barry-grey text-sm mt-1">Everything's set.</p>
       </div>
 
       {/* Equity score banner */}
       <div className="bg-gradient-to-br from-barry-blue to-blue-700 rounded-3xl p-4 mb-4 text-white shadow-lg shadow-blue-500/10">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-blue-100 uppercase tracking-wider font-semibold">Score d'equite calcule</p>
+            <p className="text-xs text-blue-100 uppercase tracking-wider font-semibold">Calculated equity score</p>
             <p className="font-display font-extrabold text-3xl mt-0.5">{equityScore}%</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
@@ -183,11 +183,11 @@ export default function ItineraryPage() {
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-white rounded-2xl p-3 text-center border border-gray-100">
           <p className="text-xl font-display font-bold text-barry-blue">{avgDuration}</p>
-          <p className="text-[10px] text-barry-grey">min moyenne</p>
+          <p className="text-[10px] text-barry-grey">min avg</p>
         </div>
         <div className="bg-white rounded-2xl p-3 text-center border border-gray-100">
           <p className="text-xl font-display font-bold text-barry-coral">{totalCost.toFixed(2)} EUR</p>
-          <p className="text-[10px] text-barry-grey">total transport</p>
+          <p className="text-[10px] text-barry-grey">transport total</p>
         </div>
         <div className="bg-white rounded-2xl p-3 text-center border border-gray-100">
           <p className="text-xl font-display font-bold text-barry-green">{routes.length}</p>
@@ -198,11 +198,11 @@ export default function ItineraryPage() {
       {/* Per-person routes */}
       <div className="mb-4">
         <h3 className="text-xs font-semibold text-barry-grey uppercase tracking-wider mb-2 px-1">
-          Itineraire par personne (calcul en direct)
+          Per-person route (live data)
         </h3>
         {loading ? (
           <div className="bg-white rounded-2xl p-4 text-center text-sm text-barry-grey">
-            Calcul des routes...
+            Calculating routes...
           </div>
         ) : (
           <div className="space-y-2">
@@ -241,7 +241,7 @@ export default function ItineraryPage() {
                     rel="noopener noreferrer"
                     className="mt-2 inline-flex items-center gap-1 text-[11px] text-barry-blue font-semibold hover:underline"
                   >
-                    Itineraire {transportLink.service}
+                    Directions {transportLink.service}
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
                       <polyline points="15 3 21 3 21 9" />
@@ -263,7 +263,7 @@ export default function ItineraryPage() {
           rel="noopener noreferrer"
           className="block w-full bg-gradient-to-r from-barry-coral to-orange-600 text-white font-semibold py-3.5 rounded-2xl shadow-md text-center"
         >
-          Reserver via {booking.service}
+          Reserve via {booking.service}
         </a>
 
         <button
@@ -274,7 +274,7 @@ export default function ItineraryPage() {
             <rect x="9" y="9" width="13" height="13" rx="2" />
             <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
           </svg>
-          {copied ? 'Copie !' : 'Copier le rendez-vous'}
+          {copied ? 'Copied !' : 'Copy le rendez-vous'}
         </button>
 
         <a
@@ -283,7 +283,7 @@ export default function ItineraryPage() {
           rel="noopener noreferrer"
           className="block w-full text-center text-xs text-barry-grey hover:text-barry-blue py-2"
         >
-          Voir sur Google Maps
+          View on Google Maps
         </a>
       </div>
     </div>

@@ -11,11 +11,11 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const messages = chats[id as string] || [];
+  const message = chats[id as string] || [];
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages.length]);
+  }, [message.length]);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -27,15 +27,15 @@ export default function ChatPage() {
     <div className="flex flex-col" style={{ height: 'calc(100vh - 130px)' }}>
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {messages.length === 0 ? (
+        {message.length === 0 ? (
           <div className="flex flex-col items-center justify-center pt-12">
             <BarryMascot mood="default" size={80} />
             <p className="text-sm text-barry-grey mt-4 text-center max-w-xs">
-              Le chat est vide pour le moment.<br/>Lance la conversation !
+              Chat is empty for now.<br/>Start the conversation !
             </p>
           </div>
         ) : (
-          messages.map(msg => {
+          message.map(msg => {
             const isMe = msg.userId === currentUser?.id;
             const isSystem = msg.type === 'system';
 
@@ -85,7 +85,7 @@ export default function ChatPage() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
-            placeholder="Ecris un message..."
+            placeholder="Type a message..."
             className="flex-1 bg-gray-50 rounded-full px-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-barry-blue/30"
           />
           <button

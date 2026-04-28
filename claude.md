@@ -147,116 +147,116 @@ Barry drops the pin in the deepest green zone with a celebratory animation.
 
 ```
 barry/
-├── claude.md                          # This file — project brain
+├── claude.md # This file — project brain
 ├── README.md
 ├── turbo.json
-├── package.json                       # Root workspace
-├── docker-compose.yml                 # Local dev: postgres, redis, osrm, elasticsearch
+├── package.json # Root workspace
+├── docker-compose.yml # Local dev: postgres, redis, osrm, elasticsearch
 ├── .github/workflows/
-│   ├── ci.yml
-│   └── cd.yml
+│ ├── ci.yml
+│ └── cd.yml
 ├── apps/
-│   ├── web/                           # Next.js 14 PWA
-│   │   ├── src/
-│   │   │   ├── app/                   # App Router pages
-│   │   │   │   ├── (auth)/            # Login, register, OAuth callback
-│   │   │   │   ├── (app)/             # Authenticated routes
-│   │   │   │   │   ├── page.tsx       # Home — active trips
-│   │   │   │   │   ├── trips/
-│   │   │   │   │   │   ├── new/       # Create trip
-│   │   │   │   │   │   └── [id]/
-│   │   │   │   │   │       ├── page.tsx        # Trip dashboard
-│   │   │   │   │   │       ├── constraints/    # Set constraints
-│   │   │   │   │   │       ├── map/            # Equity map
-│   │   │   │   │   │       ├── vote/           # Group vote
-│   │   │   │   │   │       └── itinerary/      # Final itinerary
-│   │   │   │   │   ├── profile/
-│   │   │   │   │   └── settings/
-│   │   │   ├── components/
-│   │   │   │   ├── barry/             # Barry mascot SVG components
-│   │   │   │   ├── map/               # Mapbox wrappers, heatmap, routes
-│   │   │   │   ├── trip/              # Trip cards, participant rows
-│   │   │   │   ├── vote/              # Swipe cards, vote counter
-│   │   │   │   └── ui/               # shadcn/ui components
-│   │   │   ├── hooks/
-│   │   │   ├── stores/                # Zustand stores
-│   │   │   ├── lib/
-│   │   │   │   ├── api/               # API client (TanStack Query)
-│   │   │   │   ├── socket.ts          # Socket.io client
-│   │   │   │   └── i18n/             # Translation files
-│   │   │   └── styles/
-│   │   ├── public/
-│   │   ├── Dockerfile
-│   │   └── package.json
-│   ├── mobile/                        # Expo (React Native)
-│   │   ├── app/                       # Expo Router file-based routing
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── stores/
-│   │   ├── lib/
-│   │   ├── assets/
-│   │   ├── app.json
-│   │   └── package.json
-│   └── api/                           # NestJS backend
-│       ├── src/
-│       │   ├── auth/                  # Auth module (OAuth2, JWT)
-│       │   ├── users/                 # User CRUD
-│       │   ├── trips/                 # Trip lifecycle
-│       │   ├── participants/          # Constraints, status
-│       │   ├── equity/                # Proxy to equity engine
-│       │   ├── venues/                # Venue search
-│       │   ├── votes/                 # Voting engine
-│       │   ├── bookings/              # Booking orchestration (3B)
-│       │   ├── payments/              # Stripe integration (3B)
-│       │   ├── notifications/         # Push + in-app
-│       │   ├── gateway/               # WebSocket gateway (Socket.io)
-│       │   ├── common/                # Guards, interceptors, pipes
-│       │   └── config/
-│       ├── test/
-│       ├── Dockerfile
-│       └── package.json
+│ ├── web/ # Next.js 14 PWA
+│ │ ├── src/
+│ │ │ ├── app/ # App Router pages
+│ │ │ │ ├── (auth)/ # Login, register, OAuth callback
+│ │ │ │ ├── (app)/ # Authenticated routes
+│ │ │ │ │ ├── page.tsx # Home — active trips
+│ │ │ │ │ ├── trips/
+│ │ │ │ │ │ ├── new/ # Create trip
+│ │ │ │ │ │ └── [id]/
+│ │ │ │ │ │ ├── page.tsx # Trip dashboard
+│ │ │ │ │ │ ├── constraints/ # Set constraints
+│ │ │ │ │ │ ├── map/ # Equity map
+│ │ │ │ │ │ ├── vote/ # Group vote
+│ │ │ │ │ │ └── itinerary/ # Final itinerary
+│ │ │ │ │ ├── profile/
+│ │ │ │ │ └── settings/
+│ │ │ ├── components/
+│ │ │ │ ├── barry/ # Barry mascot SVG components
+│ │ │ │ ├── map/ # Mapbox wrappers, heatmap, routes
+│ │ │ │ ├── trip/ # Trip cards, participant rows
+│ │ │ │ ├── vote/ # Swipe cards, vote counter
+│ │ │ │ └── ui/ # shadcn/ui components
+│ │ │ ├── hooks/
+│ │ │ ├── stores/ # Zustand stores
+│ │ │ ├── lib/
+│ │ │ │ ├── api/ # API client (TanStack Query)
+│ │ │ │ ├── socket.ts # Socket.io client
+│ │ │ │ └── i18n/ # Translation files
+│ │ │ └── styles/
+│ │ ├── public/
+│ │ ├── Dockerfile
+│ │ └── package.json
+│ ├── mobile/ # Expo (React Native)
+│ │ ├── app/ # Expo Router file-based routing
+│ │ ├── components/
+│ │ ├── hooks/
+│ │ ├── stores/
+│ │ ├── lib/
+│ │ ├── assets/
+│ │ ├── app.json
+│ │ └── package.json
+│ └── api/ # NestJS backend
+│ ├── src/
+│ │ ├── auth/ # Auth module (OAuth2, JWT)
+│ │ ├── users/ # User CRUD
+│ │ ├── trips/ # Trip lifecycle
+│ │ ├── participants/ # Constraints, status
+│ │ ├── equity/ # Proxy to equity engine
+│ │ ├── venues/ # Venue search
+│ │ ├── votes/ # Voting engine
+│ │ ├── bookings/ # Booking orchestration (3B)
+│ │ ├── payments/ # Stripe integration (3B)
+│ │ ├── notifications/ # Push + in-app
+│ │ ├── gateway/ # WebSocket gateway (Socket.io)
+│ │ ├── common/ # Guards, interceptors, pipes
+│ │ └── config/
+│ ├── test/
+│ ├── Dockerfile
+│ └── package.json
 ├── services/
-│   └── equity-engine/                 # FastAPI Python microservice
-│       ├── app/
-│       │   ├── main.py
-│       │   ├── api/routes.py
-│       │   ├── models/
-│       │   │   ├── constraints.py
-│       │   │   └── equity.py
-│       │   ├── algorithms/
-│       │   │   └── equity_optimizer.py  # Core minimax algorithm
-│       │   └── services/
-│       │       ├── osrm_client.py       # OSRM routing
-│       │       ├── transit_client.py     # Navitia wrapper
-│       │       └── geocoder.py
-│       ├── tests/
-│       ├── requirements.txt
-│       ├── Dockerfile
-│       └── proto/equity.proto           # gRPC definition
+│ └── equity-engine/ # FastAPI Python microservice
+│ ├── app/
+│ │ ├── main.py
+│ │ ├── api/routes.py
+│ │ ├── models/
+│ │ │ ├── constraints.py
+│ │ │ └── equity.py
+│ │ ├── algorithms/
+│ │ │ └── equity_optimizer.py # Core minimax algorithm
+│ │ └── services/
+│ │ ├── osrm_client.py # OSRM routing
+│ │ ├── transit_client.py # Navitia wrapper
+│ │ └── geocoder.py
+│ ├── tests/
+│ ├── requirements.txt
+│ ├── Dockerfile
+│ └── proto/equity.proto # gRPC definition
 ├── packages/
-│   ├── shared-types/                  # TypeScript interfaces (Trip, User, Venue, etc.)
-│   ├── ui/                            # Shared UI primitives
-│   ├── i18n/                          # Shared translation keys & files
-│   └── eslint-config/
+│ ├── shared-types/ # TypeScript interfaces (Trip, User, Venue, etc.)
+│ ├── ui/ # Shared UI primitives
+│ ├── i18n/ # Shared translation keys & files
+│ └── eslint-config/
 ├── infra/
-│   ├── k8s/                           # Kubernetes manifests (prod)
-│   ├── docker/                        # Dockerfiles, nginx configs
-│   └── monitoring/                    # Prometheus + Grafana
+│ ├── k8s/ # Kubernetes manifests (prod)
+│ ├── docker/ # Dockerfiles, nginx configs
+│ └── monitoring/ # Prometheus + Grafana
 ├── scripts/
-│   ├── seed.ts                        # Test data: 5 users, 3 trips, 10 venues (Paris)
-│   └── migrate.sh
+│ ├── seed.ts # Test data: 5 users, 3 trips, 10 venues (Paris)
+│ └── migrate.sh
 ├── docs/
-│   ├── architecture.md
-│   ├── api.md
-│   ├── equity-engine.md
-│   └── onboarding.md
-└── insights/                          # Design & strategy docs (existing)
-    ├── concept
-    ├── PROJECT_B_Machine_Build_Prompt.md
-    ├── 02_Persona_Cards.png
-    ├── 03_Journey_Maps.png
-    ├── 04_App_Wireframes.png
-    └── 05_Architecture_BMC.png
+│ ├── architecture.md
+│ ├── api.md
+│ ├── equity-engine.md
+│ └── onboarding.md
+└── insights/ # Design & strategy docs (existing)
+ ├── concept
+ ├── PROJECT_B_Machine_Build_Prompt.md
+ ├── 02_Persona_Cards.png
+ ├── 03_Journey_Maps.png
+ ├── 04_App_Wireframes.png
+ └── 05_Architecture_BMC.png
 ```
 
 ### 7.3 Database Schema (Key Tables)
@@ -276,7 +276,7 @@ barry/
 **Trip Status Machine:**
 ```
 draft → inviting → constraints → calculating → voting → booked → completed
-                                                              ↘ cancelled
+ ↘ cancelled
 ```
 
 ### 7.4 API Endpoints (Core)
@@ -397,7 +397,7 @@ draft → inviting → constraints → calculating → voting → booked → com
 
 When working on Barry, Claude operates as a multi-disciplinary team. Each agent role has specific expertise and responsibilities:
 
-### 🏗️ ARCHITECT — Technical Architecture & DevOps
+### ️ ARCHITECT — Technical Architecture & DevOps
 - Monorepo structure, dependency management, build system
 - Docker Compose & Kubernetes configuration
 - Database schema design, migrations, indexes
@@ -405,7 +405,7 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 - Performance targets: API < 200ms p95, equity calc < 5s for 8 participants
 - Security: Argon2id, rate limiting, CORS, CSP, CSRF
 
-### 🎨 DESIGNER — UI/UX & Brand Identity
+### DESIGNER — UI/UX & Brand Identity
 - Barry mascot SVG system (all poses, animations)
 - Design tokens (colors, typography, spacing, shadows)
 - Component design (cards, sliders, swipe deck, map overlays)
@@ -414,7 +414,7 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 - Motion design: page transitions, micro-interactions, Barry animations
 - Brand consistency across web + mobile
 
-### 📱 FRONTEND — Web & Mobile Development
+### FRONTEND — Web & Mobile Development
 - Next.js 14 App Router (web)
 - Expo Router (mobile)
 - Shared state management (Zustand + TanStack Query)
@@ -423,7 +423,7 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 - i18n with react-i18next
 - NativeWind for cross-platform styling
 
-### ⚙️ BACKEND — API & Services
+### ️ BACKEND — API & Services
 - NestJS modules (auth, trips, users, venues, votes, notifications)
 - GraphQL schema + DataLoader for N+1 prevention
 - WebSocket gateway (Socket.io)
@@ -431,7 +431,7 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 - Redis caching strategy (routes, sessions)
 - Input validation (class-validator + Zod)
 
-### 🧮 DATA SCIENTIST — Equity Engine
+### DATA SCIENTIST — Equity Engine
 - Minimax burden optimization algorithm
 - OSRM integration for multi-modal routing
 - Spatial grid search with PostGIS
@@ -440,7 +440,7 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 - Performance optimization (< 5s for 8 participants)
 - Edge case handling (conflicting constraints, degenerate geometry)
 
-### 📈 PRODUCT — Strategy & Business
+### PRODUCT — Strategy & Business
 - Feature prioritization per phase
 - Success metrics tracking (decision time, equity score, conversion)
 - Freemium model design (B.Free vs B.Pro)
@@ -448,14 +448,14 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 - User onboarding flow optimization
 - A/B testing strategy
 
-### 📣 MARKETING — Growth & Brand
+### MARKETING — Growth & Brand
 - Content pillars: Equity Stories, City Secrets, Group Psychology, Weekend at Barry's, Barry Comics
 - Viral mechanics: "The Equity Challenge" — share unfair meetup stories
 - Channel strategy: TikTok/Reels, university ambassadors, EVG/EVJF blogs
 - SEO: "fairest meeting neighborhoods in [City]"
 - WhatsApp deep-link virality (K ≥ 0.4)
 
-### 🧪 QA — Testing & Quality
+### QA — Testing & Quality
 - Unit tests: Jest (frontend/backend), pytest (equity engine)
 - Integration tests: Supertest (API), Apollo test server (GraphQL)
 - E2E tests: Playwright (web), Detox (mobile)

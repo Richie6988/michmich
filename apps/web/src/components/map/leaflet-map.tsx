@@ -159,7 +159,16 @@ export function LeafletMap({
           transform: scale(1.15);
           transform-origin: bottom center;
         }
+        .barry-marker {
+          cursor: pointer !important;
+          background: transparent !important;
+          border: none !important;
+        }
+        .barry-marker > div {
+          pointer-events: auto;
+        }
         .leaflet-container { font-family: inherit; }
+        .leaflet-marker-icon { cursor: pointer; }
         .leaflet-control-attribution {
           font-size: 9px !important;
           background: rgba(255,255,255,0.7) !important;

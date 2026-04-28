@@ -140,12 +140,12 @@ function VenueCard({ venue, style, onSwipe }: {
         {/* Swipe hint overlay */}
         {dragX > 50 && (
           <div className="absolute top-4 left-4 bg-barry-green text-white font-bold text-lg px-4 py-1 rounded-full rotate-[-15deg]">
-            J'adore
+            Love it
           </div>
         )}
         {dragX < -50 && (
           <div className="absolute top-4 right-4 bg-barry-red text-white font-bold text-lg px-4 py-1 rounded-full rotate-[15deg]">
-            Suivant
+            Next
           </div>
         )}
       </div>
@@ -187,7 +187,7 @@ export default function VotePage() {
         <div className="text-center mb-6">
           <BarryMascot mood="celebrating" size={80} />
           <h1 className="font-display font-bold text-2xl text-barry-black mt-4">
-            Le groupe a choisi !
+            The group picked !
           </h1>
         </div>
 
@@ -206,11 +206,11 @@ export default function VotePage() {
             <div className="flex items-center justify-around">
               <div className="text-center">
                 <p className="text-2xl font-bold text-barry-green">{approved.length}</p>
-                <p className="text-[11px] text-barry-grey">J'adore</p>
+                <p className="text-[11px] text-barry-grey">Love it</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-barry-grey">{Object.keys(votes).length - approved.length}</p>
-                <p className="text-[11px] text-barry-grey">Suivant</p>
+                <p className="text-[11px] text-barry-grey">Next</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-barry-blue">{Math.round(approved.length / Math.max(Object.keys(votes).length, 1) * 100)}%</p>
@@ -221,7 +221,7 @@ export default function VotePage() {
         </div>
 
         <button onClick={handleFinish} className="btn-primary w-full">
-          Voir l'itineraire
+          See directions
         </button>
       </div>
     );
@@ -230,9 +230,9 @@ export default function VotePage() {
   return (
     <div className="px-4 py-6">
       <div className="text-center mb-4">
-        <h1 className="font-display font-bold text-xl text-barry-black">Votez en groupe</h1>
+        <h1 className="font-display font-bold text-xl text-barry-black">Group vote</h1>
         <p className="text-barry-grey text-sm mt-1">
-          Swipez a droite pour valider, a gauche pour passer
+          Swipe right to approve, left to skip
         </p>
       </div>
 
