@@ -13,6 +13,8 @@ const config: Config = {
           canvas: '#FAFAFA',
           red: '#EF4444',
           yellow: '#F59E0B',
+          black: '#0F172A',
+          white: '#FFFFFF',
         },
       },
       fontFamily: {
