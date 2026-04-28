@@ -7,7 +7,8 @@ $PG_PORT = "5433"
 $REDIS_DIR = Join-Path $ROOT "portable\redis"
 
 $pgBin = Join-Path $PG_DIR "bin"
-$nodeDir = Join-Path $ROOT "node-portable"
+$nodeDir = Join-Path $ROOT "portable\nodejs"
+if (-not (Test-Path (Join-Path $nodeDir "npm.cmd"))) { $nodeDir = Join-Path $ROOT "node-portable" }
 $env:PATH = "$pgBin;$nodeDir;$env:PATH"
 $env:DATABASE_URL = "postgresql://barry@localhost:${PG_PORT}/barry"
 $env:REDIS_URL = "redis://localhost:6380"
