@@ -48,8 +48,9 @@ export function BottomSheet({
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-30 bg-white rounded-t-3xl shadow-2xl transition-all duration-300 ease-out ${className}`}
+      className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl transition-all duration-300 ease-out ${className}`}
       style={{
+        zIndex: 1000,
         height: `${heightPct}%`,
         transform: `translateY(${visualOffset}px)`,
         transition: dragStart.current !== null ? 'none' : 'all 0.3s cubic-bezier(0.32, 0.72, 0, 1)',

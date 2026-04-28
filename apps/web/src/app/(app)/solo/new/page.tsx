@@ -32,9 +32,9 @@ export default function SoloNewPage() {
   const { userLocation, createSoloTrip, setActiveSoloTrip } = useAppStore();
 
   const [originLabel, setOriginLabel] = useState('Ma position');
-  const [maxTime, setMaxTime] = useState(60);
-  const [maxBudget, setMaxBudget] = useState(15);
-  const [selectedModes, setSelectedModes] = useState<TransportMode[]>(['transit', 'walk']);
+  const [maxTime, setMaxTime] = useState(30);
+  const [maxBudget, setMaxBudget] = useState(10);
+  const [selectedModes, setSelectedModes] = useState<TransportMode[]>(['walk', 'transit']);
   const [selectedCategories, setSelectedCategories] = useState<(VenueCategory | 'all')[]>(['all']);
   const [submitting, setSubmitting] = useState(false);
   const [progressStep, setProgressStep] = useState<string>('');

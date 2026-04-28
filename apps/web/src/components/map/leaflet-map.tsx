@@ -22,42 +22,43 @@ function makeBarryIcon(opts: {
   label?: string;
   rank?: number;
   selected?: boolean;
+  category?: string;
 }): L.DivIcon {
   const color = opts.color || '#2563EB';
-  const size = opts.selected ? 44 : 36;
-  const scale = opts.selected ? 'transform: scale(1.15);' : '';
+  const size = opts.selected ? 48 : 40;
+  const animClass = opts.selected ? 'barry-pin-selected' : 'barry-pin-drop';
 
   let inner = '';
   if (opts.type === 'user') {
-    // User location: pulsing blue dot
+    // User location: pulsing blue dot with ripple
     inner = `
-      <div style="position: relative; width: 20px; height: 20px;">
-        <div style="position: absolute; inset: 0; background: #2563EB; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);"></div>
-        <div style="position: absolute; inset: -8px; border: 2px solid #2563EB; border-radius: 50%; opacity: 0.4; animation: ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
+      <div style="position: relative; width: 22px; height: 22px;">
+        <div style="position: absolute; inset: 0; background: #2563EB; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18), 0 2px 6px rgba(37, 99, 235, 0.4);"></div>
+        <div style="position: absolute; inset: -10px; border: 2px solid #2563EB; border-radius: 50%; opacity: 0.4; animation: barryPulse 2s ease-out infinite;"></div>
       </div>`;
   } else if (opts.type === 'origin') {
-    // Participant origin: small avatar-like dot
+    // Participant origin: avatar disc with ring
     inner = `
-      <div style="width: ${size}px; height: ${size}px; background: ${color}; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); ${scale}">
+      <div class="${animClass}" style="width: ${size - 6}px; height: ${size - 6}px; background: ${color}; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 13px; box-shadow: 0 4px 10px rgba(0,0,0,0.18);">
         ${opts.label || ''}
       </div>`;
   } else {
-    // Default destination/zone pin
+    // Barry-shaped pin with rank badge
     const rankBadge = opts.rank ? `
-      <div style="position: absolute; top: -2px; right: -2px; background: ${color}; color: white; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; border: 2px solid white;">${opts.rank}</div>
+      <div style="position: absolute; top: -4px; right: -4px; background: ${color}; color: white; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${opts.rank}</div>
     ` : '';
 
     inner = `
-      <div style="position: relative; ${scale}">
-        <svg width="${size}" height="${size * 1.2}" viewBox="0 0 32 38" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));">
+      <div class="${animClass}" style="position: relative;">
+        <svg width="${size}" height="${size * 1.25}" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));">
           <defs>
-            <linearGradient id="pinG-${color.slice(1)}" x1="16" y1="1" x2="16" y2="31" gradientUnits="userSpaceOnUse">
-              <stop stop-color="${color}" stop-opacity="0.85"/>
+            <linearGradient id="pinG-${opts.rank || 0}-${color.slice(1)}" x1="16" y1="1" x2="16" y2="33" gradientUnits="userSpaceOnUse">
+              <stop stop-color="${lighten(color, 15)}"/>
               <stop offset="1" stop-color="${color}"/>
             </linearGradient>
           </defs>
-          <path d="M16 1C10.2 1 5.5 5.7 5.5 11.5c0 7.95 10.5 22.5 10.5 22.5s10.5-14.55 10.5-22.5C26.5 5.7 21.8 1 16 1z" fill="url(#pinG-${color.slice(1)})"/>
-          <circle cx="16" cy="11.5" r="4.5" fill="white"/>
+          <path d="M16 1C9.4 1 4 6.4 4 13c0 8.7 12 25 12 25s12-16.3 12-25c0-6.6-5.4-12-12-12z" fill="url(#pinG-${opts.rank || 0}-${color.slice(1)})"/>
+          <circle cx="16" cy="13" r="5.5" fill="white"/>
         </svg>
         ${rankBadge}
       </div>`;
@@ -66,10 +67,19 @@ function makeBarryIcon(opts: {
   return L.divIcon({
     className: 'barry-marker',
     html: inner,
-    iconSize: [size, size * 1.2],
-    iconAnchor: [size / 2, size * 1.15],
+    iconSize: [size, size * 1.25],
+    iconAnchor: [size / 2, size * 1.2],
     popupAnchor: [0, -size],
   });
+}
+
+// Lighten a hex color by N percent
+function lighten(hex: string, percent: number): string {
+  const h = hex.replace('#', '');
+  const r = Math.min(255, parseInt(h.slice(0, 2), 16) + Math.round(255 * percent / 100));
+  const g = Math.min(255, parseInt(h.slice(2, 4), 16) + Math.round(255 * percent / 100));
+  const b = Math.min(255, parseInt(h.slice(4, 6), 16) + Math.round(255 * percent / 100));
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
 function MapController({ center, zoom }: { center: GeoPoint; zoom: number }) {
@@ -130,11 +140,24 @@ export function LeafletMap({
         ))}
       </MapContainer>
 
-      {/* Custom CSS for ping animation */}
+      {/* Custom CSS for pin animations */}
       <style jsx global>{`
-        @keyframes ping {
-          0% { transform: scale(1); opacity: 0.6; }
+        @keyframes barryPulse {
+          0% { transform: scale(0.9); opacity: 0.6; }
           75%, 100% { transform: scale(2.5); opacity: 0; }
+        }
+        @keyframes barryPinDrop {
+          0% { transform: translateY(-30px) scale(0.6); opacity: 0; }
+          60% { transform: translateY(4px) scale(1.05); opacity: 1; }
+          100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .barry-pin-drop {
+          animation: barryPinDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        .barry-pin-selected {
+          animation: barryPinDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+          transform: scale(1.15);
+          transform-origin: bottom center;
         }
         .leaflet-container { font-family: inherit; }
         .leaflet-control-attribution {

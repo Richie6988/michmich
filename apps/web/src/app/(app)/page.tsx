@@ -153,7 +153,7 @@ export default function HomePage() {
       </div>
 
       {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 pt-[env(safe-area-inset-top)]">
+      <div className="absolute top-0 left-0 right-0 z-[1001] pt-[env(safe-area-inset-top)]">
         <div className="flex items-center justify-between px-4 py-3 max-w-lg mx-auto">
           <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md rounded-full pl-2 pr-4 py-1.5 shadow-sm border border-white/60">
             <BarryMark size={26} />
@@ -179,7 +179,7 @@ export default function HomePage() {
             );
           }
         }}
-        className="absolute bottom-[60%] right-4 z-20 w-11 h-11 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        className="absolute bottom-[60%] right-4 z-[1001] w-11 h-11 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
         aria-label="Ma position"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -207,61 +207,89 @@ export default function HomePage() {
           <p className="text-sm text-barry-grey mb-5">
             {activeTrips.length > 0
               ? `${activeTrips.length} ${activeTrips.length > 1 ? 'sorties en cours' : 'sortie en cours'}`
-              : 'Pret pour une nouvelle aventure ?'}
+              : 'Decouvre des spots autour, ou organise une sortie avec tes amis.'}
           </p>
 
-          {/* PRIMARY CTA */}
-          <Link
-            href="/new"
-            className="block w-full mb-5 group"
-          >
-            <div className="bg-gradient-to-r from-barry-blue to-blue-700 text-white rounded-2xl p-4 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
+          {/* PRIMARY CTA — split in two for clarity */}
+          <div className="grid grid-cols-2 gap-2 mb-5">
+            <Link href="/solo/new" className="group">
+              <div className="bg-gradient-to-br from-barry-coral to-orange-600 text-white rounded-2xl p-3.5 shadow-lg shadow-orange-500/15 hover:shadow-xl active:scale-[0.98] transition-all h-full">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                      <circle cx="12" cy="8" r="4" /><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Solo</span>
                 </div>
-                <div className="flex-1">
-                  <div className="font-display font-bold text-lg">+ Nouveau Barry</div>
-                  <div className="text-xs text-white/80">Solo ou avec des amis</div>
-                </div>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" className="opacity-70 group-hover:translate-x-1 transition-transform">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
+                <p className="font-display font-bold text-sm leading-tight">Decouvrir autour de moi</p>
+                <p className="text-[10px] text-white/70 mt-0.5">8 spots en 30s</p>
               </div>
-            </div>
-          </Link>
+            </Link>
+
+            <Link href="/trips/new" className="group">
+              <div className="bg-gradient-to-br from-barry-blue to-blue-700 text-white rounded-2xl p-3.5 shadow-lg shadow-blue-500/15 hover:shadow-xl active:scale-[0.98] transition-all h-full">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Groupe</span>
+                </div>
+                <p className="font-display font-bold text-sm leading-tight">Organiser avec mes amis</p>
+                <p className="text-[10px] text-white/70 mt-0.5">Lieu equitable + cagnotte</p>
+              </div>
+            </Link>
+          </div>
 
           {/* Active trips */}
-          {activeTrips.length > 0 && (
+          {activeTrips.length > 0 ? (
             <div>
               <div className="flex items-center justify-between mb-2 px-1">
-                <h2 className="text-xs font-semibold text-barry-grey uppercase tracking-wider">
+                <h2 className="text-sm font-semibold text-barry-black">
                   Sorties en cours
                 </h2>
-                <span className="text-[10px] text-gray-400">Glisse pour voir plus</span>
+                <span className="text-[10px] text-gray-400">Glisse vers le haut pour voir plus</span>
               </div>
               <div className="space-y-2">
                 {activeTrips.map(trip => <TripCard key={trip.id} trip={trip} />)}
               </div>
             </div>
+          ) : (
+            <FirstTimeOnboarding />
           )}
-
-          {/* Help text */}
-          <div className="mt-6 p-3.5 bg-blue-50/60 rounded-2xl border border-blue-100/60">
-            <div className="flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-barry-blue flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-white font-bold text-xs">B.</span>
-              </div>
-              <div className="text-xs text-barry-grey leading-relaxed">
-                <span className="font-semibold text-barry-black">Comment ca marche ?</span><br/>
-                Cree un Barry solo pour decouvrir ce qu'il y a autour, ou en groupe pour trouver le point de rencontre le plus equitable.
-              </div>
-            </div>
-          </div>
         </div>
       </BottomSheet>
+    </div>
+  );
+}
+
+function FirstTimeOnboarding() {
+  return (
+    <div className="bg-white rounded-2xl p-4 border border-gray-100">
+      <h3 className="font-semibold text-sm text-barry-black mb-3">
+        Comment ca marche en 3 etapes
+      </h3>
+      <div className="space-y-3">
+        <OnboardStep n={1} title="Choisis le mode" desc="Solo pour decouvrir autour, Groupe pour organiser avec des amis." />
+        <OnboardStep n={2} title="Donne tes contraintes" desc="Temps, budget, mode de transport. Barry fait le reste." />
+        <OnboardStep n={3} title="Reserve en un clic" desc="Restaurants, hotels, activites — tout est connecte." />
+      </div>
+    </div>
+  );
+}
+
+function OnboardStep({ n, title, desc }: { n: number; title: string; desc: string }) {
+  return (
+    <div className="flex gap-3">
+      <div className="w-7 h-7 rounded-full bg-blue-50 text-barry-blue font-bold text-xs flex items-center justify-center flex-shrink-0">
+        {n}
+      </div>
+      <div>
+        <p className="font-medium text-sm text-barry-black">{title}</p>
+        <p className="text-xs text-barry-grey leading-snug">{desc}</p>
+      </div>
     </div>
   );
 }

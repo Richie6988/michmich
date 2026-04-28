@@ -27,6 +27,8 @@ const config: Config = {
         'barry-wave': 'barryWave 1.5s ease-in-out infinite',
         'pin-drop': 'pinDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'ripple': 'ripple 0.8s ease-out',
+        'slide-up': 'slideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1)',
+        'fade-in': 'fadeIn 0.3s ease-out',
       },
       keyframes: {
         barryBounce: {
@@ -46,6 +48,14 @@ const config: Config = {
         ripple: {
           '0%': { transform: 'scale(0)', opacity: '0.6' },
           '100%': { transform: 'scale(4)', opacity: '0' },
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
       },
     },

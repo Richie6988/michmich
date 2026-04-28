@@ -97,6 +97,41 @@ export default function TripOverviewPage() {
         />
       </div>
 
+      {/* Cagnotte highlight (when active) */}
+      {cagnotte && cagnotte.status === 'open' && (
+        <a
+          href={`/trips/${trip.id}/cagnotte`}
+          className="block bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-4 mb-4 text-white shadow-lg shadow-pink-500/15 active:scale-[0.98] transition-all"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5" /><circle cx="16" cy="14" r="1.5" />
+                </svg>
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-pink-100">Cagnotte du groupe</span>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" className="opacity-70">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="font-display font-extrabold text-2xl">{cagnotte.collected} EUR</span>
+            <span className="text-pink-100 text-sm">/ {cagnotte.totalTarget} EUR</span>
+          </div>
+          <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full transition-all duration-500"
+              style={{ width: `${Math.min((cagnotte.collected / cagnotte.totalTarget) * 100, 100)}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-pink-100 mt-2">
+            {cagnotte.contributions.filter(c => c.status === 'paid').length}/{cagnotte.contributions.length} contributions payees
+          </p>
+        </a>
+      )}
+
       {/* Invite section */}
       <div className="bg-white rounded-2xl p-4 mb-4 border border-gray-100">
         <div className="flex items-center justify-between mb-3">
