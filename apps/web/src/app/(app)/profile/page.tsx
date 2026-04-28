@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMascot } from '@/components/barry/barry-mascot';
+import { BarryMark, BarryLoader } from '@/components/barry/brand';
 
 export default function ProfilePage() {
   const { currentUser } = useAppStore();
@@ -51,7 +51,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="mt-8 text-center">
-        <BarryMascot pose="friendly" size={60} />
+        <BarryMark size={40} />
         <p className="text-xs text-barry-grey mt-2">Barry v0.1.0 - Prototype</p>
       </div>
     </div>

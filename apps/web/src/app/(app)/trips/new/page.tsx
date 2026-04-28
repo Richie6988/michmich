@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMascot } from '@/components/barry/barry-mascot';
+import { BarryMark, BarryLoader } from '@/components/barry/brand';
 import type { TripType, TransportMode } from '@barry/shared-types';
 
 const TRIP_TYPES: { value: TripType; label: string; icon: string }[] = [
@@ -48,7 +48,7 @@ export default function CreateTripPage() {
     <div className="px-4 py-6">
       {/* Barry header */}
       <div className="text-center mb-8">
-        <BarryMascot pose="friendly" size={100} />
+        <BarryMark size={40} />
         <h1 className="font-display font-bold text-2xl text-barry-black mt-4">
           {step === 0 ? 'Creer un Barry' : 'Dernieres infos'}
         </h1>

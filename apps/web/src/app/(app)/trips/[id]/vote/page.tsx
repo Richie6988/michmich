@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMascot } from '@/components/barry/barry-mascot';
+import { BarryMark, BarryLoader } from '@/components/barry/brand';
 
 const MOCK_VENUES = [
   {
@@ -185,7 +185,7 @@ export default function VotePage() {
     return (
       <div className="px-4 py-6">
         <div className="text-center mb-6">
-          <BarryMascot pose="celebrating" size={120} />
+          <BarryMark size={40} />
           <h1 className="font-display font-bold text-2xl text-barry-black mt-4">
             Le groupe a choisi !
           </h1>

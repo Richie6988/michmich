@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { BarryMascot } from '@/components/barry/barry-mascot';
+import { BarryMark, BarryLoader } from '@/components/barry/brand';
 
 const MOCK_ITINERARY = {
   venue: {
@@ -39,7 +39,7 @@ export default function ItineraryPage() {
     <div className="px-4 py-6">
       {/* Celebration header */}
       <div className="text-center mb-6">
-        <BarryMascot pose="celebrating" size={100} />
+        <BarryMark size={40} />
         <h1 className="font-display font-bold text-2xl text-barry-black mt-3">
           C'est parti !
         </h1>

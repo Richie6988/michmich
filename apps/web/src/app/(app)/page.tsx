@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMascot } from '@/components/barry/barry-mascot';
+import { BarryMark, BarryLoader } from '@/components/barry/brand';
 import type { Trip } from '@barry/shared-types';
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
@@ -121,7 +121,7 @@ function TripCard({ trip }: { trip: Trip }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-      <BarryMascot pose="shrug" size={160} />
+      <BarryMark size={40} />
       <h3 className="font-display font-bold text-xl text-barry-black mt-6 mb-2">
         Aucune sortie en cours
       </h3>

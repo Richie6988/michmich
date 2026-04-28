@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Providers } from '@/components/providers';
-import { BarryLogo } from '@/components/barry/barry-mascot';
+import { BarryLogo } from '@/components/barry/brand';
 
 function BottomNav() {
   const pathname = usePathname();

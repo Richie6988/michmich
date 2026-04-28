@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMascot, BarryLogo } from '@/components/barry/barry-mascot';
+import { BarryMark, BarryLogo, BarryLoader } from '@/components/barry/brand';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       {/* Logo & mascot */}
       <div className="text-center mb-8">
-        <BarryMascot pose="friendly" size={120} />
+        <BarryMark size={40} />
         <div className="flex items-center justify-center gap-2 mt-4">
           <BarryLogo size={36} />
           <h1 className="font-display font-extrabold text-3xl text-barry-blue">Barry</h1>
