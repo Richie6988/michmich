@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $ROOT) { $ROOT = Get-Location }
 
@@ -77,7 +77,7 @@ if (-not (Test-Path $pgVersionFile)) {
 
 # --- 4. Start PG + load schema ---
 Write-Host "[4/5] Starting PostgreSQL on port $PG_PORT..." -ForegroundColor Yellow
-& $pgCtl stop -D $PG_DATA -m fast 2>&1 | Out-Null
+try { & $pgCtl stop -D $PG_DATA -m fast 2>&1 | Out-Null } catch {}
 Start-Sleep 1
 & $pgCtl start -D $PG_DATA -l (Join-Path $portableDir "pg.log") -o "-p $PG_PORT" -w
 
