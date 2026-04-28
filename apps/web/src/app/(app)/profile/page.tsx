@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMark, BarryLoader } from '@/components/barry/brand';
+import { BarryMascot, BarryMark, BarryLoader } from '@/components/barry/brand';
 
 export default function ProfilePage() {
   const { currentUser } = useAppStore();

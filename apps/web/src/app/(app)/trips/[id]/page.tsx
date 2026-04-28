@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMark, BarryLoader } from '@/components/barry/brand';
+import { BarryMascot, BarryMark, BarryLoader } from '@/components/barry/brand';
 
 export default function TripDetailPage() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function TripDetailPage() {
   if (!activeTrip) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <BarryMark size={40} />
+        <BarryMascot mood="searching" size={64} />
       </div>
     );
   }
@@ -39,7 +39,7 @@ export default function TripDetailPage() {
   return (
     <div className="px-4 py-6">
       <div className="text-center mb-6">
-        <BarryMark size={40} />
+        <BarryMascot mood="default" size={72} />
         <h1 className="font-display font-bold text-2xl text-barry-black mt-3">{activeTrip.name}</h1>
         {activeTrip.scheduledAt && (
           <p className="text-barry-grey text-sm mt-1">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMark, BarryLoader } from '@/components/barry/brand';
+import { BarryMascot, BarryMark, BarryLoader } from '@/components/barry/brand';
 
 // Mock equity zones for prototype
 const MOCK_ZONES = [
@@ -160,7 +160,7 @@ export default function EquityMapPage() {
     <div className="px-4 py-6">
       {/* Header with Barry celebrating */}
       <div className="text-center mb-4">
-        <BarryMark size={40} />
+        <BarryMascot mood="happy" size={64} />
         <h1 className="font-display font-bold text-xl text-barry-black mt-2">
           Barry a trouve 3 zones !
         </h1>
