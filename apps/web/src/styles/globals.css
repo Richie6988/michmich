@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   BARRY — Design Tokens (CSS Custom Properties)
+   ============================================================ */
+
+:root {
+  /* Colors */
+  --barry-blue: #2563EB;
+  --barry-coral: #F97316;
+  --barry-green: #10B981;
+  --barry-grey: #64748B;
+  --barry-canvas: #FAFAFA;
+  --barry-red: #EF4444;
+  --barry-yellow: #F59E0B;
+  --barry-white: #FFFFFF;
+  --barry-black: #0F172A;
+
+  /* Equity zone colors */
+  --equity-high: #10B981;
+  --equity-medium: #F59E0B;
+  --equity-low: #EF4444;
+
+  /* Spacing */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 2px 8px rgba(37, 99, 235, 0.08);
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+}
+
+/* ============================================================
+   Base Styles
+   ============================================================ */
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-barry-canvas text-barry-black font-sans;
+    padding-top: var(--safe-area-top);
+    padding-bottom: var(--safe-area-bottom);
+  }
+
+  /* Mapbox overrides */
+  .mapboxgl-map {
+    font-family: inherit;
+  }
+
+  .mapboxgl-ctrl-attrib {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   Component Layer
+   ============================================================ */
+
+@layer components {
+  /* Primary button */
+  .btn-primary {
+    @apply bg-barry-blue text-white font-semibold py-3 px-6 rounded-xl
+           transition-all duration-200 active:scale-95
+           hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply bg-white text-barry-blue font-semibold py-3 px-6 rounded-xl
+           border-2 border-barry-blue transition-all duration-200
+           active:scale-95 hover:bg-blue-50;
+  }
+
+  /* Coral accent button */
+  .btn-coral {
+    @apply bg-barry-coral text-white font-semibold py-3 px-6 rounded-xl
+           transition-all duration-200 active:scale-95 hover:bg-orange-600;
+  }
+
+  /* Card */
+  .barry-card {
+    @apply bg-white rounded-2xl p-4 shadow-sm border border-gray-100;
+  }
+
+  /* Input */
+  .barry-input {
+    @apply w-full bg-white border border-gray-200 rounded-xl px-4 py-3
+           text-sm placeholder:text-gray-400 transition-colors
+           focus:outline-none focus:border-barry-blue focus:ring-1 focus:ring-barry-blue;
+  }
+
+  /* Equity score badge */
+  .equity-badge {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold;
+  }
+
+  .equity-badge-high {
+    @apply equity-badge bg-emerald-100 text-emerald-700;
+  }
+
+  .equity-badge-medium {
+    @apply equity-badge bg-amber-100 text-amber-700;
+  }
+
+  .equity-badge-low {
+    @apply equity-badge bg-red-100 text-red-700;
+  }
+}

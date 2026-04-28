@@ -1,0 +1,153 @@
+{
+  "common": {
+    "appName": "Barry",
+    "tagline": "Barry sait ou.",
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "back": "Retour",
+    "next": "Suivant",
+    "done": "Termine",
+    "close": "Fermer",
+    "search": "Rechercher",
+    "noResults": "Aucun resultat",
+    "error": "Une erreur est survenue",
+    "retry": "Reessayer",
+    "or": "ou",
+    "and": "et",
+    "minutes": "min",
+    "hours": "h",
+    "euros": "EUR"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "register": "Creer un compte",
+    "logout": "Se deconnecter",
+    "email": "Email",
+    "password": "Mot de passe",
+    "firstName": "Prenom",
+    "lastName": "Nom",
+    "forgotPassword": "Mot de passe oublie ?",
+    "noAccount": "Pas encore de compte ?",
+    "hasAccount": "Deja un compte ?",
+    "loginWith": "Se connecter avec {{provider}}"
+  },
+  "home": {
+    "title": "Mes Barry's",
+    "activeTrips": "Sorties en cours",
+    "pastTrips": "Sorties passees",
+    "noTrips": "Aucune sortie en cours",
+    "noTripsHint": "Cree ta premiere sortie et Barry trouvera le point de rencontre ideal !",
+    "newTrip": "+ Nouveau Barry",
+    "greeting": "Salut {{name}} !"
+  },
+  "trip": {
+    "create": {
+      "title": "Creer une sortie",
+      "name": "Nom de la sortie",
+      "namePlaceholder": "Ex: Diner vendredi, Weekend a Barry's...",
+      "date": "Date & heure",
+      "type": "Type de sortie",
+      "description": "Description (optionnel)",
+      "transportModes": "Modes de transport",
+      "createButton": "Creer le Barry"
+    },
+    "types": {
+      "dinner": "Diner",
+      "weekend": "Weekend",
+      "evg": "EVG",
+      "evjf": "EVJF",
+      "family": "Famille",
+      "corporate": "Corporate",
+      "custom": "Autre"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "inviting": "Invitations",
+      "constraints": "Contraintes",
+      "calculating": "Calcul en cours",
+      "voting": "Vote en cours",
+      "booked": "Reserve",
+      "completed": "Termine",
+      "cancelled": "Annule"
+    },
+    "invite": {
+      "title": "Inviter des amis",
+      "shareLink": "Partager le lien",
+      "copyLink": "Copier le lien",
+      "linkCopied": "Lien copie !",
+      "whatsapp": "Envoyer via WhatsApp",
+      "participants": "{{count}} participant(s)",
+      "waitingFor": "En attente de {{count}} personne(s)"
+    },
+    "stealth": {
+      "label": "Mode surprise",
+      "hint": "Cache la destination aux personnes selectionnees (ideal pour EVG/EVJF)"
+    }
+  },
+  "constraints": {
+    "title": "Tes contraintes",
+    "subtitle": "Dis a Barry tes limites, il trouvera le compromis ideal.",
+    "maxTime": "Temps max de trajet",
+    "maxBudget": "Budget transport max",
+    "transportMode": "Mode de transport",
+    "weight": "Priorite",
+    "weightTime": "Temps",
+    "weightMoney": "Budget",
+    "weightHint": "Glisse pour indiquer ce qui compte le plus pour toi",
+    "origin": "Point de depart",
+    "originHint": "Ton adresse ou ta position actuelle",
+    "useCurrentLocation": "Utiliser ma position",
+    "submit": "Envoyer mes contraintes",
+    "submitted": "Contraintes envoyees !"
+  },
+  "transport": {
+    "walk": "A pied",
+    "bike": "Velo",
+    "transit": "Transport en commun",
+    "car": "Voiture",
+    "train": "Train",
+    "flight": "Avion"
+  },
+  "map": {
+    "title": "Barry a trouve {{count}} zone(s)",
+    "equityScore": "Score d'equite",
+    "maxBurden": "Effort max",
+    "meanBurden": "Effort moyen",
+    "selectZone": "Choisir cette zone",
+    "yourRoute": "Ton trajet : {{duration}} min",
+    "zoneRank": "Zone {{rank}}"
+  },
+  "vote": {
+    "title": "Votez en groupe",
+    "subtitle": "Swipez pour choisir votre lieu prefere",
+    "swipeRight": "J'adore",
+    "swipeLeft": "Suivant",
+    "votes": "{{count}} vote(s)",
+    "waiting": "En attente des votes...",
+    "winner": "Le groupe a choisi !",
+    "approvalRate": "{{rate}}% d'approbation"
+  },
+  "itinerary": {
+    "title": "C'est parti !",
+    "subtitle": "Tout est cale. Barry s'est occupe de tout.",
+    "yourRoute": "Ton itineraire",
+    "duration": "{{minutes}} min",
+    "distance": "{{km}} km",
+    "cost": "{{amount}} EUR",
+    "addToCalendar": "Ajouter au calendrier",
+    "shareItinerary": "Partager l'itineraire",
+    "book": "Reserver",
+    "equityScore": "Score d'equite du groupe : {{score}}%"
+  },
+  "barry": {
+    "calculating": "Barry calcule le point ideal...",
+    "found": "Barry a trouve !",
+    "error": "Barry est un peu perdu...",
+    "empty": "Barry attend tes amis !",
+    "welcome": "Salut ! Je suis Barry. Je vais trouver le point de rencontre le plus equitable pour ton groupe."
+  }
+}

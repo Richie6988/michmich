@@ -1,0 +1,111 @@
+version: "3.9"
+
+# ============================================================
+# BARRY — Local Development Stack
+# Usage: docker compose up -d
+# ============================================================
+
+services:
+  # --- PostgreSQL + PostGIS ---
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: barry-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-barry}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-barry_dev_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-barry}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barry -d barry"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Redis (cache, sessions, pub/sub, BullMQ) ---
+  redis:
+    image: redis:7-alpine
+    container_name: barry-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # --- OSRM Backend (car routing for Île-de-France) ---
+  osrm:
+    image: osrm/osrm-backend:v5.27.1
+    container_name: barry-osrm
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+    command: osrm-routed --algorithm mld /data/ile-de-france-latest.osrm
+    profiles:
+      - routing
+
+  # --- Elasticsearch (venue search) ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: barry-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    profiles:
+      - search
+
+  # --- Redis Commander (dev UI for Redis) ---
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: barry-redis-ui
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    profiles:
+      - tools
+
+  # --- pgAdmin (dev UI for PostgreSQL) ---
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: barry-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@barry.app
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "8082:80"
+    depends_on:
+      - postgres
+    profiles:
+      - tools
+
+volumes:
+  postgres-data:
+  redis-data:
+  es-data:

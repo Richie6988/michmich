@@ -1,0 +1,153 @@
+{
+  "common": {
+    "appName": "Barry",
+    "tagline": "Barry knows where.",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "close": "Close",
+    "search": "Search",
+    "noResults": "No results",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "or": "or",
+    "and": "and",
+    "minutes": "min",
+    "hours": "h",
+    "euros": "EUR"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create account",
+    "logout": "Log out",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "loginWith": "Log in with {{provider}}"
+  },
+  "home": {
+    "title": "My Barry's",
+    "activeTrips": "Active trips",
+    "pastTrips": "Past trips",
+    "noTrips": "No active trips",
+    "noTripsHint": "Create your first trip and Barry will find the fairest meeting point!",
+    "newTrip": "+ New Barry",
+    "greeting": "Hey {{name}}!"
+  },
+  "trip": {
+    "create": {
+      "title": "Create a trip",
+      "name": "Trip name",
+      "namePlaceholder": "E.g. Friday Dinner, Weekend at Barry's...",
+      "date": "Date & time",
+      "type": "Trip type",
+      "description": "Description (optional)",
+      "transportModes": "Transport modes",
+      "createButton": "Create Barry"
+    },
+    "types": {
+      "dinner": "Dinner",
+      "weekend": "Weekend",
+      "evg": "Bachelor Party",
+      "evjf": "Bachelorette",
+      "family": "Family",
+      "corporate": "Corporate",
+      "custom": "Other"
+    },
+    "status": {
+      "draft": "Draft",
+      "inviting": "Inviting",
+      "constraints": "Setting constraints",
+      "calculating": "Calculating",
+      "voting": "Voting",
+      "booked": "Booked",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "invite": {
+      "title": "Invite friends",
+      "shareLink": "Share link",
+      "copyLink": "Copy link",
+      "linkCopied": "Link copied!",
+      "whatsapp": "Send via WhatsApp",
+      "participants": "{{count}} participant(s)",
+      "waitingFor": "Waiting for {{count}} person(s)"
+    },
+    "stealth": {
+      "label": "Stealth mode",
+      "hint": "Hide the destination from selected people (perfect for bachelor parties)"
+    }
+  },
+  "constraints": {
+    "title": "Your constraints",
+    "subtitle": "Tell Barry your limits, he'll find the fairest compromise.",
+    "maxTime": "Max travel time",
+    "maxBudget": "Max transport budget",
+    "transportMode": "Transport mode",
+    "weight": "Priority",
+    "weightTime": "Time",
+    "weightMoney": "Budget",
+    "weightHint": "Slide to show what matters most to you",
+    "origin": "Starting point",
+    "originHint": "Your address or current location",
+    "useCurrentLocation": "Use my location",
+    "submit": "Submit constraints",
+    "submitted": "Constraints submitted!"
+  },
+  "transport": {
+    "walk": "Walking",
+    "bike": "Cycling",
+    "transit": "Public transit",
+    "car": "Car",
+    "train": "Train",
+    "flight": "Flight"
+  },
+  "map": {
+    "title": "Barry found {{count}} zone(s)",
+    "equityScore": "Equity score",
+    "maxBurden": "Max burden",
+    "meanBurden": "Mean burden",
+    "selectZone": "Select this zone",
+    "yourRoute": "Your route: {{duration}} min",
+    "zoneRank": "Zone {{rank}}"
+  },
+  "vote": {
+    "title": "Group vote",
+    "subtitle": "Swipe to pick your favorite spot",
+    "swipeRight": "Love it",
+    "swipeLeft": "Next",
+    "votes": "{{count}} vote(s)",
+    "waiting": "Waiting for votes...",
+    "winner": "The group has chosen!",
+    "approvalRate": "{{rate}}% approval"
+  },
+  "itinerary": {
+    "title": "All set!",
+    "subtitle": "Everything's sorted. Barry handled it all.",
+    "yourRoute": "Your route",
+    "duration": "{{minutes}} min",
+    "distance": "{{km}} km",
+    "cost": "{{amount}} EUR",
+    "addToCalendar": "Add to calendar",
+    "shareItinerary": "Share itinerary",
+    "book": "Book",
+    "equityScore": "Group equity score: {{score}}%"
+  },
+  "barry": {
+    "calculating": "Barry is finding the ideal spot...",
+    "found": "Barry found it!",
+    "error": "Barry is a bit lost...",
+    "empty": "Barry is waiting for your friends!",
+    "welcome": "Hey! I'm Barry. I'll find the fairest meeting point for your group."
+  }
+}
