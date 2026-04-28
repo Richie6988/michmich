@@ -61,3 +61,7 @@ yarn-error.log*
 
 # OSRM data (downloaded separately)
 osrm-data/
+
+# Portable tools (downloaded by setup-portable.ps1)
+portable/
+node-portable/
