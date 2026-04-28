@@ -74,7 +74,7 @@ const MOCK_CHATS: Record<string, ChatMessage[]> = {
     { id: 'm1', tripId: 't1', userId: 'u1', user: MOCK_USERS[0], content: 'Hey team! Ready for Friday?', type: 'text', createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
     { id: 'm2', tripId: 't1', userId: 'u2', user: MOCK_USERS[1], content: 'Yep, just set my preferences', type: 'text', createdAt: new Date(Date.now() - 2 * 86400000 + 3600000).toISOString() },
     { id: 'm3', tripId: 't1', userId: 'system', user: undefined, content: 'Marc just set his preferences', type: 'system', createdAt: new Date(Date.now() - 86400000).toISOString() },
-    { id: 'm4', tripId: 't1', userId: 'u3', user: MOCK_USERS[2], content: 'Coming by bike, can't be too far', type: 'text', createdAt: new Date(Date.now() - 86400000 + 7200000).toISOString() },
+    { id: 'm4', tripId: 't1', userId: 'u3', user: MOCK_USERS[2], content: 'Coming by bike, cannot be too far', type: 'text', createdAt: new Date(Date.now() - 86400000 + 7200000).toISOString() },
   ],
 };
 
