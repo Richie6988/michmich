@@ -41,7 +41,7 @@ export default function TripOverviewPage() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-xs text-blue-100 uppercase tracking-wider font-semibold mb-1">
-              {isAdmin ? 'You're hosting' : 'Hosted by ' + trip.organizer?.firstName}
+              {isAdmin ? "You're hosting" : 'Hosted by ' + trip.organizer?.firstName}
             </p>
             <h2 className="font-display font-extrabold text-2xl">{trip.name}</h2>
           </div>

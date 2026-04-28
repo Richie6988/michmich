@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMascot } from '@/components/barry/brand';
+import { formatDateTime } from '@/lib/utils/format-date';
 import { BarryMap } from '@/components/map/barry-map';
 import { getRoute } from '@/lib/api/osrm';
 import { smartBookingLink, smartTransportLink, googleMapsDirections } from '@/lib/api/booking-links';
@@ -91,7 +92,7 @@ export default function ItineraryPage() {
     : 0;
 
   const date = trip.scheduledAt
-    ? new Date(trip.scheduledAt).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+    ? formatDateTime(trip.scheduledAt)
     : 'Date TBD';
 
   const handleCopy = () => {

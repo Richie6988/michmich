@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAppStore } from '@/stores/app-store';
+import { formatDateLong } from '@/lib/utils/format-date';
 
 export default function TripLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
               </h1>
               {trip?.scheduledAt && (
                 <p className="text-[11px] text-barry-grey">
-                  {new Date(trip.scheduledAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
+                  {formatDateLong(trip.scheduledAt)}
                 </p>
               )}
             </div>
