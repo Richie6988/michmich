@@ -2,7 +2,10 @@ import { create } from 'zustand';
 import type {
   Trip, User, EquityZone, ChatMessage, Cagnotte,
   SoloTrip, SoloDestination, Venue, TripMode, GeoPoint,
+  DatePoll, DatePollOption, DateVoteResponse,
+  Expense, ExpenseCategory, ExpenseShare, ExpenseSplitMode,
 } from '@barry/shared-types';
+import { buildShares } from '@/lib/utils/expenses';
 
 // ============================================================
 // MOCK USERS
@@ -95,6 +98,96 @@ const MOCK_CAGNOTTES: Record<string, Cagnotte> = {
       { id: 'c4', cagnotteId: 'cag1', userId: 'u4', user: MOCK_USERS[3], amount: 45, status: 'pending', paidAt: null },
     ],
   },
+};
+
+// ============================================================
+// MOCK DATE POLLS (Doodle-style)
+// ============================================================
+
+const MOCK_POLLS: Record<string, DatePoll> = {
+  t1: {
+    id: 'poll1',
+    tripId: 't1',
+    options: [
+      { id: 'opt1', date: addDays(2), label: 'Friday evening' },
+      { id: 'opt2', date: addDays(3), label: 'Saturday evening' },
+      { id: 'opt3', date: addDays(9), label: 'Friday after' },
+      { id: 'opt4', date: addDays(10), label: 'Saturday after' },
+    ],
+    votes: [
+      { userId: 'u1', optionId: 'opt1', response: 'yes', votedAt: new Date().toISOString() },
+      { userId: 'u1', optionId: 'opt2', response: 'yes', votedAt: new Date().toISOString() },
+      { userId: 'u1', optionId: 'opt3', response: 'maybe', votedAt: new Date().toISOString() },
+      { userId: 'u1', optionId: 'opt4', response: 'no', votedAt: new Date().toISOString() },
+      { userId: 'u2', optionId: 'opt1', response: 'yes', votedAt: new Date().toISOString() },
+      { userId: 'u2', optionId: 'opt2', response: 'maybe', votedAt: new Date().toISOString() },
+      { userId: 'u2', optionId: 'opt3', response: 'yes', votedAt: new Date().toISOString() },
+      { userId: 'u2', optionId: 'opt4', response: 'yes', votedAt: new Date().toISOString() },
+      { userId: 'u3', optionId: 'opt1', response: 'yes', votedAt: new Date().toISOString() },
+      { userId: 'u3', optionId: 'opt2', response: 'yes', votedAt: new Date().toISOString() },
+      { userId: 'u3', optionId: 'opt3', response: 'no', votedAt: new Date().toISOString() },
+      { userId: 'u3', optionId: 'opt4', response: 'maybe', votedAt: new Date().toISOString() },
+    ],
+    status: 'open',
+    selectedOptionId: null,
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    closesAt: null,
+  },
+};
+
+function addDays(n: number): string {
+  return new Date(Date.now() + n * 86400000).toISOString();
+}
+
+// ============================================================
+// MOCK EXPENSES (Tricount-style, post-trip)
+// ============================================================
+
+const MOCK_EXPENSES: Record<string, Expense[]> = {
+  t1: [
+    {
+      id: 'e1', tripId: 't1', paidBy: 'u1', payer: MOCK_USERS[0],
+      description: 'Dinner at Chez Janou', category: 'food',
+      amount: 168.50, currency: 'EUR',
+      date: new Date(Date.now() - 86400000).toISOString(),
+      splitMode: 'equal',
+      shares: [
+        { userId: 'u1', amount: 42.13 },
+        { userId: 'u2', amount: 42.13 },
+        { userId: 'u3', amount: 42.12 },
+        { userId: 'u4', amount: 42.12 },
+      ],
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      id: 'e2', tripId: 't1', paidBy: 'u2', payer: MOCK_USERS[1],
+      description: 'Uber back home', category: 'transport',
+      amount: 32, currency: 'EUR',
+      date: new Date(Date.now() - 86400000).toISOString(),
+      splitMode: 'equal',
+      shares: [
+        { userId: 'u1', amount: 8 },
+        { userId: 'u2', amount: 8 },
+        { userId: 'u3', amount: 8 },
+        { userId: 'u4', amount: 8 },
+      ],
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      id: 'e3', tripId: 't1', paidBy: 'u3', payer: MOCK_USERS[2],
+      description: 'Drinks at Candelaria', category: 'drinks',
+      amount: 64, currency: 'EUR',
+      date: new Date(Date.now() - 86400000).toISOString(),
+      splitMode: 'equal',
+      shares: [
+        { userId: 'u1', amount: 16 },
+        { userId: 'u2', amount: 16 },
+        { userId: 'u3', amount: 16 },
+        { userId: 'u4', amount: 16 },
+      ],
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+  ],
 };
 
 // ============================================================
@@ -199,6 +292,26 @@ interface AppState {
   cagnottes: Record<string, Cagnotte>;
   payContribution: (tripId: string, contributionId: string) => void;
   initCagnotte: (tripId: string, totalAmount: number) => void;
+
+  // Date polls (Doodle)
+  datePolls: Record<string, DatePoll>;
+  createDatePoll: (tripId: string, options: { date: string; label?: string }[]) => DatePoll;
+  voteDatePoll: (tripId: string, optionId: string, response: DateVoteResponse) => void;
+  closeDatePoll: (tripId: string, selectedOptionId: string) => void;
+
+  // Expenses (Tricount)
+  expenses: Record<string, Expense[]>;
+  addExpense: (tripId: string, input: {
+    description: string;
+    amount: number;
+    paidBy: string;
+    category: ExpenseCategory;
+    date: string;
+    splitMode: ExpenseSplitMode;
+    participantIds: string[];
+    customShares?: { userId: string; value: number }[];
+  }) => Expense;
+  removeExpense: (tripId: string, expenseId: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -213,6 +326,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   isCalculating: false,
   chats: MOCK_CHATS,
   cagnottes: MOCK_CAGNOTTES,
+  datePolls: MOCK_POLLS,
+  expenses: MOCK_EXPENSES,
 
   login: (email) => {
     const user = MOCK_USERS.find(u => u.email === email) || MOCK_USERS[0];
@@ -330,5 +445,95 @@ export const useAppStore = create<AppState>((set, get) => ({
       })),
     };
     set(s => ({ cagnottes: { ...s.cagnottes, [tripId]: cag } }));
+  },
+
+  // ============================================================
+  // DATE POLLS (Doodle)
+  // ============================================================
+
+  createDatePoll: (tripId, options) => {
+    const poll: DatePoll = {
+      id: `poll${Date.now()}`,
+      tripId,
+      options: options.map((o, i) => ({
+        id: `opt${Date.now()}-${i}`,
+        date: o.date,
+        label: o.label,
+      })),
+      votes: [],
+      status: 'open',
+      selectedOptionId: null,
+      createdAt: new Date().toISOString(),
+      closesAt: null,
+    };
+    set(s => ({ datePolls: { ...s.datePolls, [tripId]: poll } }));
+    return poll;
+  },
+
+  voteDatePoll: (tripId, optionId, response) => {
+    const userId = get().currentUser?.id;
+    if (!userId) return;
+    set(s => {
+      const poll = s.datePolls[tripId];
+      if (!poll) return s;
+      const otherVotes = poll.votes.filter(v => !(v.userId === userId && v.optionId === optionId));
+      const newVotes = [...otherVotes, { userId, optionId, response, votedAt: new Date().toISOString() }];
+      return {
+        datePolls: { ...s.datePolls, [tripId]: { ...poll, votes: newVotes } },
+      };
+    });
+  },
+
+  closeDatePoll: (tripId, selectedOptionId) => {
+    set(s => {
+      const poll = s.datePolls[tripId];
+      if (!poll) return s;
+      return {
+        datePolls: {
+          ...s.datePolls,
+          [tripId]: { ...poll, status: 'closed' as const, selectedOptionId },
+        },
+      };
+    });
+  },
+
+  // ============================================================
+  // EXPENSES (Tricount)
+  // ============================================================
+
+  addExpense: (tripId, input) => {
+    const trip = get().trips.find(t => t.id === tripId);
+    const payerUser = trip?.participants.find(p => p.userId === input.paidBy)?.user;
+    const shares = buildShares(input.amount, input.participantIds, input.splitMode, input.customShares);
+    const expense: Expense = {
+      id: `e${Date.now()}`,
+      tripId,
+      paidBy: input.paidBy,
+      payer: payerUser,
+      description: input.description,
+      category: input.category,
+      amount: input.amount,
+      currency: 'EUR',
+      date: input.date,
+      splitMode: input.splitMode,
+      shares,
+      createdAt: new Date().toISOString(),
+    };
+    set(s => ({
+      expenses: {
+        ...s.expenses,
+        [tripId]: [...(s.expenses[tripId] || []), expense],
+      },
+    }));
+    return expense;
+  },
+
+  removeExpense: (tripId, expenseId) => {
+    set(s => ({
+      expenses: {
+        ...s.expenses,
+        [tripId]: (s.expenses[tripId] || []).filter(e => e.id !== expenseId),
+      },
+    }));
   },
 }));

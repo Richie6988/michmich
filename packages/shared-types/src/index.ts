@@ -408,3 +408,99 @@ export interface TripExtended extends Trip {
   chat?: ChatMessage[];
   cagnotte?: Cagnotte;
 }
+
+// ============================================================
+// DATE POLL (Doodle-like) — find a date that works for everyone
+// ============================================================
+
+export interface DatePollOption {
+  id: string;
+  /** ISO date string (YYYY-MM-DD or full ISO with time) */
+  date: string;
+  /** Optional label like "evening" or "afternoon" */
+  label?: string;
+}
+
+export type DateVoteResponse = 'yes' | 'maybe' | 'no';
+
+export interface DateVote {
+  userId: string;
+  optionId: string;
+  response: DateVoteResponse;
+  votedAt: string;
+}
+
+export interface DatePoll {
+  id: string;
+  tripId: string;
+  options: DatePollOption[];
+  votes: DateVote[];
+  status: 'open' | 'closed';
+  selectedOptionId: string | null;
+  createdAt: string;
+  closesAt: string | null;
+}
+
+// ============================================================
+// EXPENSES (Tricount-like) — split costs after the trip
+// ============================================================
+
+export type ExpenseCategory =
+  | 'food'
+  | 'drinks'
+  | 'transport'
+  | 'accommodation'
+  | 'activity'
+  | 'shopping'
+  | 'other';
+
+export type ExpenseSplitMode = 'equal' | 'custom' | 'shares';
+
+export interface ExpenseShare {
+  userId: string;
+  /** Amount the user owes for this expense (EUR) */
+  amount: number;
+  /** For 'shares' split mode: number of shares this user takes (default 1) */
+  shares?: number;
+}
+
+export interface Expense {
+  id: string;
+  tripId: string;
+  /** Who paid */
+  paidBy: string;
+  payer?: User;
+  /** What was bought */
+  description: string;
+  category: ExpenseCategory;
+  /** Total amount in EUR */
+  amount: number;
+  currency: string;
+  /** ISO date when the expense happened */
+  date: string;
+  splitMode: ExpenseSplitMode;
+  /** Who shares the cost and how much they each owe */
+  shares: ExpenseShare[];
+  createdAt: string;
+}
+
+export interface Settlement {
+  fromUserId: string;
+  fromUser?: User;
+  toUserId: string;
+  toUser?: User;
+  amount: number;
+  currency: string;
+}
+
+export interface ExpenseBalance {
+  userId: string;
+  user?: User;
+  /** Sum of all amounts the user paid for the group */
+  totalPaid: number;
+  /** Sum of all amounts the user owes */
+  totalOwed: number;
+  /** Net balance (positive = group owes them, negative = they owe group) */
+  net: number;
+}
+
