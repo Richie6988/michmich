@@ -18,10 +18,10 @@ const MODES: { value: TransportMode; label: string; color: string; icon: JSX.Ele
 export default function ConstraintsPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
-  const { activeTrip, setActiveTrip, updateTripStatus, currentUser, userLocation } = useAppStore();
+  const { activeTrip, setActiveTrip, updateTripStatus, updateParticipantConstraints, currentUser, userLocation, preferences } = useAppStore();
 
   const [originLabel, setOriginLabel] = useState(currentUser?.homeLocation ? 'Home' : 'My location');
-  const [mode, setMode] = useState<TransportMode>('transit');
+  const [mode, setMode] = useState<TransportMode>(preferences?.defaultTransportMode || 'transit');
   const [maxTime, setMaxTime] = useState(45);
   const [maxBudget, setMaxBudget] = useState(15);
   const [weight, setWeight] = useState(0.5);
@@ -33,15 +33,29 @@ export default function ConstraintsPage() {
 
   // Reverse-geocode origin label
   useEffect(() => {
-    const loc = currentUser?.homeLocation || userLocation;
+    const loc = preferences?.homeLocation || currentUser?.homeLocation || userLocation;
     if (!loc) return;
     reverseGeocode(loc).then(label => {
       if (label) setOriginLabel(label);
     });
-  }, [currentUser?.homeLocation, userLocation]);
+  }, [preferences?.homeLocation, currentUser?.homeLocation, userLocation]);
 
   const handleSubmit = () => {
+    if (!currentUser) return;
     setSubmitted(true);
+
+    // Persist this user's preferences as their participant record
+    const origin = preferences?.homeLocation || currentUser.homeLocation || userLocation || null;
+    updateParticipantConstraints(id as string, currentUser.id, {
+      transportMode: mode,
+      timeWeight: weight,
+      moneyWeight: 1 - weight,
+      maxTime,
+      maxMoney: maxBudget,
+      originLocation: origin,
+      originLabel,
+    });
+
     setTimeout(() => {
       updateTripStatus(id as string, 'calculating');
       router.push(`/trips/${id}/map` as any);

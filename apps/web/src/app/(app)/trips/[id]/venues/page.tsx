@@ -18,20 +18,52 @@ interface VenueOpt {
   bgIndex: number;
 }
 
-const DEMO_VENUES: VenueOpt[] = [
-  { id: 'v1', name: 'Chez Janou', category: 'Restaurant', price: 2, rating: 4.4,
-    description: 'Iconic Marais bistro. Legendary chocolate mousse.',
-    address: '2 Rue Roger Verlomme, 75003', tags: ['French', 'Terrace'], bgIndex: 0 },
-  { id: 'v2', name: 'Le Perchoir Marais', category: 'Bar', price: 3, rating: 4.1,
-    description: 'Rooftop with a view over the Paris skyline.',
-    address: '33 Rue de la Verrerie, 75004', tags: ['Rooftop', 'Cocktails'], bgIndex: 1 },
-  { id: 'v3', name: 'Breizh Cafe', category: 'Restaurant', price: 2, rating: 4.3,
-    description: 'Best crepes in Paris. Artisanal Breton cider.',
-    address: '109 Rue Vieille du Temple, 75003', tags: ['Crepes', 'Organic'], bgIndex: 2 },
-  { id: 'v4', name: 'Candelaria', category: 'Bar', price: 2, rating: 4.5,
-    description: 'Speakeasy hidden behind a taqueria.',
-    address: '52 Rue de Saintonge, 75003', tags: ['Speakeasy', 'Mexican'], bgIndex: 3 },
-];
+const VENUES_BY_ZONE: Record<string, VenueOpt[]> = {
+  'demo-z1': [ // Marais
+    { id: 'mar-1', name: 'Chez Janou', category: 'Restaurant', price: 2, rating: 4.4,
+      description: 'Iconic Marais bistro. Legendary chocolate mousse.',
+      address: '2 Rue Roger Verlomme, 75003', tags: ['French', 'Terrace'], bgIndex: 0 },
+    { id: 'mar-2', name: 'Le Perchoir Marais', category: 'Bar', price: 3, rating: 4.1,
+      description: 'Rooftop with a view over the Paris skyline.',
+      address: '33 Rue de la Verrerie, 75004', tags: ['Rooftop', 'Cocktails'], bgIndex: 1 },
+    { id: 'mar-3', name: 'Breizh Cafe', category: 'Restaurant', price: 2, rating: 4.3,
+      description: 'Best crepes in Paris. Artisanal Breton cider.',
+      address: '109 Rue Vieille du Temple, 75003', tags: ['Crepes', 'Organic'], bgIndex: 2 },
+    { id: 'mar-4', name: 'Candelaria', category: 'Bar', price: 2, rating: 4.5,
+      description: 'Speakeasy hidden behind a taqueria.',
+      address: '52 Rue de Saintonge, 75003', tags: ['Speakeasy', 'Mexican'], bgIndex: 3 },
+  ],
+  'demo-z2': [ // Republique
+    { id: 'rep-1', name: 'Holybelly 5', category: 'Brunch', price: 2, rating: 4.5,
+      description: 'Cult brunch spot. Pancakes worth the wait.',
+      address: '5 Rue Lucien Sampaix, 75010', tags: ['Brunch', 'Coffee'], bgIndex: 0 },
+    { id: 'rep-2', name: 'Le Mary Celeste', category: 'Bar', price: 3, rating: 4.4,
+      description: 'Natural wine and seasonal cocktails.',
+      address: '1 Rue Commines, 75003', tags: ['Wine', 'Tapas'], bgIndex: 1 },
+    { id: 'rep-3', name: 'Du Pain et des Idees', category: 'Bakery', price: 1, rating: 4.7,
+      description: 'Artisan bakery. Get there before noon.',
+      address: '34 Rue Yves Toudic, 75010', tags: ['Bakery', 'Pastry'], bgIndex: 2 },
+    { id: 'rep-4', name: 'Le Comptoir General', category: 'Bar', price: 2, rating: 4.0,
+      description: 'Hidden along Canal Saint-Martin. Quirky vibe.',
+      address: '80 Quai de Jemmapes, 75010', tags: ['Hidden', 'Eclectic'], bgIndex: 3 },
+  ],
+  'demo-z3': [ // Bastille
+    { id: 'bas-1', name: 'Septime', category: 'Restaurant', price: 4, rating: 4.6,
+      description: 'Michelin-starred. Modern French. Reserve weeks ahead.',
+      address: '80 Rue de Charonne, 75011', tags: ['Michelin', 'Modern'], bgIndex: 0 },
+    { id: 'bas-2', name: 'Le Servan', category: 'Restaurant', price: 3, rating: 4.4,
+      description: 'Asian-French fusion. Seasonal and sharp.',
+      address: '32 Rue Saint-Maur, 75011', tags: ['Fusion', 'Wine'], bgIndex: 1 },
+    { id: 'bas-3', name: 'Aux Deux Amis', category: 'Bar', price: 2, rating: 4.3,
+      description: 'Tiny natural wine bar. Always packed for a reason.',
+      address: '45 Rue Oberkampf, 75011', tags: ['Wine', 'Small plates'], bgIndex: 2 },
+    { id: 'bas-4', name: 'Bistrot Paul Bert', category: 'Restaurant', price: 3, rating: 4.5,
+      description: 'Old-school bistro. Steak frites done right.',
+      address: '18 Rue Paul Bert, 75011', tags: ['French', 'Classic'], bgIndex: 3 },
+  ],
+};
+
+const FALLBACK_VENUES: VenueOpt[] = VENUES_BY_ZONE['demo-z1'];
 
 const VENUE_BG = [
   'from-orange-100 via-amber-50 to-rose-50',
@@ -45,33 +77,54 @@ export default function VenuesPage() {
   const { id } = useParams<{ id: string }>();
   const {
     currentUser, activeTrip, trips,
-    venueVotes, voteForVenue, closeVenueVote, pickedVenue,
+    venueVotes, voteForVenue, closeVenueVote, pickedVenue, pickedZone,
   } = useAppStore();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [showResults, setShowResults] = useState(false);
 
   const trip = activeTrip || trips.find(t => t.id === id);
+  const zoneId = trip ? pickedZone[trip.id] : null;
+  const venues = zoneId && VENUES_BY_ZONE[zoneId] ? VENUES_BY_ZONE[zoneId] : FALLBACK_VENUES;
   const myVotes = (venueVotes[id as string] || []).filter(v => v.userId === currentUser?.id);
 
   useEffect(() => {
     // Skip already voted venues
-    while (currentIdx < DEMO_VENUES.length && myVotes.find(v => v.venueId === DEMO_VENUES[currentIdx].id)) {
+    while (currentIdx < venues.length && myVotes.find(v => v.venueId === venues[currentIdx].id)) {
       setCurrentIdx(i => i + 1);
       return;
     }
-    if (currentIdx >= DEMO_VENUES.length) setShowResults(true);
-  }, [currentIdx, myVotes.length]);
+    if (currentIdx >= venues.length) setShowResults(true);
+  }, [currentIdx, myVotes.length, venues.length]);
 
   if (!trip) return null;
+
+  // Empty-state guard: no zone picked yet
+  if (!zoneId && !pickedVenue[trip.id]) {
+    return (
+      <div className="px-4 py-12 text-center">
+        <BarryMascot mood="thinking" size={100} />
+        <h1 className="font-display font-bold text-xl text-slate-900 mt-3">Pick a zone first</h1>
+        <p className="text-sm text-slate-500 mt-2 max-w-xs mx-auto leading-snug">
+          Barry needs the group to agree on a zone before you vote on the venues inside it.
+        </p>
+        <button
+          onClick={() => router.push(`/trips/${id}/map` as any)}
+          className="mt-5 px-5 py-2.5 bg-barry-blue text-white font-semibold rounded-xl text-sm"
+        >
+          Go to map
+        </button>
+      </div>
+    );
+  }
 
   const lockedVenue = pickedVenue[trip.id];
   const isAdmin = trip.organizerId === currentUser?.id;
   const totalMembers = trip.participants.length;
 
   const handleVote = (response: VenueVoteResponse) => {
-    const venue = DEMO_VENUES[currentIdx];
+    const venue = venues[currentIdx];
     voteForVenue(id as string, venue.id, response);
-    if (currentIdx + 1 >= DEMO_VENUES.length) {
+    if (currentIdx + 1 >= venues.length) {
       setTimeout(() => setShowResults(true), 300);
     } else {
       setCurrentIdx(currentIdx + 1);
@@ -79,7 +132,7 @@ export default function VenuesPage() {
   };
 
   // Compute tally per venue
-  const tallies = DEMO_VENUES.map(v => {
+  const tallies = venues.map(v => {
     const votes = (venueVotes[id as string] || []).filter(vv => vv.venueId === v.id);
     const love = votes.filter(vv => vv.response === 'love').length;
     const meh = votes.filter(vv => vv.response === 'meh').length;
@@ -91,7 +144,7 @@ export default function VenuesPage() {
 
   // Locked-in screen
   if (lockedVenue) {
-    const w = DEMO_VENUES.find(v => v.id === lockedVenue);
+    const w = venues.find(v => v.id === lockedVenue);
     if (!w) return null;
     return (
       <div className="px-4 py-6 pb-32">
@@ -136,7 +189,7 @@ export default function VenuesPage() {
 
   // Results screen
   if (showResults) {
-    const allVoted = DEMO_VENUES.every(v => myVotes.find(mv => mv.venueId === v.id));
+    const allVoted = venues.every(v => myVotes.find(mv => mv.venueId === v.id));
     return (
       <div className="px-4 py-6 pb-32">
         <div className="text-center mb-5">
@@ -196,15 +249,15 @@ export default function VenuesPage() {
   }
 
   // Voting screen
-  const v = DEMO_VENUES[currentIdx];
+  const v = venues[currentIdx];
   return (
     <div className="px-4 py-4 pb-32">
       <div className="flex gap-1 mb-4 px-2">
-        {DEMO_VENUES.map((_, i) => (
+        {venues.map((_, i) => (
           <div
             key={i}
             className={`h-1 flex-1 rounded-full ${
-              myVotes.find(mv => mv.venueId === DEMO_VENUES[i].id) ? 'bg-emerald-500' :
+              myVotes.find(mv => mv.venueId === venues[i].id) ? 'bg-emerald-500' :
               i === currentIdx ? 'bg-barry-blue' : 'bg-slate-200'
             }`}
           />
@@ -251,7 +304,7 @@ export default function VenuesPage() {
       </div>
 
       <p className="text-center text-[11px] text-slate-400 mt-3 mb-4">
-        {currentIdx + 1} of {DEMO_VENUES.length}
+        {currentIdx + 1} of {venues.length}
       </p>
 
       <div className="grid grid-cols-3 gap-2">

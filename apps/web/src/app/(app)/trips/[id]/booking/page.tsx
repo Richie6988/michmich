@@ -23,7 +23,7 @@ const TYPE_LABEL: Record<string, string> = {
 export default function BookingPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
-  const { reservations, performBookings, activeTrip, trips } = useAppStore();
+  const { reservations, performBookings, activeTrip, trips, fundsRequests } = useAppStore();
   const trip = activeTrip || trips.find(t => t.id === id);
 
   const [phase, setPhase] = useState<'ready' | 'booking' | 'done'>('ready');
@@ -47,6 +47,27 @@ export default function BookingPage() {
   };
 
   if (!trip) return null;
+
+  // Empty-state guard: nothing to book
+  const fr = fundsRequests[id as string];
+  const hasUpstream = fr && fr.totalAmount > 0;
+  if (!hasUpstream && phase === 'ready') {
+    return (
+      <div className="px-4 py-12 text-center">
+        <BarryMascot mood="thinking" size={100} />
+        <h1 className="font-display font-bold text-xl text-slate-900 mt-3">Nothing to book yet</h1>
+        <p className="text-sm text-slate-500 mt-2 max-w-xs mx-auto leading-snug">
+          Walk through venues, stay, transport and funds first.
+        </p>
+        <button
+          onClick={() => router.push(`/trips/${id}` as any)}
+          className="mt-5 px-5 py-2.5 bg-barry-blue text-white font-semibold rounded-xl text-sm"
+        >
+          Back to trip
+        </button>
+      </div>
+    );
+  }
 
   if (phase === 'booking') {
     return (

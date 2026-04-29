@@ -154,6 +154,7 @@ export default function EquityMapPage() {
   const totalMembers = trip.participants.length;
   const totalVoted = new Set(tripPinVotes.map(v => v.userId)).size;
   const myVote = tripPinVotes.find(v => v.userId === currentUser?.id);
+  const isSolo = totalMembers === 1;
 
   // Tally
   const zoneTally = zones.map(z => {
@@ -292,8 +293,8 @@ export default function EquityMapPage() {
           </div>
         </div>
 
-        {/* Pin voting */}
-        {!lockedZone && (
+        {/* Pin voting (group only) */}
+        {!lockedZone && !isSolo && (
           <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-3">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
@@ -382,6 +383,16 @@ export default function EquityMapPage() {
               className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
             >
               Pick venues in this zone
+            </button>
+          ) : isSolo ? (
+            <button
+              onClick={() => {
+                closePinVote(trip.id, selected.id);
+                setTimeout(() => router.push(`/trips/${trip.id}/venues` as any), 300);
+              }}
+              className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
+            >
+              Pick {selected.label || `Zone ${selected.rank}`} and continue
             </button>
           ) : isAdmin && allVoted ? (
             <button

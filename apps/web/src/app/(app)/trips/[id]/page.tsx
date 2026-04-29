@@ -22,6 +22,7 @@ export default function TripOverviewPage() {
   const {
     activeTrip, trips, currentUser,
     cagnottes, chats, datePolls, expenses,
+    pickedZone, pickedVenue, fundsRequests, reservations,
     addParticipantByName, removeParticipant,
   } = useAppStore();
   const [copied, setCopied] = useState(false);
@@ -67,11 +68,46 @@ export default function TripOverviewPage() {
     setShowAddPerson(false);
   };
 
-  // Smart next-step
+  const tripPickedZone = trip ? pickedZone[trip.id] : null;
+  const tripPickedVenue = trip ? pickedVenue[trip.id] : null;
+  const tripFunds = trip ? fundsRequests[trip.id] : null;
+  const tripReservations = trip ? (reservations[trip.id] || []) : [];
+  const isSolo = totalMembers === 1;
+
+  // Smart next-step (journey-aware, solo-friendly)
   const nextStep = (() => {
-    if (trip.status === 'completed' || tripExpenses.length > 0) {
+    // After-trip
+    if (tripExpenses.length > 0) {
       return { label: 'Track expenses', href: `/trips/${trip.id}/expenses`, color: 'emerald' as const, desc: 'Split fairly with everyone' };
     }
+    // Booked - go enjoy
+    if (tripReservations.length > 0 || trip.status === 'booked') {
+      return { label: 'Trip is booked', href: `/trips/${trip.id}/booking`, color: 'emerald' as const, desc: 'View confirmation codes' };
+    }
+    // Funds collected - book
+    if (tripFunds && tripFunds.status === 'complete') {
+      return { label: 'Book everything', href: `/trips/${trip.id}/booking`, color: 'emerald' as const, desc: 'Final reservation step' };
+    }
+    // Funds pending payment
+    if (tripFunds && tripFunds.totalAmount > 0) {
+      return { label: 'Pay your share', href: `/trips/${trip.id}/funds`, color: 'amber' as const, desc: 'Funds to collect before booking' };
+    }
+    // Venue picked - go to accommodation
+    if (tripPickedVenue) {
+      return { label: 'Pick a stay', href: `/trips/${trip.id}/accommodation`, color: 'purple' as const, desc: 'Hotel, BnB, or skip' };
+    }
+    // Zone picked - go to venues
+    if (tripPickedZone) {
+      return { label: 'Pick venues', href: `/trips/${trip.id}/venues`, color: 'rose' as const, desc: 'Bars, restaurants in your zone' };
+    }
+    // Solo: skip dates, go straight to map
+    if (isSolo) {
+      if (constraintsReady < 1) {
+        return { label: 'Set up your trip', href: `/trips/${trip.id}/constraints`, color: 'amber' as const, desc: 'Time, budget, transport' };
+      }
+      return { label: 'See the map', href: `/trips/${trip.id}/map`, color: 'blue' as const, desc: 'Discover the fairest spot' };
+    }
+    // Group: dates first if needed
     if (totalMembers > 1 && (!poll || poll.status === 'open')) {
       return { label: 'Pick a date', href: `/trips/${trip.id}/dates`, color: 'purple' as const, desc: 'Find a date that works for all' };
     }

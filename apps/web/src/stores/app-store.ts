@@ -235,6 +235,15 @@ interface AppState {
   updateTripStatus: (tripId: string, status: Trip['status']) => void;
   addParticipantByName: (tripId: string, name: string) => void;
   removeParticipant: (tripId: string, participantId: string) => void;
+  updateParticipantConstraints: (tripId: string, userId: string, patch: {
+    transportMode?: TransportMode;
+    timeWeight?: number;
+    moneyWeight?: number;
+    maxTime?: number | null;
+    maxMoney?: number | null;
+    originLocation?: GeoPoint | null;
+    originLabel?: string | null;
+  }) => void;
 
   // Equity zones
   equityZones: EquityZone[];
@@ -411,6 +420,26 @@ export const useAppStore = create<AppState>()(
     const updated: Trip = {
       ...trip,
       participants: trip.participants.filter(p => p.id !== participantId),
+    };
+    return {
+      trips: s.trips.map(t => t.id === tripId ? updated : t),
+      activeTrip: s.activeTrip?.id === tripId ? updated : s.activeTrip,
+    };
+  }),
+
+  updateParticipantConstraints: (tripId, userId, patch) => set(s => {
+    const trip = s.trips.find(t => t.id === tripId);
+    if (!trip) return s;
+    const updated: Trip = {
+      ...trip,
+      participants: trip.participants.map(p => {
+        if (p.userId !== userId) return p;
+        return {
+          ...p,
+          ...patch,
+          status: 'constraints_set' as const,
+        };
+      }),
     };
     return {
       trips: s.trips.map(t => t.id === tripId ? updated : t),
@@ -799,6 +828,19 @@ export const useAppStore = create<AppState>()(
     const transportCost = legs.filter(l => !l.selfBooked).reduce((s, l) => s + l.finalCost, 0);
     const venueCost = state.pickedVenue[tripId] ? trip.participants.length * 35 : 0; // demo: 35 EUR/person
     const total = accommodationCost + transportCost + venueCost;
+
+    // Don't persist empty requests
+    if (total === 0) {
+      return {
+        id: `fr-empty`, tripId, totalAmount: 0,
+        breakdown: { venues: 0, accommodation: 0, transport: 0, other: 0 },
+        contributions: [],
+        status: 'open' as const,
+        createdAt: new Date().toISOString(),
+        closedAt: null,
+      };
+    }
+
     const perPerson = trip.participants.length ? Math.ceil(total / trip.participants.length) : 0;
 
     const fr: FundsRequest = {

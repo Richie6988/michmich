@@ -17,15 +17,60 @@ export default function FundsPage() {
   const trip = activeTrip || trips.find(t => t.id === id);
   const fr = fundsRequests[id as string];
 
+  // Compute upstream availability to know when to (re)create
+  const upstreamSnapshot = useAppStore(s => {
+    const accs = s.accommodations[id as string] || [];
+    const selectedAcc = accs.find(a => a.selected);
+    const legs = s.transportLegs[id as string] || [];
+    const venueId = s.pickedVenue[id as string];
+    return {
+      accId: selectedAcc?.id || '',
+      legsHash: legs.map(l => `${l.participantId}:${l.finalCost}:${l.selfBooked}`).join(','),
+      venueId: venueId || '',
+    };
+  });
+
   useEffect(() => {
-    if (trip && !fr) createFundsRequest(id as string);
-  }, [trip?.id]);
+    if (!trip) return;
+    // Only create if we have at least one upstream item AND no existing valid request
+    const hasUpstream = upstreamSnapshot.accId || upstreamSnapshot.legsHash || upstreamSnapshot.venueId;
+    if (hasUpstream && (!fr || fr.totalAmount === 0)) {
+      createFundsRequest(id as string);
+    }
+  }, [trip?.id, upstreamSnapshot.accId, upstreamSnapshot.legsHash, upstreamSnapshot.venueId]);
 
   if (!trip || !fr) {
     return (
       <div className="px-4 py-12 text-center">
         <BarryMascot mood="thinking" size={100} />
         <p className="text-slate-500 mt-4">Preparing funds request...</p>
+      </div>
+    );
+  }
+
+  // If the funds request is empty (no upstream data), show guidance
+  if (fr.totalAmount === 0) {
+    return (
+      <div className="px-4 py-12 text-center">
+        <BarryMascot mood="thinking" size={100} />
+        <h1 className="font-display font-bold text-xl text-slate-900 mt-3">Nothing to fund yet</h1>
+        <p className="text-sm text-slate-500 mt-2 max-w-xs mx-auto leading-snug">
+          Pick a venue, accommodation, or set up transport first. Barry adds them all up here.
+        </p>
+        <div className="flex gap-2 mt-5 justify-center flex-wrap">
+          <button
+            onClick={() => router.push(`/trips/${id}/venues` as any)}
+            className="px-4 py-2.5 bg-rose-500 text-white text-sm font-semibold rounded-xl"
+          >
+            Pick venue
+          </button>
+          <button
+            onClick={() => router.push(`/trips/${id}/transport` as any)}
+            className="px-4 py-2.5 bg-barry-blue text-white text-sm font-semibold rounded-xl"
+          >
+            Set transport
+          </button>
+        </div>
       </div>
     );
   }

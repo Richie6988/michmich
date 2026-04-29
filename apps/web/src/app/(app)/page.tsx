@@ -31,18 +31,8 @@ const STATUS_DOT: Record<string, string> = {
 
 function TripRow({ trip }: { trip: Trip }) {
   const date = trip.scheduledAt ? formatDateShort(trip.scheduledAt) : null;
-  const href: any = (() => {
-    switch (trip.status) {
-      case 'draft':
-      case 'inviting': return `/trips/${trip.id}`;
-      case 'constraints': return `/trips/${trip.id}/constraints`;
-      case 'calculating': return `/trips/${trip.id}/map`;
-      case 'voting': return `/trips/${trip.id}/vote`;
-      case 'booked':
-      case 'completed': return `/trips/${trip.id}/itinerary`;
-      default: return `/trips/${trip.id}`;
-    }
-  })();
+  // Always go to the trip overview - the next-step card guides the user from there
+  const href: any = `/trips/${trip.id}`;
 
   return (
     <Link href={href} className="block group">
