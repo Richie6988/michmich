@@ -1,15 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMark, BarryMascot } from '@/components/barry/brand';
-import { BarryMap } from '@/components/map/barry-map';
-import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { formatDateShort } from '@/lib/utils/format-date';
-import type { Trip, MapMarker } from '@barry/shared-types';
-
-const PARIS_DEFAULT = { lat: 48.8566, lng: 2.3522 };
+import type { Trip } from '@barry/shared-types';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Drafting',
@@ -50,32 +46,32 @@ function TripRow({ trip }: { trip: Trip }) {
 
   return (
     <Link href={href} className="block group">
-      <div className="flex items-center gap-3 py-3 px-1 hover:bg-slate-50 rounded-xl transition-colors">
+      <div className="flex items-center gap-3 py-3 px-3 hover:bg-slate-50 rounded-xl transition-colors">
         <div className="flex -space-x-2">
           {trip.participants.slice(0, 3).map((p, i) => (
             <div
               key={p.id}
-              className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+              className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-[11px] font-bold text-white shadow-sm"
               style={{ backgroundColor: ['#2563EB', '#F97316', '#10B981', '#8B5CF6'][i % 4], zIndex: 4 - i }}
             >
               {p.user?.firstName?.[0] || '?'}
             </div>
           ))}
           {trip.participants.length > 3 && (
-            <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-sm">
+            <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[11px] font-bold text-slate-600 shadow-sm">
               +{trip.participants.length - 3}
             </div>
           )}
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-semibold text-slate-900 text-[15px] truncate">{trip.name}</h3>
-          </div>
+          <h3 className="font-semibold text-slate-900 text-[15px] truncate mb-0.5">{trip.name}</h3>
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className={`inline-block w-1.5 h-1.5 rounded-full ${STATUS_DOT[trip.status] || 'bg-slate-400'}`} />
             <span>{STATUS_LABEL[trip.status] || trip.status}</span>
             {date && <><span>·</span><span>{date}</span></>}
+            <span>·</span>
+            <span>{trip.participants.length} {trip.participants.length > 1 ? 'people' : 'person'}</span>
           </div>
         </div>
 
@@ -88,216 +84,152 @@ function TripRow({ trip }: { trip: Trip }) {
 }
 
 export default function HomePage() {
-  const { trips, currentUser, userLocation, setUserLocation } = useAppStore();
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
-  const [mounted, setMounted] = useState(false);
+  const { trips, currentUser } = useAppStore();
+  const [tab, setTab] = useState<'active' | 'past'>('active');
 
-  // Mark hydrated to render dynamic content client-side only
-  useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    if (userLocation) return;
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setUserLocation(PARIS_DEFAULT);
-      setLocationStatus('denied');
-      return;
-    }
-    setLocationStatus('requesting');
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocationStatus('granted');
-      },
-      () => {
-        setUserLocation(PARIS_DEFAULT);
-        setLocationStatus('denied');
-      },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
-    );
-  }, [userLocation, setUserLocation]);
-
-  const center = userLocation || PARIS_DEFAULT;
   const activeTrips = trips.filter(t => !['completed', 'cancelled'].includes(t.status));
+  const pastTrips = trips.filter(t => ['completed', 'cancelled'].includes(t.status));
 
-  const markers: MapMarker[] = [];
-  if (userLocation) markers.push({ id: 'me', position: userLocation, type: 'user' });
+  const visible = tab === 'active' ? activeTrips : pastTrips;
 
   return (
-    <div className="fixed inset-0 bg-slate-50 overflow-hidden">
-      {/* Map background */}
-      <div className="absolute inset-0">
-        <BarryMap center={center} zoom={13} markers={markers} height="100%" />
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+        <div className="px-4 h-14 flex items-center justify-between max-w-lg mx-auto">
+          <div className="flex items-center gap-2">
+            <BarryMark size={26} />
+            <span className="font-display font-extrabold text-barry-blue text-lg tracking-tight">Barry</span>
+          </div>
+          <Link
+            href="/profile"
+            className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors"
+            aria-label="Profile and settings"
+          >
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-barry-blue to-blue-700 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+              {currentUser?.firstName?.[0]}{currentUser?.lastName?.[0]}
+            </div>
+          </Link>
+        </div>
+      </header>
 
-      {/* Search bar (sticky top) */}
-      <div className="absolute top-0 left-0 right-0 z-[1001] pt-[env(safe-area-inset-top)]">
-        <div className="flex items-center gap-2 px-3 pt-3 pb-2 max-w-lg mx-auto">
-          <div className="flex-1 bg-white rounded-2xl shadow-lg shadow-slate-900/5 border border-slate-100 flex items-center gap-2 pl-4 pr-1 py-1">
-            <BarryMark size={22} />
-            <button
-              className="flex-1 text-left py-2 text-sm text-slate-400 truncate"
-              onClick={() => alert('Search coming next iteration')}
-            >
-              Where to?
-            </button>
-            <Link
-              href="/profile"
-              className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors flex-shrink-0"
-            >
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-barry-blue to-blue-700 flex items-center justify-center text-white text-[10px] font-bold">
-                {currentUser?.firstName?.[0]}{currentUser?.lastName?.[0]}
-              </div>
-            </Link>
+      <main className="max-w-lg mx-auto px-4 py-6 pb-32">
+        {/* Hero / Greeting */}
+        <div className="flex items-center gap-3 mb-6">
+          <BarryMascot mood="default" size={64} animate={false} />
+          <div className="flex-1">
+            <h1 className="font-display font-extrabold text-2xl text-slate-900 tracking-tight">
+              Hey {currentUser?.firstName}.
+            </h1>
+            <p className="text-sm text-slate-500">Where the smart group meets.</p>
           </div>
         </div>
-      </div>
 
-      {/* Locate me button (above bottom sheet) */}
-      <button
-        onClick={() => {
-          if (typeof navigator !== 'undefined' && navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos =>
-              setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-            );
-          }
-        }}
-        className="absolute bottom-[55%] right-3 z-[1001] w-11 h-11 bg-white rounded-2xl shadow-lg shadow-slate-900/10 flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all border border-slate-100"
-        aria-label="My location"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-          <circle cx="12" cy="12" r="9" strokeOpacity="0.4" />
-        </svg>
-      </button>
-
-      {/* Bottom sheet */}
-      <BottomSheet snapPoints={[0.18, 0.5, 0.92]} initialSnap={1}>
-        <div className="pb-6">
-          {/* Hero CTAs - the magic moment */}
-          <div className="grid grid-cols-2 gap-3 mb-5 mt-2">
-            <Link href="/solo/new" className="group">
-              <div className="relative overflow-hidden bg-gradient-to-br from-barry-coral to-orange-600 rounded-2xl p-4 text-white shadow-lg shadow-orange-500/20 hover:shadow-xl hover:shadow-orange-500/30 active:scale-[0.98] transition-all h-full">
-                {/* Decorative blob */}
-                <div className="absolute -top-6 -right-6 w-20 h-20 bg-white/10 rounded-full blur-xl" />
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                        <circle cx="12" cy="8" r="4" /><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
-                      </svg>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Solo</span>
-                  </div>
-                  <p className="font-display font-bold text-base leading-tight">Discover spots near me</p>
-                  <p className="text-[11px] text-white/80 mt-1">Live picks in 30s</p>
+        {/* Primary CTA: Create new Barry */}
+        <Link href="/trips/new" className="block group mb-6">
+          <div className="relative overflow-hidden bg-gradient-to-br from-barry-blue to-blue-700 text-white rounded-3xl p-5 shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 active:scale-[0.99] transition-all">
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+            <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+            <div className="relative flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-display font-extrabold text-xl tracking-tight">New Barry</p>
+                  <p className="text-xs text-white/80 mt-0.5">Plan a trip - solo or with friends</p>
                 </div>
               </div>
-            </Link>
-
-            <Link href="/trips/new" className="group">
-              <div className="relative overflow-hidden bg-gradient-to-br from-barry-blue to-blue-700 rounded-2xl p-4 text-white shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98] transition-all h-full">
-                <div className="absolute -top-6 -right-6 w-20 h-20 bg-white/10 rounded-full blur-xl" />
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
-                      </svg>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Group</span>
-                  </div>
-                  <p className="font-display font-bold text-base leading-tight">Plan with my friends</p>
-                  <p className="text-[11px] text-white/80 mt-1">Fair spot + shared kitty</p>
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          {/* Active trips */}
-          {mounted && activeTrips.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 p-2 mb-4">
-              <div className="flex items-center justify-between px-2 pt-1 pb-1">
-                <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">In motion</h2>
-                <span className="text-[10px] text-slate-400">{activeTrips.length} {activeTrips.length > 1 ? 'trips' : 'trip'}</span>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {activeTrips.map(trip => <TripRow key={trip.id} trip={trip} />)}
-              </div>
-            </div>
-          )}
-
-          {/* First-time hint - shown only when there are no active trips */}
-          {mounted && activeTrips.length === 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-4">
-              <div className="flex items-start gap-3">
-                <BarryMascot mood="default" size={48} />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-sm text-slate-900 mb-1">Where the smart group meets.</h3>
-                  <p className="text-xs text-slate-500 leading-snug">
-                    Tap <span className="font-medium text-slate-700">Solo</span> to find the best spots around you, or <span className="font-medium text-slate-700">Group</span> to plan a fair meet-up.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Inspiration row */}
-          <div className="mb-2 px-1">
-            <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Try a quick Barry</h2>
-            <div className="grid grid-cols-2 gap-2">
-              <QuickAction
-                href="/solo/new"
-                title="Free outdoors"
-                subtitle="30 min walk"
-                color="emerald"
-              />
-              <QuickAction
-                href="/solo/new"
-                title="Date night"
-                subtitle="Bar within 5 EUR"
-                color="rose"
-              />
-              <QuickAction
-                href="/solo/new"
-                title="Culture trip"
-                subtitle="Museum nearby"
-                color="amber"
-              />
-              <QuickAction
-                href="/trips/new"
-                title="Friday dinner"
-                subtitle="Group of 4"
-                color="blue"
-              />
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" className="opacity-80 group-hover:translate-x-1 transition-transform">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </div>
           </div>
-        </div>
-      </BottomSheet>
+        </Link>
+
+        {/* Trips list */}
+        {trips.length === 0 ? (
+          <FirstTimeOnboarding />
+        ) : (
+          <div>
+            {/* Tab switcher: active vs past */}
+            <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-3">
+              <button
+                onClick={() => setTab('active')}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  tab === 'active' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                }`}
+              >
+                Ongoing
+                {activeTrips.length > 0 && (
+                  <span className="ml-1.5 text-[10px] font-bold bg-barry-blue text-white px-1.5 py-0.5 rounded-full">
+                    {activeTrips.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setTab('past')}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  tab === 'past' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                }`}
+              >
+                Past
+                {pastTrips.length > 0 && (
+                  <span className="ml-1.5 text-[10px] font-bold bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded-full">
+                    {pastTrips.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {visible.length > 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-100">
+                {visible.map((trip, i) => (
+                  <div key={trip.id} className={i > 0 ? 'border-t border-slate-100' : ''}>
+                    <TripRow trip={trip} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
+                <p className="text-sm text-slate-500">
+                  {tab === 'active' ? 'No active trips right now.' : 'No past trips yet.'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
 
-function QuickAction({ href, title, subtitle, color }: {
-  href: string; title: string; subtitle: string;
-  color: 'emerald' | 'rose' | 'amber' | 'blue';
-}) {
-  const palette = {
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', dot: 'bg-emerald-500' },
-    rose: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-100', dot: 'bg-rose-500' },
-    amber: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', dot: 'bg-amber-500' },
-    blue: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100', dot: 'bg-blue-500' },
-  }[color];
-
+function FirstTimeOnboarding() {
   return (
-    <Link href={href as any} className="block">
-      <div className={`${palette.bg} ${palette.border} border rounded-xl p-3 hover:shadow-sm transition-all active:scale-[0.97]`}>
-        <div className="flex items-center gap-2 mb-1">
-          <span className={`w-1.5 h-1.5 rounded-full ${palette.dot}`} />
-          <p className={`text-xs font-semibold ${palette.text}`}>{title}</p>
-        </div>
-        <p className="text-[11px] text-slate-500">{subtitle}</p>
+    <div className="bg-white rounded-2xl border border-slate-100 p-6">
+      <h3 className="font-display font-bold text-base text-slate-900 mb-4">How Barry works</h3>
+      <div className="space-y-4">
+        <Step n={1} title="Create a Barry" desc="Name your trip. Solo or with friends - same flow." />
+        <Step n={2} title="Set preferences" desc="Time, budget, transport mode. Pick a date if it's a group trip." />
+        <Step n={3} title="Get the spot" desc="Barry finds the fairest place on the map and shows it to everyone." />
+        <Step n={4} title="Book and split" desc="Reserve in one tap. Track expenses and settle up after." />
       </div>
-    </Link>
+    </div>
+  );
+}
+
+function Step({ n, title, desc }: { n: number; title: string; desc: string }) {
+  return (
+    <div className="flex gap-3">
+      <div className="w-7 h-7 rounded-full bg-blue-50 text-barry-blue font-bold text-xs flex items-center justify-center flex-shrink-0">
+        {n}
+      </div>
+      <div>
+        <p className="font-medium text-sm text-slate-900">{title}</p>
+        <p className="text-xs text-slate-500 leading-snug">{desc}</p>
+      </div>
+    </div>
   );
 }
