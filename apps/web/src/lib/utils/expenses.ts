@@ -99,7 +99,7 @@ export function computeSettlements(balances: ExpenseBalance[]): Settlement[] {
 export function buildShares(
   totalAmount: number,
   participantIds: string[],
-  splitMode: 'equal' | 'custom' | 'shares',
+  splitMode: 'equal' | 'custom' | 'shares' | 'percent',
   customShares?: { userId: string; value: number }[],
 ): ExpenseShare[] {
   if (participantIds.length === 0) return [];
@@ -107,6 +107,15 @@ export function buildShares(
   if (splitMode === 'equal') {
     const each = totalAmount / participantIds.length;
     return participantIds.map(id => ({ userId: id, amount: round(each) }));
+  }
+
+  if (splitMode === 'percent' && customShares) {
+    // customShares[i].value is percentage (0-100). They should sum to 100.
+    return customShares.map(c => ({
+      userId: c.userId,
+      amount: round((c.value / 100) * totalAmount),
+      shares: c.value,
+    }));
   }
 
   if (splitMode === 'shares' && customShares) {

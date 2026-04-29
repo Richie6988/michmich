@@ -5,8 +5,14 @@ import type {
   GeoPoint,
   DatePoll, DateVoteResponse,
   Expense, ExpenseCategory, ExpenseSplitMode,
+  PinVote, VenueVote, VenueVoteResponse,
+  Accommodation, AccommodationType,
+  TransportLeg, TransportMode,
+  FundsRequest, FundsContribution,
+  Reservation,
+  BalanceTransaction,
 } from '@barry/shared-types';
-import { buildShares } from '@/lib/utils/expenses';
+import { buildShares, computeBalances, computeSettlements } from '@/lib/utils/expenses';
 
 // ============================================================
 // MOCK USERS
@@ -264,7 +270,52 @@ interface AppState {
     customShares?: { userId: string; value: number }[];
   }) => Expense;
   removeExpense: (tripId: string, expenseId: string) => void;
+  /** Closes the expense ledger - sends settlements to in-app balance */
+  closeExpenseLedger: (tripId: string) => Settlement[];
+
+  // ============================================================
+  // JOURNEY: Pin votes (vote on Barry's zones)
+  // ============================================================
+  pinVotes: Record<string, PinVote[]>;
+  pickedZone: Record<string, string | null>;
+  voteForPin: (tripId: string, zoneId: string) => void;
+  closePinVote: (tripId: string, zoneId: string) => void;
+
+  // Venue votes (vote on bars/restaurants in chosen zone)
+  venueVotes: Record<string, VenueVote[]>;
+  pickedVenue: Record<string, string | null>;
+  voteForVenue: (tripId: string, venueId: string, response: VenueVoteResponse) => void;
+  closeVenueVote: (tripId: string, venueId: string) => void;
+
+  // Accommodations (multi-day trips)
+  accommodations: Record<string, Accommodation[]>;
+  addAccommodation: (tripId: string, input: Omit<Accommodation, 'id' | 'votes' | 'selected'>) => void;
+  voteForAccommodation: (tripId: string, accId: string, response: VenueVoteResponse) => void;
+  selectAccommodation: (tripId: string, accId: string) => void;
+
+  // Transport legs (per-participant)
+  transportLegs: Record<string, TransportLeg[]>;
+  initTransportLegs: (tripId: string) => void;
+  updateTransportLeg: (tripId: string, participantId: string, patch: Partial<TransportLeg>) => void;
+
+  // Funds request (Kitty 2.0)
+  fundsRequests: Record<string, FundsRequest>;
+  createFundsRequest: (tripId: string) => FundsRequest;
+  payFundsContribution: (tripId: string, contributionId: string, useBalance: boolean) => void;
+
+  // Reservations (final bookings)
+  reservations: Record<string, Reservation[]>;
+  performBookings: (tripId: string) => Reservation[];
+
+  // Balance history
+  balanceTransactions: BalanceTransaction[];
+
+  // Helper for the imported computeSettlements (we re-export for typed Settlement)
+  _computeSettlementsTypeRef?: never;
 }
+
+// Re-import for use in actions
+type Settlement = ReturnType<typeof computeSettlements>[number];
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -572,6 +623,323 @@ export const useAppStore = create<AppState>()(
       },
     }));
   },
+
+  closeExpenseLedger: (tripId) => {
+    const state = get();
+    const trip = state.trips.find(t => t.id === tripId);
+    if (!trip) return [];
+    const users = trip.participants.map(p => p.user!).filter(Boolean);
+    const tripExpenses = state.expenses[tripId] || [];
+    const balances = computeBalances(tripExpenses, users);
+    const settlements = computeSettlements(balances);
+
+    // Apply: each settlement transfers from debtor's external pay to creditor's in-app balance
+    // For the current user, if they are owed money, credit balance.
+    const me = state.currentUser?.id;
+    const myCredits = settlements
+      .filter(s => s.toUserId === me)
+      .reduce((sum, s) => sum + s.amount, 0);
+
+    if (myCredits > 0) {
+      const tx: BalanceTransaction = {
+        id: `bt${Date.now()}`,
+        userId: me!,
+        type: 'reimbursement',
+        amount: myCredits,
+        description: `Reimbursement from "${trip.name}"`,
+        tripId,
+        createdAt: new Date().toISOString(),
+      };
+      set(s => ({
+        inAppBalance: Math.round((s.inAppBalance + myCredits) * 100) / 100,
+        balanceTransactions: [tx, ...s.balanceTransactions],
+      }));
+    }
+    return settlements;
+  },
+
+  // ============================================================
+  // PIN VOTES
+  // ============================================================
+  pinVotes: {},
+  pickedZone: {},
+  voteForPin: (tripId, zoneId) => {
+    const userId = get().currentUser?.id;
+    if (!userId) return;
+    set(s => {
+      const existing = (s.pinVotes[tripId] || []).filter(v => v.userId !== userId);
+      return {
+        pinVotes: {
+          ...s.pinVotes,
+          [tripId]: [...existing, { userId, zoneId, votedAt: new Date().toISOString() }],
+        },
+      };
+    });
+  },
+  closePinVote: (tripId, zoneId) => {
+    set(s => ({ pickedZone: { ...s.pickedZone, [tripId]: zoneId } }));
+  },
+
+  // VENUE VOTES
+  venueVotes: {},
+  pickedVenue: {},
+  voteForVenue: (tripId, venueId, response) => {
+    const userId = get().currentUser?.id;
+    if (!userId) return;
+    set(s => {
+      const existing = (s.venueVotes[tripId] || []).filter(v => !(v.userId === userId && v.venueId === venueId));
+      return {
+        venueVotes: {
+          ...s.venueVotes,
+          [tripId]: [...existing, { userId, venueId, response, votedAt: new Date().toISOString() }],
+        },
+      };
+    });
+  },
+  closeVenueVote: (tripId, venueId) => {
+    set(s => ({ pickedVenue: { ...s.pickedVenue, [tripId]: venueId } }));
+  },
+
+  // ACCOMMODATIONS
+  accommodations: {},
+  addAccommodation: (tripId, input) => {
+    const acc: Accommodation = {
+      ...input,
+      id: `acc${Date.now()}`,
+      votes: [],
+      selected: false,
+    };
+    set(s => ({
+      accommodations: {
+        ...s.accommodations,
+        [tripId]: [...(s.accommodations[tripId] || []), acc],
+      },
+    }));
+  },
+  voteForAccommodation: (tripId, accId, response) => {
+    const userId = get().currentUser?.id;
+    if (!userId) return;
+    set(s => {
+      const list = s.accommodations[tripId] || [];
+      const updated = list.map(a => {
+        if (a.id !== accId) return a;
+        const otherVotes = a.votes.filter(v => v.userId !== userId);
+        return { ...a, votes: [...otherVotes, { userId, venueId: accId, response, votedAt: new Date().toISOString() }] };
+      });
+      return { accommodations: { ...s.accommodations, [tripId]: updated } };
+    });
+  },
+  selectAccommodation: (tripId, accId) => {
+    set(s => {
+      const list = s.accommodations[tripId] || [];
+      return {
+        accommodations: {
+          ...s.accommodations,
+          [tripId]: list.map(a => ({ ...a, selected: a.id === accId })),
+        },
+      };
+    });
+  },
+
+  // TRANSPORT LEGS
+  transportLegs: {},
+  initTransportLegs: (tripId) => {
+    const trip = get().trips.find(t => t.id === tripId);
+    if (!trip) return;
+    const legs: TransportLeg[] = trip.participants.map(p => ({
+      participantId: p.id,
+      participantName: p.user?.firstName,
+      mode: (p.transportMode || 'transit') as TransportMode,
+      estimatedCost: 12, // demo default
+      reductionCard: null,
+      reductionPct: 0,
+      finalCost: 12,
+      selfBooked: false,
+      status: 'pending' as const,
+    }));
+    set(s => ({ transportLegs: { ...s.transportLegs, [tripId]: legs } }));
+  },
+  updateTransportLeg: (tripId, participantId, patch) => {
+    set(s => {
+      const list = s.transportLegs[tripId] || [];
+      return {
+        transportLegs: {
+          ...s.transportLegs,
+          [tripId]: list.map(l => {
+            if (l.participantId !== participantId) return l;
+            const updated = { ...l, ...patch };
+            updated.finalCost = Math.round(updated.estimatedCost * (1 - updated.reductionPct / 100) * 100) / 100;
+            return updated;
+          }),
+        },
+      };
+    });
+  },
+
+  // FUNDS REQUEST
+  fundsRequests: {},
+  createFundsRequest: (tripId) => {
+    const state = get();
+    const trip = state.trips.find(t => t.id === tripId);
+    if (!trip) {
+      // Build dummy
+      return {
+        id: `fr${Date.now()}`, tripId, totalAmount: 0,
+        breakdown: { venues: 0, accommodation: 0, transport: 0, other: 0 },
+        contributions: [],
+        status: 'open' as const,
+        createdAt: new Date().toISOString(),
+        closedAt: null,
+      };
+    }
+    const accs = state.accommodations[tripId] || [];
+    const selectedAcc = accs.find(a => a.selected);
+    const accommodationCost = selectedAcc ? selectedAcc.totalPrice : 0;
+    const legs = state.transportLegs[tripId] || [];
+    const transportCost = legs.filter(l => !l.selfBooked).reduce((s, l) => s + l.finalCost, 0);
+    const venueCost = state.pickedVenue[tripId] ? trip.participants.length * 35 : 0; // demo: 35 EUR/person
+    const total = accommodationCost + transportCost + venueCost;
+    const perPerson = trip.participants.length ? Math.ceil(total / trip.participants.length) : 0;
+
+    const fr: FundsRequest = {
+      id: `fr${Date.now()}`, tripId, totalAmount: total,
+      breakdown: {
+        venues: venueCost,
+        accommodation: accommodationCost,
+        transport: transportCost,
+        other: 0,
+      },
+      contributions: trip.participants.map(p => ({
+        id: `fc${Date.now()}-${p.id}`,
+        userId: p.userId,
+        user: p.user,
+        amount: perPerson,
+        paidFromBalance: 0,
+        paidFromCard: 0,
+        status: 'pending' as const,
+        paidAt: null,
+      })),
+      status: 'open',
+      createdAt: new Date().toISOString(),
+      closedAt: null,
+    };
+    set(s => ({ fundsRequests: { ...s.fundsRequests, [tripId]: fr } }));
+    return fr;
+  },
+  payFundsContribution: (tripId, contributionId, useBalance) => {
+    set(s => {
+      const fr = s.fundsRequests[tripId];
+      if (!fr) return s;
+      const contribution = fr.contributions.find(c => c.id === contributionId);
+      if (!contribution) return s;
+
+      const me = s.currentUser?.id;
+      const isMe = contribution.userId === me;
+      let fromBalance = 0;
+      let newAppBalance = s.inAppBalance;
+      let txList = s.balanceTransactions;
+
+      if (isMe && useBalance) {
+        fromBalance = Math.min(s.inAppBalance, contribution.amount);
+        newAppBalance = Math.round((s.inAppBalance - fromBalance) * 100) / 100;
+        if (fromBalance > 0) {
+          txList = [
+            {
+              id: `bt${Date.now()}`,
+              userId: me!,
+              type: 'spend' as const,
+              amount: -fromBalance,
+              description: `Trip contribution`,
+              tripId,
+              createdAt: new Date().toISOString(),
+            },
+            ...s.balanceTransactions,
+          ];
+        }
+      }
+
+      const fromCard = contribution.amount - fromBalance;
+
+      const updatedContrib: FundsContribution = {
+        ...contribution,
+        paidFromBalance: fromBalance,
+        paidFromCard: fromCard,
+        status: 'paid' as const,
+        paidAt: new Date().toISOString(),
+      };
+      const updatedFR: FundsRequest = {
+        ...fr,
+        contributions: fr.contributions.map(c => c.id === contributionId ? updatedContrib : c),
+      };
+      // Status
+      const allPaid = updatedFR.contributions.every(c => c.status === 'paid');
+      const somePaid = updatedFR.contributions.some(c => c.status === 'paid');
+      updatedFR.status = allPaid ? 'complete' : somePaid ? 'partial' : 'open';
+
+      return {
+        fundsRequests: { ...s.fundsRequests, [tripId]: updatedFR },
+        inAppBalance: newAppBalance,
+        balanceTransactions: txList,
+      };
+    });
+  },
+
+  // RESERVATIONS
+  reservations: {},
+  performBookings: (tripId) => {
+    const state = get();
+    const accs = state.accommodations[tripId] || [];
+    const selectedAcc = accs.find(a => a.selected);
+    const venueId = state.pickedVenue[tripId];
+    const legs = state.transportLegs[tripId] || [];
+
+    const reservations: Reservation[] = [];
+
+    if (venueId) {
+      reservations.push({
+        id: `r${Date.now()}-v`,
+        tripId, type: 'venue',
+        reference: venueId,
+        description: 'Restaurant / Bar reservation',
+        amount: (state.trips.find(t => t.id === tripId)?.participants.length || 1) * 35,
+        status: 'confirmed',
+        createdAt: new Date().toISOString(),
+        confirmationCode: 'BR-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+      });
+    }
+    if (selectedAcc) {
+      reservations.push({
+        id: `r${Date.now()}-a`,
+        tripId, type: 'accommodation',
+        reference: selectedAcc.id,
+        description: selectedAcc.name,
+        amount: selectedAcc.totalPrice,
+        status: 'confirmed',
+        createdAt: new Date().toISOString(),
+        confirmationCode: 'BR-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+      });
+    }
+    legs.filter(l => !l.selfBooked).forEach((l, i) => {
+      reservations.push({
+        id: `r${Date.now()}-t${i}`,
+        tripId, type: 'transport',
+        reference: l.participantId,
+        description: `Transport for ${l.participantName} (${l.mode})`,
+        amount: l.finalCost,
+        status: 'confirmed',
+        createdAt: new Date().toISOString(),
+        confirmationCode: 'BR-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+      });
+    });
+
+    set(s => ({
+      reservations: { ...s.reservations, [tripId]: reservations },
+      trips: s.trips.map(t => t.id === tripId ? { ...t, status: 'booked' as const } : t),
+    }));
+    return reservations;
+  },
+
+  balanceTransactions: [],
     }),
     {
       name: 'barry-app-state',
@@ -581,6 +949,7 @@ export const useAppStore = create<AppState>()(
         preferences: state.preferences,
         paymentMethods: state.paymentMethods,
         inAppBalance: state.inAppBalance,
+        balanceTransactions: state.balanceTransactions,
       }),
       // Don't try to read storage during SSR (avoids hydration mismatch)
       skipHydration: false,

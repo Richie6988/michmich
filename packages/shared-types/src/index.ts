@@ -454,7 +454,7 @@ export type ExpenseCategory =
   | 'shopping'
   | 'other';
 
-export type ExpenseSplitMode = 'equal' | 'custom' | 'shares';
+export type ExpenseSplitMode = 'equal' | 'custom' | 'shares' | 'percent';
 
 export interface ExpenseShare {
   userId: string;
@@ -504,3 +504,125 @@ export interface ExpenseBalance {
   net: number;
 }
 
+
+// ============================================================
+// PIN VOTE (vote on Barry's suggested zones)
+// ============================================================
+
+export interface PinVote {
+  userId: string;
+  zoneId: string;
+  votedAt: string;
+}
+
+// ============================================================
+// VENUE VOTE (vote on bars/restaurants in the chosen zone)
+// ============================================================
+
+export type VenueVoteResponse = 'love' | 'meh' | 'no';
+
+export interface VenueVote {
+  userId: string;
+  venueId: string;
+  response: VenueVoteResponse;
+  votedAt: string;
+}
+
+// ============================================================
+// ACCOMMODATION (hotel / BnB / Airbnb for multi-day trips)
+// ============================================================
+
+export type AccommodationType = 'hotel' | 'bnb' | 'airbnb' | 'hostel' | 'other';
+
+export interface Accommodation {
+  id: string;
+  tripId: string;
+  type: AccommodationType;
+  name: string;
+  pricePerNight: number;
+  nights: number;
+  totalPrice: number;
+  rooms: number;
+  votes: VenueVote[];
+  selected: boolean;
+}
+
+// ============================================================
+// PER-PARTICIPANT TRANSPORT BOOKING
+// ============================================================
+
+export interface TransportLeg {
+  participantId: string;
+  participantName?: string;
+  mode: TransportMode;
+  estimatedCost: number;
+  /** Reduction card e.g. 'jeune', 'senior', 'invalidite' */
+  reductionCard: string | null;
+  reductionPct: number;
+  finalCost: number;
+  /** True if user opts to book this leg themselves outside Barry */
+  selfBooked: boolean;
+  status: 'pending' | 'configured' | 'booked';
+}
+
+// ============================================================
+// FUNDS REQUEST (Kitty 2.0 - precise amounts before booking)
+// ============================================================
+
+export interface FundsRequest {
+  id: string;
+  tripId: string;
+  /** Total amount needed (venues + accommodation + transport) */
+  totalAmount: number;
+  breakdown: {
+    venues: number;
+    accommodation: number;
+    transport: number;
+    other: number;
+  };
+  contributions: FundsContribution[];
+  status: 'open' | 'partial' | 'complete' | 'cancelled';
+  createdAt: string;
+  closedAt: string | null;
+}
+
+export interface FundsContribution {
+  id: string;
+  userId: string;
+  user?: User;
+  amount: number;
+  paidFromBalance: number;
+  paidFromCard: number;
+  status: 'pending' | 'paid' | 'failed';
+  paidAt: string | null;
+}
+
+// ============================================================
+// BOOKING RESERVATION (the final action — Barry books everything)
+// ============================================================
+
+export interface Reservation {
+  id: string;
+  tripId: string;
+  type: 'venue' | 'accommodation' | 'transport';
+  reference: string;
+  description: string;
+  amount: number;
+  status: 'pending' | 'confirmed' | 'cancelled';
+  createdAt: string;
+  confirmationCode: string | null;
+}
+
+// ============================================================
+// IN-APP BALANCE TRANSACTION (history of credits/debits)
+// ============================================================
+
+export interface BalanceTransaction {
+  id: string;
+  userId: string;
+  type: 'topup' | 'spend' | 'refund' | 'reimbursement';
+  amount: number;
+  description: string;
+  tripId: string | null;
+  createdAt: string;
+}

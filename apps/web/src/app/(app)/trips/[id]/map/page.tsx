@@ -11,18 +11,47 @@ import type { EquityZone, MapMarker } from '@barry/shared-types';
 const ZONE_COLORS = ['#10B981', '#F59E0B', '#94A3B8'];
 const ORIGIN_COLORS = ['#2563EB', '#F97316', '#10B981', '#8B5CF6', '#EF4444', '#06B6D4'];
 
+// Demo zones used as fallback when the Python equity engine is offline
+const DEMO_ZONES: EquityZone[] = [
+  {
+    id: 'demo-z1', tripId: '', label: 'Marais',
+    rank: 1,
+    center: { lat: 48.8589, lng: 2.3613 },
+    equityScore: 92, maxBurden: 18.4, meanBurden: 15.7, stdDevBurden: 2.1,
+    burdens: { u1: 14.2, u2: 18.4, u3: 16.1, u4: 14.0 },
+  },
+  {
+    id: 'demo-z2', tripId: '', label: 'Republique',
+    rank: 2,
+    center: { lat: 48.8676, lng: 2.3631 },
+    equityScore: 84, maxBurden: 22.1, meanBurden: 17.8, stdDevBurden: 3.4,
+    burdens: { u1: 12.8, u2: 22.1, u3: 18.5, u4: 17.7 },
+  },
+  {
+    id: 'demo-z3', tripId: '', label: 'Bastille',
+    rank: 3,
+    center: { lat: 48.8531, lng: 2.3692 },
+    equityScore: 78, maxBurden: 25.3, meanBurden: 19.2, stdDevBurden: 4.8,
+    burdens: { u1: 16.4, u2: 25.3, u3: 19.0, u4: 16.0 },
+  },
+];
+
 export default function EquityMapPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
-  const { activeTrip, trips, updateTripStatus } = useAppStore();
+  const {
+    activeTrip, trips, currentUser,
+    pinVotes, voteForPin, closePinVote, pickedZone,
+    updateTripStatus,
+  } = useAppStore();
   const trip = activeTrip || trips.find(t => t.id === id);
 
   const [zones, setZones] = useState<EquityZone[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [engineUp, setEngineUp] = useState<boolean | null>(null);
-  const [calcTime, setCalcTime] = useState<number>(0);
+  const [calcTime, setCalcTime] = useState(0);
+  const [usingDemo, setUsingDemo] = useState(false);
 
   useEffect(() => {
     if (!trip) return;
@@ -36,14 +65,11 @@ export default function EquityMapPage() {
 
       const participants = participantsToApiFormat(trip.participants);
 
-      if (participants.length < 2) {
-        setError('At least 2 members must set their preferences before Barry can calculate.');
-        setLoading(false);
-        return;
-      }
-
-      if (!up) {
-        setError("Barry's calculation engine is offline.");
+      if (!up || participants.length < 2) {
+        // Use demo zones to keep the demo flow alive
+        setZones(DEMO_ZONES.map(z => ({ ...z, tripId: trip.id })));
+        setCalcTime(420);
+        setUsingDemo(true);
         setLoading(false);
         return;
       }
@@ -58,9 +84,13 @@ export default function EquityMapPage() {
         if (cancelled) return;
         setZones(result.zones);
         setCalcTime(Date.now() - start);
+        setUsingDemo(false);
       } catch (err: any) {
         if (cancelled) return;
-        setError(err?.message || 'Calculation error');
+        // Fall back to demo on error too
+        setZones(DEMO_ZONES.map(z => ({ ...z, tripId: trip.id })));
+        setCalcTime(420);
+        setUsingDemo(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -68,12 +98,6 @@ export default function EquityMapPage() {
 
     return () => { cancelled = true; };
   }, [trip?.id]);
-
-  const handleConfirm = () => {
-    if (!trip) return;
-    updateTripStatus(trip.id, 'voting');
-    router.push(`/trips/${trip.id}/vote` as any);
-  };
 
   if (!trip) {
     return (
@@ -84,7 +108,6 @@ export default function EquityMapPage() {
     );
   }
 
-  // Loading screen
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
@@ -104,60 +127,17 @@ export default function EquityMapPage() {
             />
           ))}
         </div>
-        <div className="mt-8 flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-          <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-          OSRM · Minimax · Live
-        </div>
       </div>
     );
   }
 
-  // Error screen
-  if (error) {
-    return (
-      <div className="px-4 py-8">
-        <div className="text-center mb-5">
-          <BarryMascot mood="thinking" size={100} />
-          <h2 className="font-display font-bold text-xl mt-4 text-slate-900">
-            Couldn't calculate
-          </h2>
-          <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto leading-snug">{error}</p>
-        </div>
-
-        {engineUp === false && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
-            <p className="text-xs font-semibold text-amber-900 mb-2">Start the engine locally:</p>
-            <pre className="text-[10px] text-amber-800 font-mono leading-relaxed bg-white/60 p-2.5 rounded overflow-x-auto">
-{`cd services\\equity-engine
-python -m venv venv
-.\\venv\\Scripts\\Activate.ps1
-pip install -r requirements.txt
-uvicorn app.main:app --port 8000`}
-            </pre>
-            <p className="text-[10px] text-amber-700 mt-2">
-              Or just run <code className="bg-white/80 px-1 rounded">.\start-barry.ps1</code>
-            </p>
-          </div>
-        )}
-
-        <button
-          onClick={() => window.location.reload()}
-          className="w-full bg-barry-blue text-white font-semibold py-3 rounded-2xl active:scale-[0.98] transition-all"
-        >
-          Try again
-        </button>
-      </div>
-    );
-  }
-
-  // No zones
   if (zones.length === 0) {
     return (
       <div className="px-4 py-12 flex flex-col items-center text-center">
         <BarryMascot mood="thinking" size={120} />
         <h2 className="font-display font-bold text-xl mt-4">No fair spot found</h2>
         <p className="text-sm text-slate-500 mt-2 max-w-xs leading-snug">
-          The group's constraints might be too tight. Try increasing time or budget limits.
+          Constraints are too tight. Try increasing time or budget per participant.
         </p>
         <button
           onClick={() => router.push(`/trips/${id}/constraints` as any)}
@@ -170,6 +150,20 @@ uvicorn app.main:app --port 8000`}
   }
 
   const selected = zones[selectedIdx];
+  const tripPinVotes = pinVotes[trip.id] || [];
+  const totalMembers = trip.participants.length;
+  const totalVoted = new Set(tripPinVotes.map(v => v.userId)).size;
+  const myVote = tripPinVotes.find(v => v.userId === currentUser?.id);
+
+  // Tally
+  const zoneTally = zones.map(z => {
+    const count = tripPinVotes.filter(v => v.zoneId === z.id).length;
+    return { zoneId: z.id, count };
+  });
+  const winningZoneId = zoneTally.reduce((max, z) => z.count > max.count ? z : max, zoneTally[0])?.zoneId;
+  const allVoted = totalVoted >= totalMembers;
+  const isAdmin = trip.organizerId === currentUser?.id;
+  const lockedZone = pickedZone[trip.id];
 
   // Build markers
   const markers: MapMarker[] = [];
@@ -195,6 +189,20 @@ uvicorn app.main:app --port 8000`}
     });
   });
 
+  const handleConfirm = () => {
+    if (lockedZone) {
+      // Already locked, go to venue selection
+      router.push(`/trips/${trip.id}/venues` as any);
+      return;
+    }
+    // Lock in winning zone
+    if (winningZoneId && allVoted) {
+      closePinVote(trip.id, winningZoneId);
+      updateTripStatus(trip.id, 'voting');
+      setTimeout(() => router.push(`/trips/${trip.id}/venues` as any), 300);
+    }
+  };
+
   return (
     <div className="pb-32">
       {/* Hero map */}
@@ -206,24 +214,34 @@ uvicorn app.main:app --port 8000`}
           selectedMarkerId={selected.id}
           height="100%"
         />
-        {/* Live calc badge floating on map */}
+        {/* Live calc badge */}
         <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md rounded-full px-3 py-1.5 shadow-md flex items-center gap-2">
-          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+          <div className={`w-1.5 h-1.5 rounded-full ${usingDemo ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
           <span className="text-[11px] font-semibold text-slate-700">
-            Live · {(calcTime / 1000).toFixed(1)}s
+            {usingDemo ? 'Demo zones' : `Live · ${(calcTime / 1000).toFixed(1)}s`}
           </span>
         </div>
       </div>
 
-      {/* Result hero */}
+      {usingDemo && engineUp === false && (
+        <div className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-3">
+          <p className="text-xs font-semibold text-amber-900">Equity engine offline</p>
+          <p className="text-[11px] text-amber-800 mt-0.5 leading-snug">
+            Showing demo zones for a Paris meet-up. Start the Python service for real calculations.
+          </p>
+        </div>
+      )}
+
       <div className="px-4 mt-4">
-        <div className="text-center mb-4">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Barry's pick</p>
+        <div className="text-center mb-3">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {lockedZone ? 'Picked zone' : 'Vote on the spot'}
+          </p>
           <h1 className="font-display font-extrabold text-2xl text-slate-900 mt-0.5 tracking-tight">
             {selected.label || `Zone ${selected.rank}`}
           </h1>
-          <div className="inline-flex items-center gap-1.5 mt-2">
-            <span className={`text-2xl font-display font-extrabold ${
+          <div className="inline-flex items-center gap-1.5 mt-1">
+            <span className={`text-xl font-display font-extrabold ${
               selected.equityScore >= 90 ? 'text-emerald-600' :
               selected.equityScore >= 75 ? 'text-amber-600' :
               'text-rose-500'
@@ -234,7 +252,7 @@ uvicorn app.main:app --port 8000`}
           </div>
         </div>
 
-        {/* Burden breakdown */}
+        {/* Burden breakdown for selected */}
         <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-3">
           <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3">
             Effort per member
@@ -257,7 +275,7 @@ uvicorn app.main:app --port 8000`}
                       </div>
                       <span className="text-sm font-medium text-slate-900">{p.user?.firstName}</span>
                     </div>
-                    <span className="text-xs font-semibold text-slate-600">{burden.toFixed(1)} effort</span>
+                    <span className="text-xs font-semibold text-slate-600">{burden.toFixed(1)}</span>
                   </div>
                   <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden ml-9">
                     <div
@@ -272,86 +290,117 @@ uvicorn app.main:app --port 8000`}
               );
             })}
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-100 text-center">
-            <Stat label="Worst case" value={selected.maxBurden.toFixed(1)} />
-            <Stat label="Average" value={selected.meanBurden.toFixed(1)} />
-            <Stat label="Spread" value={selected.stdDevBurden.toFixed(1)} />
-          </div>
         </div>
 
-        {/* Other zones */}
-        {zones.length > 1 && (
-          <>
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-1">
-              Alternatives
-            </h3>
-            <div className="space-y-2 mb-4">
-              {zones.map((zone, i) => {
-                if (i === selectedIdx) return null;
+        {/* Pin voting */}
+        {!lockedZone && (
+          <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Group vote
+              </h3>
+              <span className="text-[11px] text-slate-500">
+                {totalVoted}/{totalMembers} voted
+              </span>
+            </div>
+            <div className="space-y-2 mb-3">
+              {zones.map((z, i) => {
+                const myVoteHere = myVote?.zoneId === z.id;
+                const tally = zoneTally.find(t => t.zoneId === z.id)?.count || 0;
+                const tallyPct = totalMembers ? (tally / totalMembers) * 100 : 0;
+                const isWinning = winningZoneId === z.id && tally > 0;
                 return (
-                  <ZoneRow
-                    key={zone.id}
-                    zone={zone}
-                    color={ZONE_COLORS[i] || '#94A3B8'}
-                    onSelect={() => setSelectedIdx(i)}
-                  />
+                  <button
+                    key={z.id}
+                    onClick={() => { voteForPin(trip.id, z.id); setSelectedIdx(i); }}
+                    className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                      myVoteHere ? 'border-barry-blue bg-blue-50' :
+                      isWinning ? 'border-emerald-200 bg-emerald-50/50' :
+                      'border-slate-100 hover:border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white text-xs"
+                          style={{ backgroundColor: ZONE_COLORS[i] || '#94A3B8' }}
+                        >
+                          {z.rank}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{z.label || `Zone ${z.rank}`}</p>
+                          <p className="text-[10px] text-slate-500">{z.equityScore}% fair</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {myVoteHere && (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                        <span className="text-xs font-bold text-slate-700">{tally}</span>
+                      </div>
+                    </div>
+                    <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-barry-blue rounded-full transition-all duration-500"
+                        style={{ width: `${tallyPct}%` }}
+                      />
+                    </div>
+                  </button>
                 );
               })}
             </div>
-          </>
+            <p className="text-[11px] text-slate-500 text-center">
+              Tap a zone to vote. {isAdmin ? 'Lock in once everyone has voted.' : "Wait for the host to lock once everyone's in."}
+            </p>
+          </div>
+        )}
+
+        {lockedZone && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <p className="text-sm font-semibold text-emerald-900">
+                Zone locked. Now pick the venues.
+              </p>
+            </div>
+          </div>
         )}
       </div>
 
       {/* Sticky footer CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 py-3">
-        <div className="max-w-lg mx-auto">
-          <button
-            onClick={handleConfirm}
-            className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
-          >
-            Pick venues in {selected.label || `Zone ${selected.rank}`}
-          </button>
-          <p className="text-center text-[10px] text-slate-400 mt-2">
-            Next: vote on bars, restaurants, or activities in this zone
-          </p>
+        <div className="max-w-2xl mx-auto">
+          {lockedZone ? (
+            <button
+              onClick={handleConfirm}
+              className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
+            >
+              Pick venues in this zone
+            </button>
+          ) : isAdmin && allVoted ? (
+            <button
+              onClick={handleConfirm}
+              className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all"
+            >
+              Lock in {zones.find(z => z.id === winningZoneId)?.label || 'top zone'}
+            </button>
+          ) : (
+            <div className="text-center py-3 px-4 bg-slate-50 rounded-2xl">
+              <p className="text-sm font-medium text-slate-600">
+                {!myVote ? 'Tap a zone above to cast your vote' :
+                 !allVoted ? `Waiting for ${totalMembers - totalVoted} more vote${totalMembers - totalVoted === 1 ? '' : 's'}` :
+                 'Waiting for host to lock in'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function ZoneRow({ zone, color, onSelect }: { zone: EquityZone; color: string; onSelect: () => void }) {
-  return (
-    <button
-      onClick={onSelect}
-      className="w-full text-left bg-white rounded-2xl border border-slate-100 hover:border-slate-200 p-3.5 active:scale-[0.99] transition-all"
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-sm"
-          style={{ backgroundColor: color }}
-        >
-          {zone.rank}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-slate-900 truncate">{zone.label || `Zone ${zone.rank}`}</h4>
-          <p className="text-[11px] text-slate-500">
-            {zone.equityScore}% fair · max effort {zone.maxBurden.toFixed(1)}
-          </p>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </div>
-    </button>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-base font-bold text-slate-900">{value}</p>
-      <p className="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">{label}</p>
     </div>
   );
 }

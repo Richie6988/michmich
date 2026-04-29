@@ -26,6 +26,11 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
     if (pathname.endsWith('/constraints')) return 'My setup';
     if (pathname.endsWith('/map')) return 'Map';
     if (pathname.endsWith('/vote')) return 'Vote';
+    if (pathname.endsWith('/venues')) return 'Venues';
+    if (pathname.endsWith('/accommodation')) return 'Stay';
+    if (pathname.endsWith('/transport')) return 'Transport';
+    if (pathname.endsWith('/funds')) return 'Funds';
+    if (pathname.endsWith('/booking')) return 'Booking';
     if (pathname.endsWith('/chat')) return 'Chat';
     if (pathname.endsWith('/cagnotte')) return 'Kitty';
     if (pathname.endsWith('/expenses')) return 'Expenses';

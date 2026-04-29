@@ -221,12 +221,12 @@ export default function TripOverviewPage() {
         )}
       </section>
 
-      {/* TILES section - all the tools */}
+      {/* TILES section - journey-ordered */}
       <section>
         <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-1">
-          Trip tools
+          Plan
         </h2>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 mb-3">
           <Tile
             href={`/trips/${trip.id}/dates`}
             icon="calendar"
@@ -241,16 +241,46 @@ export default function TripOverviewPage() {
             label="Map"
             color="blue"
             badge={constraintsReady < totalMembers ? 'Pending' : 'Ready'}
-            sub="Find the fair spot"
+            sub="Find the fair zone"
           />
           <Tile
-            href={`/trips/${trip.id}/vote`}
-            icon="heart"
-            label="Vote"
+            href={`/trips/${trip.id}/venues`}
+            icon="utensils"
+            label="Venues"
             color="rose"
             badge={trip.status === 'voting' || trip.status === 'booked' ? 'Open' : 'Locked'}
-            sub="Pick your favorite"
+            sub="Bars, restaurants"
           />
+          <Tile
+            href={`/trips/${trip.id}/accommodation`}
+            icon="bed"
+            label="Stay"
+            color="violet"
+            badge="Optional"
+            sub="Hotels, BnB, Airbnb"
+          />
+          <Tile
+            href={`/trips/${trip.id}/transport`}
+            icon="route"
+            label="Transport"
+            color="blue"
+            badge="Per person"
+            sub="Configure each leg"
+          />
+          <Tile
+            href={`/trips/${trip.id}/funds`}
+            icon="wallet"
+            label="Funds"
+            color="pink"
+            badge="Pre-pay"
+            sub="Collect before booking"
+          />
+        </div>
+
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-1 mt-4">
+          Live & after
+        </h2>
+        <div className="grid grid-cols-2 gap-2">
           <Tile
             href={`/trips/${trip.id}/chat`}
             icon="chat"
@@ -258,14 +288,6 @@ export default function TripOverviewPage() {
             color="cyan"
             badge={messages.length ? String(messages.length) : 'New'}
             sub={messages.length ? messages[messages.length - 1].content.slice(0, 24) : 'Discuss with the group'}
-          />
-          <Tile
-            href={`/trips/${trip.id}/cagnotte`}
-            icon="wallet"
-            label="Kitty"
-            color="pink"
-            badge={cagnotte ? `${Math.round((cagnotte.collected / cagnotte.totalTarget) * 100)}%` : 'Setup'}
-            sub={cagnotte ? `${cagnotte.collected} / ${cagnotte.totalTarget} EUR` : 'Pre-trip pre-pay'}
           />
           <Tile
             href={`/trips/${trip.id}/expenses`}
@@ -333,12 +355,13 @@ function Tile({ href, icon, label, color, badge, sub }: {
   href: string;
   icon: string;
   label: string;
-  color: 'purple' | 'blue' | 'rose' | 'cyan' | 'pink' | 'emerald' | 'amber';
+  color: 'purple' | 'blue' | 'rose' | 'cyan' | 'pink' | 'emerald' | 'amber' | 'violet';
   badge?: string;
   sub: string;
 }) {
   const palette: Record<string, { bg: string; text: string; iconBg: string; iconStroke: string; badge: string }> = {
     purple: { bg: 'bg-purple-50', text: 'text-purple-900', iconBg: 'bg-purple-100', iconStroke: '#8B5CF6', badge: 'bg-purple-100 text-purple-700' },
+    violet: { bg: 'bg-violet-50', text: 'text-violet-900', iconBg: 'bg-violet-100', iconStroke: '#7C3AED', badge: 'bg-violet-100 text-violet-700' },
     blue: { bg: 'bg-blue-50', text: 'text-blue-900', iconBg: 'bg-blue-100', iconStroke: '#2563EB', badge: 'bg-blue-100 text-blue-700' },
     rose: { bg: 'bg-rose-50', text: 'text-rose-900', iconBg: 'bg-rose-100', iconStroke: '#F43F5E', badge: 'bg-rose-100 text-rose-700' },
     cyan: { bg: 'bg-cyan-50', text: 'text-cyan-900', iconBg: 'bg-cyan-100', iconStroke: '#06B6D4', badge: 'bg-cyan-100 text-cyan-700' },
@@ -355,6 +378,9 @@ function Tile({ href, icon, label, color, badge, sub }: {
     chat: <><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></>,
     wallet: <><path d="M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5" /><circle cx="16" cy="14" r="1.5" /></>,
     receipt: <><path d="M14 2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2V8z" /><line x1="9" y1="9" x2="15" y2="9" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="13" y2="17" /></>,
+    utensils: <><path d="M3 2v7c0 1.1.9 2 2 2h2v9M21 6h-3v3a3 3 0 003 3v9M11 7H7M11 11H7M11 15H7" /></>,
+    bed: <><path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" /></>,
+    route: <><circle cx="6" cy="19" r="3" /><circle cx="18" cy="5" r="3" /><path d="M9 19h8a3 3 0 003-3 3 3 0 00-3-3H7a3 3 0 01-3-3 3 3 0 013-3h8" /></>,
   };
 
   return (
