@@ -20,10 +20,12 @@ export default function CreateTripPage() {
 
   const handleCreate = () => {
     if (!name.trim() || !mode) return;
+    const friendNames = mode === 'friends' ? invites.filter(n => n.trim()) : undefined;
     const trip = createGroupTrip(
       name,
       'custom',
-      date ? new Date(date).toISOString() : new Date(Date.now() + 3 * 86400000).toISOString()
+      date ? new Date(date).toISOString() : new Date(Date.now() + 3 * 86400000).toISOString(),
+      friendNames,
     );
     router.push(`/trips/${trip.id}` as any);
   };
@@ -250,16 +252,22 @@ function Step2({ name, mode, date, setDate, invites, setInvites, onCreate }: {
       {mode === 'friends' && (
         <div className="bg-white rounded-2xl p-4 mb-3 border border-slate-100">
           <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-            Invite friends (optional)
+            Add friends ({invites.filter(n => n.trim()).length})
           </label>
           <div className="space-y-2 mb-2">
-            {invites.map((email, i) => (
+            {invites.map((nameVal, i) => (
               <div key={i} className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-[11px] flex-shrink-0"
+                  style={{ backgroundColor: ['#2563EB', '#F97316', '#10B981', '#8B5CF6', '#EF4444'][i % 5] }}
+                >
+                  {nameVal.trim()[0]?.toUpperCase() || '?'}
+                </div>
                 <input
-                  type="email"
-                  value={email}
+                  type="text"
+                  value={nameVal}
                   onChange={e => updateInvite(i, e.target.value)}
-                  placeholder="email@friend.com"
+                  placeholder="First name (or full name)"
                   className="flex-1 px-3 py-2.5 bg-slate-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
                 {invites.length > 1 && (
@@ -283,7 +291,7 @@ function Step2({ name, mode, date, setDate, invites, setInvites, onCreate }: {
             + Add another friend
           </button>
           <p className="text-[11px] text-slate-500 mt-3 leading-snug">
-            You can also share an invite link from the trip page once it's created.
+            Just names work. You can share an invite link from the trip page later if you want them to join in-app.
           </p>
         </div>
       )}

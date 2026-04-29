@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   Trip, User, EquityZone, ChatMessage, Cagnotte,
   GeoPoint,
@@ -179,12 +180,42 @@ const MOCK_EXPENSES: Record<string, Expense[]> = {
 // STORE
 // ============================================================
 
+interface UserPreferences {
+  defaultTransportMode: 'walk' | 'bike' | 'transit' | 'car' | 'train';
+  language: 'en' | 'fr' | 'es';
+  notifications: boolean;
+  homeLocation: GeoPoint | null;
+  homeLabel: string;
+}
+
+interface PaymentMethod {
+  id: string;
+  type: 'card' | 'paypal' | 'sepa';
+  last4?: string;
+  brand?: string;
+  label: string;
+  isDefault: boolean;
+}
+
 interface AppState {
   // Auth
   currentUser: User | null;
   isAuthenticated: boolean;
   login: (email: string) => void;
   logout: () => void;
+
+  // User preferences (persisted to localStorage)
+  preferences: UserPreferences;
+  updatePreferences: (patch: Partial<UserPreferences>) => void;
+
+  // Payment & balance
+  paymentMethods: PaymentMethod[];
+  addPaymentMethod: (pm: Omit<PaymentMethod, 'id'>) => void;
+  removePaymentMethod: (id: string) => void;
+  setDefaultPaymentMethod: (id: string) => void;
+  inAppBalance: number; // EUR available for future trips
+  addToBalance: (amount: number) => void;
+  spendFromBalance: (amount: number) => void;
 
   // Geolocation
   userLocation: GeoPoint | null;
@@ -194,8 +225,10 @@ interface AppState {
   trips: Trip[];
   activeTrip: Trip | null;
   setActiveTrip: (tripId: string) => void;
-  createGroupTrip: (name: string, type: string, date: string) => Trip;
+  createGroupTrip: (name: string, type: string, date: string, friendNames?: string[]) => Trip;
   updateTripStatus: (tripId: string, status: Trip['status']) => void;
+  addParticipantByName: (tripId: string, name: string) => void;
+  removeParticipant: (tripId: string, participantId: string) => void;
 
   // Equity zones
   equityZones: EquityZone[];
@@ -233,7 +266,9 @@ interface AppState {
   removeExpense: (tripId: string, expenseId: string) => void;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
   currentUser: MOCK_USERS[0],
   isAuthenticated: true,
   userLocation: null,
@@ -245,6 +280,92 @@ export const useAppStore = create<AppState>((set, get) => ({
   cagnottes: MOCK_CAGNOTTES,
   datePolls: MOCK_POLLS,
   expenses: MOCK_EXPENSES,
+
+  preferences: {
+    defaultTransportMode: 'transit',
+    language: 'en',
+    notifications: true,
+    homeLocation: MOCK_USERS[0].homeLocation,
+    homeLabel: 'Home',
+  },
+  paymentMethods: [],
+  inAppBalance: 0,
+
+  updatePreferences: (patch) => set(s => ({ preferences: { ...s.preferences, ...patch } })),
+
+  addPaymentMethod: (pm) => set(s => {
+    const id = `pm${Date.now()}`;
+    const isFirst = s.paymentMethods.length === 0;
+    return {
+      paymentMethods: [...s.paymentMethods, { ...pm, id, isDefault: isFirst || pm.isDefault }],
+    };
+  }),
+  removePaymentMethod: (id) => set(s => ({
+    paymentMethods: s.paymentMethods.filter(p => p.id !== id),
+  })),
+  setDefaultPaymentMethod: (id) => set(s => ({
+    paymentMethods: s.paymentMethods.map(p => ({ ...p, isDefault: p.id === id })),
+  })),
+  addToBalance: (amount) => set(s => ({ inAppBalance: Math.round((s.inAppBalance + amount) * 100) / 100 })),
+  spendFromBalance: (amount) => set(s => ({
+    inAppBalance: Math.max(0, Math.round((s.inAppBalance - amount) * 100) / 100),
+  })),
+
+  addParticipantByName: (tripId, name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    set(s => {
+      const trip = s.trips.find(t => t.id === tripId);
+      if (!trip) return s;
+      const newParticipantId = `p${Date.now()}`;
+      const guestUserId = `guest-${Date.now()}`;
+      const guestUser: User = {
+        id: guestUserId,
+        email: '',
+        firstName: trimmed.split(' ')[0],
+        lastName: trimmed.split(' ').slice(1).join(' ') || '',
+        avatarUrl: null,
+        phone: null,
+        locale: 'en',
+        defaultTransportMode: 'transit',
+        defaultTimeWeight: 0.5,
+        defaultMoneyWeight: 0.5,
+        homeLocation: null,
+        subscriptionTier: 'free',
+        createdAt: new Date().toISOString(),
+      };
+      const updated: Trip = {
+        ...trip,
+        participants: [
+          ...trip.participants,
+          {
+            id: newParticipantId, tripId, userId: guestUserId, user: guestUser, status: 'invited',
+            transportMode: 'transit', timeWeight: 0.5, moneyWeight: 0.5,
+            maxTime: null, maxMoney: null, originLocation: null, originLabel: null,
+            burdenScore: null, routeDuration: null, routeDistance: null, routeCost: null, routeGeometry: null, voteVenueId: null,
+          },
+        ],
+      };
+      return {
+        trips: s.trips.map(t => t.id === tripId ? updated : t),
+        activeTrip: s.activeTrip?.id === tripId ? updated : s.activeTrip,
+      };
+    });
+  },
+
+  removeParticipant: (tripId, participantId) => set(s => {
+    const trip = s.trips.find(t => t.id === tripId);
+    if (!trip) return s;
+    if (trip.participants.length <= 1) return s; // cannot remove last
+    const updated: Trip = {
+      ...trip,
+      participants: trip.participants.filter(p => p.id !== participantId),
+    };
+    return {
+      trips: s.trips.map(t => t.id === tripId ? updated : t),
+      activeTrip: s.activeTrip?.id === tripId ? updated : s.activeTrip,
+    };
+  }),
 
   login: (email) => {
     const user = MOCK_USERS.find(u => u.email === email) || MOCK_USERS[0];
@@ -260,9 +381,34 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ activeTrip: trip });
   },
 
-  createGroupTrip: (name, type, date) => {
+  createGroupTrip: (name, type, date, friendNames) => {
     const user = get().currentUser!;
     const id = `t${Date.now()}`;
+    const orgPart = {
+      id: `p${Date.now()}`, tripId: id, userId: user.id, user, status: 'accepted' as const,
+      transportMode: user.defaultTransportMode, timeWeight: user.defaultTimeWeight, moneyWeight: user.defaultMoneyWeight,
+      maxTime: null, maxMoney: null, originLocation: user.homeLocation, originLabel: 'Home',
+      burdenScore: null, routeDuration: null, routeDistance: null, routeCost: null, routeGeometry: null, voteVenueId: null,
+    };
+    const guestParts = (friendNames || [])
+      .map(n => n.trim())
+      .filter(n => n.length > 0)
+      .map((n, i) => {
+        const guestId = `guest-${Date.now()}-${i}`;
+        const firstName = n.split(' ')[0];
+        const lastName = n.split(' ').slice(1).join(' ') || '';
+        const guestUser: User = {
+          id: guestId, email: '', firstName, lastName, avatarUrl: null, phone: null,
+          locale: 'en', defaultTransportMode: 'transit', defaultTimeWeight: 0.5, defaultMoneyWeight: 0.5,
+          homeLocation: null, subscriptionTier: 'free', createdAt: new Date().toISOString(),
+        };
+        return {
+          id: `p${Date.now()}-${i + 1}`, tripId: id, userId: guestId, user: guestUser, status: 'invited' as const,
+          transportMode: 'transit' as const, timeWeight: 0.5, moneyWeight: 0.5,
+          maxTime: null, maxMoney: null, originLocation: null, originLabel: null,
+          burdenScore: null, routeDuration: null, routeDistance: null, routeCost: null, routeGeometry: null, voteVenueId: null,
+        };
+      });
     const newTrip: Trip = {
       id, name, description: null,
       organizerId: user.id, organizer: user,
@@ -272,12 +418,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       inviteToken: Math.random().toString(36).slice(2, 10),
       selectedVenueId: null,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-      participants: [{
-        id: `p${Date.now()}`, tripId: id, userId: user.id, user, status: 'accepted',
-        transportMode: user.defaultTransportMode, timeWeight: user.defaultTimeWeight, moneyWeight: user.defaultMoneyWeight,
-        maxTime: null, maxMoney: null, originLocation: user.homeLocation, originLabel: 'Home',
-        burdenScore: null, routeDuration: null, routeDistance: null, routeCost: null, routeGeometry: null, voteVenueId: null,
-      }],
+      participants: [orgPart, ...guestParts],
     };
     set(s => ({ trips: [newTrip, ...s.trips], activeTrip: newTrip }));
     return newTrip;
@@ -431,4 +572,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     }));
   },
-}));
+    }),
+    {
+      name: 'barry-app-state',
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? window.localStorage : undefined as any)),
+      // Only persist user-controlled data, NOT mock trips/chats
+      partialize: (state) => ({
+        preferences: state.preferences,
+        paymentMethods: state.paymentMethods,
+        inAppBalance: state.inAppBalance,
+      }),
+      // Don't try to read storage during SSR (avoids hydration mismatch)
+      skipHydration: false,
+    },
+  ),
+);

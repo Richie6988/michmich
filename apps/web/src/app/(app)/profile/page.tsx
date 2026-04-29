@@ -1,20 +1,43 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
-import { BarryMascot, BarryMark } from '@/components/barry/brand';
+import { BarryMark } from '@/components/barry/brand';
+
+const TRANSPORT_OPTIONS = [
+  { value: 'walk' as const, label: 'Walk' },
+  { value: 'bike' as const, label: 'Bike' },
+  { value: 'transit' as const, label: 'Public transit' },
+  { value: 'car' as const, label: 'Car' },
+  { value: 'train' as const, label: 'Train' },
+];
+
+const LANGUAGE_OPTIONS = [
+  { value: 'en' as const, label: 'English' },
+  { value: 'fr' as const, label: 'Francais' },
+  { value: 'es' as const, label: 'Espanol' },
+];
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { currentUser } = useAppStore();
+  const {
+    currentUser, preferences, updatePreferences,
+    paymentMethods, addPaymentMethod, removePaymentMethod, setDefaultPaymentMethod,
+    inAppBalance, addToBalance,
+  } = useAppStore();
+
+  const [openSection, setOpenSection] = useState<string | null>(null);
+  const [showAddCard, setShowAddCard] = useState(false);
+  const [showTopUp, setShowTopUp] = useState(false);
+
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen bg-barry-canvas">
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl border-b border-gray-100">
-        <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
-          <button onClick={() => router.push('/')} className="-ml-2 p-2 hover:bg-gray-100 rounded-full">
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-xl border-b border-slate-100">
+        <div className="flex items-center justify-between h-14 px-4 max-w-2xl mx-auto">
+          <button onClick={() => router.push('/')} className="-ml-2 p-2 hover:bg-slate-100 rounded-full transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E293B" strokeWidth="2" strokeLinecap="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
@@ -27,54 +50,500 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <main className="px-4 py-6 max-w-lg mx-auto">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-barry-blue to-blue-700 mx-auto flex items-center justify-center mb-3 shadow-lg shadow-blue-500/20">
-            <span className="text-white font-bold text-2xl">
-              {currentUser.firstName[0]}{currentUser.lastName[0]}
+      <main className="max-w-2xl mx-auto px-4 py-5 pb-32">
+        {/* Identity card */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-3 flex items-center gap-3">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-barry-blue to-blue-700 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-blue-500/15">
+            {currentUser.firstName[0]}{currentUser.lastName[0]}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display font-bold text-lg text-slate-900 truncate">
+              {currentUser.firstName} {currentUser.lastName}
+            </h1>
+            <p className="text-sm text-slate-500 truncate">{currentUser.email}</p>
+            <span className="inline-block mt-1 px-2 py-0.5 bg-blue-50 text-barry-blue text-[10px] font-bold uppercase tracking-wider rounded-full">
+              Free plan
             </span>
           </div>
-          <h1 className="font-display font-bold text-xl text-barry-black">
-            {currentUser.firstName} {currentUser.lastName}
-          </h1>
-          <p className="text-barry-grey text-sm">{currentUser.email}</p>
-          <span className="inline-block mt-2 px-3 py-1 bg-blue-50 text-barry-blue text-xs font-semibold rounded-full">
-            Free plan
-          </span>
         </div>
 
-        <div className="space-y-2">
-          {[
-            { label: 'Default transport', value: 'Public transit' },
-            { label: 'Language', value: 'English' },
-            { label: 'Home address', value: currentUser.homeLocation ? 'Set' : 'Not set' },
-            { label: 'Notifications', value: 'On' },
-          ].map(item => (
-            <button key={item.label} className="bg-white rounded-2xl p-4 border border-gray-100 w-full flex items-center justify-between hover:shadow-sm transition-shadow">
-              <div className="text-left">
-                <p className="text-sm font-medium text-barry-black">{item.label}</p>
-                <p className="text-xs text-barry-grey">{item.value}</p>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+        {/* Balance card - prominent */}
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-4 mb-4 text-white shadow-lg shadow-emerald-500/15">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-100">In-app balance</p>
+              <p className="font-display font-extrabold text-3xl tracking-tight mt-1">{inAppBalance.toFixed(2)} EUR</p>
+              <p className="text-[11px] text-emerald-100 mt-1">Use for future trip expenses</p>
+            </div>
+            <button
+              onClick={() => setShowTopUp(true)}
+              className="px-3 py-2 rounded-xl bg-white/20 backdrop-blur-sm text-white text-xs font-bold hover:bg-white/30 active:scale-95 transition-all"
+            >
+              Top up
             </button>
-          ))}
+          </div>
         </div>
 
-        <div className="mt-8 bg-gradient-to-br from-barry-blue to-blue-700 rounded-2xl p-4 text-white">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-100 mb-1">Coming soon</p>
-          <p className="font-display font-bold text-lg mb-1">Barry Pro</p>
-          <p className="text-xs text-blue-100 leading-snug">
+        {/* SECTION: Preferences */}
+        <SectionHeader title="Preferences" />
+        <div className="bg-white rounded-2xl border border-slate-100 mb-4 divide-y divide-slate-100">
+          <SettingRow
+            label="Default transport"
+            value={TRANSPORT_OPTIONS.find(o => o.value === preferences.defaultTransportMode)?.label || 'Public transit'}
+            open={openSection === 'transport'}
+            onToggle={() => setOpenSection(openSection === 'transport' ? null : 'transport')}
+          >
+            <div className="grid grid-cols-2 gap-1.5 pt-2">
+              {TRANSPORT_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => { updatePreferences({ defaultTransportMode: opt.value }); setOpenSection(null); }}
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    preferences.defaultTransportMode === opt.value
+                      ? 'bg-barry-blue text-white'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </SettingRow>
+
+          <SettingRow
+            label="Language"
+            value={LANGUAGE_OPTIONS.find(o => o.value === preferences.language)?.label || 'English'}
+            open={openSection === 'language'}
+            onToggle={() => setOpenSection(openSection === 'language' ? null : 'language')}
+          >
+            <div className="grid grid-cols-3 gap-1.5 pt-2">
+              {LANGUAGE_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => { updatePreferences({ language: opt.value }); setOpenSection(null); }}
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    preferences.language === opt.value
+                      ? 'bg-barry-blue text-white'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </SettingRow>
+
+          <SettingRow
+            label="Home address"
+            value={preferences.homeLocation ? preferences.homeLabel : 'Not set'}
+            open={openSection === 'home'}
+            onToggle={() => setOpenSection(openSection === 'home' ? null : 'home')}
+          >
+            <div className="pt-2">
+              <input
+                type="text"
+                value={preferences.homeLabel}
+                onChange={e => updatePreferences({ homeLabel: e.target.value })}
+                placeholder="Home, Office, Mom's place..."
+                className="w-full bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              />
+              <button
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                      pos => {
+                        updatePreferences({ homeLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
+                        setOpenSection(null);
+                      },
+                      () => alert('Location permission denied')
+                    );
+                  }
+                }}
+                className="w-full mt-2 py-2 rounded-xl bg-barry-blue text-white text-sm font-semibold active:scale-95 transition-all"
+              >
+                Use current location
+              </button>
+            </div>
+          </SettingRow>
+
+          <SettingRow
+            label="Notifications"
+            value={preferences.notifications ? 'On' : 'Off'}
+          >
+            <Toggle
+              checked={preferences.notifications}
+              onChange={(v) => updatePreferences({ notifications: v })}
+            />
+          </SettingRow>
+        </div>
+
+        {/* SECTION: Payment methods */}
+        <SectionHeader title="Payment methods" />
+        <div className="bg-white rounded-2xl border border-slate-100 mb-4 overflow-hidden">
+          {paymentMethods.length === 0 ? (
+            <div className="px-4 py-5 text-center">
+              <p className="text-sm text-slate-500 mb-3">No payment method yet</p>
+              <button
+                onClick={() => setShowAddCard(true)}
+                className="px-4 py-2 rounded-xl bg-barry-blue text-white text-sm font-semibold active:scale-95 transition-all"
+              >
+                Add a card
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="divide-y divide-slate-100">
+                {paymentMethods.map(pm => (
+                  <div key={pm.id} className="px-4 py-3 flex items-center gap-3">
+                    <div className="w-10 h-7 rounded bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                      {pm.brand?.toUpperCase().slice(0, 4) || pm.type.toUpperCase().slice(0, 4)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">{pm.label}</p>
+                      <p className="text-[11px] text-slate-500">
+                        {pm.last4 ? `Ends in ${pm.last4}` : pm.type}
+                      </p>
+                    </div>
+                    {pm.isDefault ? (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Default</span>
+                    ) : (
+                      <button
+                        onClick={() => setDefaultPaymentMethod(pm.id)}
+                        className="text-xs text-barry-blue font-medium"
+                      >
+                        Set default
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { if (confirm('Remove this payment method?')) removePaymentMethod(pm.id); }}
+                      className="w-7 h-7 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-colors"
+                      aria-label="Remove"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowAddCard(true)}
+                className="w-full px-4 py-3 text-sm font-semibold text-barry-blue hover:bg-slate-50 transition-colors border-t border-slate-100"
+              >
+                + Add another method
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* SECTION: Pro promo */}
+        <SectionHeader title="Upgrade" />
+        <div className="bg-gradient-to-br from-barry-blue to-blue-700 rounded-2xl p-4 text-white mb-4 shadow-lg shadow-blue-500/15">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">Coming soon</span>
+          </div>
+          <p className="font-display font-extrabold text-xl tracking-tight">Barry Pro</p>
+          <p className="text-xs text-blue-100 leading-snug mt-1">
             Unlimited groups, premium booking integrations, group expense tracking. EUR 4.99 / month.
           </p>
         </div>
 
-        <div className="mt-6 text-center">
-          <BarryMascot mood="default" size={56} />
-          <p className="text-[10px] text-barry-grey mt-2">Barry v0.1 - prototype</p>
+        {/* SECTION: Legal & About */}
+        <SectionHeader title="Legal" />
+        <div className="bg-white rounded-2xl border border-slate-100 mb-4 divide-y divide-slate-100">
+          <LinkRow href="/legal/terms" label="Terms and conditions" />
+          <LinkRow href="/legal/privacy" label="Privacy policy" />
+          <LinkRow href="/legal/cookies" label="Cookie policy" />
         </div>
+
+        {/* SECTION: About */}
+        <SectionHeader title="About" />
+        <div className="bg-white rounded-2xl border border-slate-100 mb-4 divide-y divide-slate-100">
+          <LinkRow href="mailto:hello@barry.app" label="Contact support" />
+          <LinkRow href="https://barry.app" label="barry.app" external />
+        </div>
+
+        <p className="text-center text-[10px] text-slate-400 mt-6">
+          Barry v0.1 · Prototype · Made in Paris
+        </p>
       </main>
+
+      {showAddCard && (
+        <AddCardSheet
+          onClose={() => setShowAddCard(false)}
+          onAdd={(pm) => { addPaymentMethod(pm); setShowAddCard(false); }}
+        />
+      )}
+
+      {showTopUp && (
+        <TopUpSheet
+          hasPaymentMethod={paymentMethods.length > 0}
+          onClose={() => setShowTopUp(false)}
+          onTopUp={(amount) => { addToBalance(amount); setShowTopUp(false); }}
+          onAddCard={() => { setShowTopUp(false); setShowAddCard(true); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-1 mt-4">
+      {title}
+    </h2>
+  );
+}
+
+function SettingRow({ label, value, open, onToggle, children }: {
+  label: string;
+  value: string;
+  open?: boolean;
+  onToggle?: () => void;
+  children?: React.ReactNode;
+}) {
+  const expandable = !!onToggle;
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        disabled={!expandable}
+        className={`w-full px-4 py-3 flex items-center justify-between text-left ${expandable ? 'hover:bg-slate-50 transition-colors' : ''}`}
+      >
+        <div>
+          <p className="text-sm font-medium text-slate-900">{label}</p>
+          <p className="text-xs text-slate-500">{value}</p>
+        </div>
+        {expandable ? (
+          <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"
+            className={`transition-transform ${open ? 'rotate-90' : ''}`}
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        ) : (
+          children
+        )}
+      </button>
+      {expandable && open && (
+        <div className="px-4 pb-3">{children}</div>
+      )}
+    </div>
+  );
+}
+
+function LinkRow({ href, label, external }: { href: string; label: string; external?: boolean }) {
+  return (
+    <a
+      href={href}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
+      className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+    >
+      <span className="text-sm font-medium text-slate-900">{label}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
+        {external
+          ? <><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></>
+          : <polyline points="9 18 15 12 9 6" />}
+      </svg>
+    </a>
+  );
+}
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
+      className={`w-11 h-6 rounded-full p-0.5 transition-colors ${checked ? 'bg-barry-blue' : 'bg-slate-200'}`}
+    >
+      <div
+        className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+      />
+    </button>
+  );
+}
+
+function AddCardSheet({ onClose, onAdd }: {
+  onClose: () => void;
+  onAdd: (pm: { type: 'card'; last4: string; brand: string; label: string; isDefault: boolean }) => void;
+}) {
+  const [number, setNumber] = useState('');
+  const [name, setName] = useState('');
+  const [exp, setExp] = useState('');
+  const [cvc, setCvc] = useState('');
+
+  const last4 = number.replace(/\s/g, '').slice(-4);
+  const canSubmit = last4.length === 4 && name.trim().length > 0 && exp.length >= 5 && cvc.length >= 3;
+
+  const detectBrand = (n: string): string => {
+    const cleaned = n.replace(/\s/g, '');
+    if (cleaned.startsWith('4')) return 'Visa';
+    if (cleaned.startsWith('5')) return 'Mastercard';
+    if (cleaned.startsWith('3')) return 'Amex';
+    return 'Card';
+  };
+
+  return (
+    <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+          <h2 className="font-display font-bold text-lg text-slate-900">Add a card</h2>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Card number</label>
+            <input
+              type="text"
+              value={number}
+              onChange={e => setNumber(e.target.value.replace(/[^\d ]/g, '').slice(0, 19))}
+              placeholder="1234 5678 9012 3456"
+              inputMode="numeric"
+              className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Cardholder name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Full name"
+              className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Expiry</label>
+              <input
+                type="text"
+                value={exp}
+                onChange={e => {
+                  let v = e.target.value.replace(/[^\d]/g, '').slice(0, 4);
+                  if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
+                  setExp(v);
+                }}
+                placeholder="MM/YY"
+                inputMode="numeric"
+                className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">CVC</label>
+              <input
+                type="text"
+                value={cvc}
+                onChange={e => setCvc(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
+                placeholder="123"
+                inputMode="numeric"
+                className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-[11px] text-amber-800 leading-snug">
+            Demo mode: no real charge. In production this would use Stripe Connect with PCI-compliant tokenization.
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-white border-t border-slate-100 p-4">
+          <button
+            disabled={!canSubmit}
+            onClick={() => onAdd({
+              type: 'card',
+              last4,
+              brand: detectBrand(number),
+              label: `${detectBrand(number)} ending in ${last4}`,
+              isDefault: false,
+            })}
+            className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-40"
+          >
+            Save card
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TopUpSheet({ hasPaymentMethod, onClose, onTopUp, onAddCard }: {
+  hasPaymentMethod: boolean;
+  onClose: () => void;
+  onTopUp: (amount: number) => void;
+  onAddCard: () => void;
+}) {
+  const [amount, setAmount] = useState(20);
+  const PRESETS = [10, 20, 50, 100];
+
+  return (
+    <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl">
+        <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+          <h2 className="font-display font-bold text-lg text-slate-900">Top up balance</h2>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {!hasPaymentMethod ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-slate-600 mb-3">You need a payment method first.</p>
+              <button onClick={onAddCard} className="px-4 py-2 rounded-xl bg-barry-blue text-white text-sm font-semibold">
+                Add a card
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-4 gap-2">
+                {PRESETS.map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setAmount(p)}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all ${
+                      amount === p ? 'bg-barry-blue text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    {p} EUR
+                  </button>
+                ))}
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Custom amount</label>
+                <div className="flex items-baseline gap-2">
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={e => setAmount(Number(e.target.value) || 0)}
+                    className="flex-1 bg-transparent text-3xl font-display font-extrabold text-slate-900 focus:outline-none"
+                  />
+                  <span className="text-lg font-bold text-slate-400">EUR</span>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 text-center">
+                Demo mode: no real charge.
+              </p>
+              <button
+                disabled={amount <= 0}
+                onClick={() => onTopUp(amount)}
+                className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-40"
+              >
+                Add {amount.toFixed(2)} EUR
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
