@@ -8,7 +8,8 @@ import { BarryMap } from '@/components/map/barry-map';
 import { calculateEquity, participantsToApiFormat, isEquityEngineUp } from '@/lib/api/equity-engine';
 import type { EquityZone, MapMarker } from '@barry/shared-types';
 
-const COLORS = ['#10B981', '#F59E0B', '#94A3B8'];
+const ZONE_COLORS = ['#10B981', '#F59E0B', '#94A3B8'];
+const ORIGIN_COLORS = ['#2563EB', '#F97316', '#10B981', '#8B5CF6', '#EF4444', '#06B6D4'];
 
 export default function EquityMapPage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function EquityMapPage() {
   const trip = activeTrip || trips.find(t => t.id === id);
 
   const [zones, setZones] = useState<EquityZone[]>([]);
-  const [selectedZoneIdx, setSelectedZoneIdx] = useState(0);
+  const [selectedIdx, setSelectedIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [engineUp, setEngineUp] = useState<boolean | null>(null);
@@ -25,32 +26,28 @@ export default function EquityMapPage() {
 
   useEffect(() => {
     if (!trip) return;
-
     let cancelled = false;
     const start = Date.now();
 
     (async () => {
-      // 1. Check if Equity Engine is reachable
       const up = await isEquityEngineUp();
       if (cancelled) return;
       setEngineUp(up);
 
-      // 2. Build participants from trip
       const participants = participantsToApiFormat(trip.participants);
 
       if (participants.length < 2) {
-        setError('At least 2 members must set their preferences.');
+        setError('At least 2 members must set their preferences before Barry can calculate.');
         setLoading(false);
         return;
       }
 
       if (!up) {
-        setError('Le moteur d\'equite n\'est pas accessible (port 8000). Launch the Python service for real calculations OSRM.');
+        setError("Barry's calculation engine is offline.");
         setLoading(false);
         return;
       }
 
-      // 3. Call real Equity Engine
       try {
         const result = await calculateEquity({
           tripId: trip.id,
@@ -63,7 +60,7 @@ export default function EquityMapPage() {
         setCalcTime(Date.now() - start);
       } catch (err: any) {
         if (cancelled) return;
-        setError(err?.message || 'Erreur de calcul');
+        setError(err?.message || 'Calculation error');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -75,27 +72,28 @@ export default function EquityMapPage() {
   const handleConfirm = () => {
     if (!trip) return;
     updateTripStatus(trip.id, 'voting');
-    router.push(`/trips/${trip.id}/vote`);
+    router.push(`/trips/${trip.id}/vote` as any);
   };
 
   if (!trip) {
     return (
       <div className="flex flex-col items-center justify-center pt-20">
         <BarryMascot mood="thinking" size={100} />
-        <p className="text-barry-grey mt-4">Trip not found</p>
+        <p className="text-slate-500 mt-4">Trip not found</p>
       </div>
     );
   }
 
+  // Loading screen
   if (loading) {
     return (
-      <div className="px-4 py-12 flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
         <BarryMascot mood="searching" size={140} />
-        <h2 className="font-display font-bold text-xl mt-6 text-barry-black">
-          Barry's calculating en temps reel...
+        <h2 className="font-display font-extrabold text-2xl mt-6 text-slate-900 tracking-tight">
+          Crunching the math
         </h2>
-        <p className="text-barry-grey text-sm mt-2 text-center max-w-xs">
-          Analyzing hundreds of points + OSRM routes for each member
+        <p className="text-slate-500 text-sm mt-2 text-center max-w-xs">
+          Scoring hundreds of points + real OSRM routes for each member
         </p>
         <div className="mt-6 flex gap-1.5">
           {[0, 1, 2].map(i => (
@@ -106,28 +104,30 @@ export default function EquityMapPage() {
             />
           ))}
         </div>
-        <p className="mt-6 text-[10px] text-barry-grey font-mono">
-          Python · FastAPI · OSRM
-        </p>
+        <div className="mt-8 flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+          <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+          OSRM · Minimax · Live
+        </div>
       </div>
     );
   }
 
+  // Error screen
   if (error) {
     return (
       <div className="px-4 py-8">
-        <div className="text-center mb-6">
+        <div className="text-center mb-5">
           <BarryMascot mood="thinking" size={100} />
-          <h2 className="font-display font-bold text-xl mt-4 text-barry-black">
-            Calculation failed
+          <h2 className="font-display font-bold text-xl mt-4 text-slate-900">
+            Couldn't calculate
           </h2>
-          <p className="text-sm text-barry-grey mt-2 max-w-sm mx-auto">{error}</p>
+          <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto leading-snug">{error}</p>
         </div>
 
         {engineUp === false && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
-            <p className="text-xs font-semibold text-amber-900 mb-2">How to launch the engine ?</p>
-            <pre className="text-[10px] text-amber-800 font-mono leading-relaxed bg-white/50 p-2 rounded">
+            <p className="text-xs font-semibold text-amber-900 mb-2">Start the engine locally:</p>
+            <pre className="text-[10px] text-amber-800 font-mono leading-relaxed bg-white/60 p-2.5 rounded overflow-x-auto">
 {`cd services\\equity-engine
 python -m venv venv
 .\\venv\\Scripts\\Activate.ps1
@@ -135,184 +135,223 @@ pip install -r requirements.txt
 uvicorn app.main:app --port 8000`}
             </pre>
             <p className="text-[10px] text-amber-700 mt-2">
-              Ou utilise <code>.\\start-barry.ps1</code>
+              Or just run <code className="bg-white/80 px-1 rounded">.\start-barry.ps1</code>
             </p>
           </div>
         )}
 
-        <button onClick={() => window.location.reload()} className="w-full bg-barry-blue text-white font-semibold py-3 rounded-xl">
-          Retry
+        <button
+          onClick={() => window.location.reload()}
+          className="w-full bg-barry-blue text-white font-semibold py-3 rounded-2xl active:scale-[0.98] transition-all"
+        >
+          Try again
         </button>
       </div>
     );
   }
 
+  // No zones
   if (zones.length === 0) {
     return (
       <div className="px-4 py-12 flex flex-col items-center text-center">
         <BarryMascot mood="thinking" size={120} />
-        <h2 className="font-display font-bold text-xl mt-4">No zones found</h2>
-        <p className="text-sm text-barry-grey mt-2 max-w-xs">
-          Les contraintes of the group sont peut-etre trop restrictives. Try increasing les budgets temps/argent.
+        <h2 className="font-display font-bold text-xl mt-4">No fair spot found</h2>
+        <p className="text-sm text-slate-500 mt-2 max-w-xs leading-snug">
+          The group's constraints might be too tight. Try increasing time or budget limits.
         </p>
+        <button
+          onClick={() => router.push(`/trips/${id}/constraints` as any)}
+          className="mt-6 px-5 py-2.5 bg-barry-blue text-white font-semibold rounded-xl text-sm"
+        >
+          Adjust preferences
+        </button>
       </div>
     );
   }
 
-  const selectedZone = zones[selectedZoneIdx];
+  const selected = zones[selectedIdx];
 
   // Build markers
   const markers: MapMarker[] = [];
-  // Participant origins
   trip.participants.forEach((p, i) => {
     if (p.originLocation) {
       markers.push({
         id: `origin-${p.id}`,
         position: p.originLocation,
         type: 'origin',
-        color: ['#2563EB', '#F97316', '#10B981', '#8B5CF6', '#EF4444'][i % 5],
+        color: ORIGIN_COLORS[i % ORIGIN_COLORS.length],
         label: p.user?.firstName?.[0] || '?',
       });
     }
   });
-  // Equity zones
   zones.forEach((z, i) => {
     markers.push({
       id: z.id,
       position: z.center,
       type: 'pin',
-      color: COLORS[i] || '#94A3B8',
+      color: ZONE_COLORS[i] || '#94A3B8',
       rank: z.rank,
-      onClick: () => setSelectedZoneIdx(i),
+      onClick: () => setSelectedIdx(i),
     });
   });
 
-  // Center on first zone
-  const center = zones[0].center;
-
   return (
-    <div className="px-4 py-4">
-      {/* Map */}
-      <div className="rounded-2xl overflow-hidden mb-4 border border-gray-100" style={{ height: 280 }}>
+    <div className="pb-32">
+      {/* Hero map */}
+      <div className="relative h-72 mx-4 mt-4 rounded-3xl overflow-hidden border border-slate-100 shadow-sm">
         <BarryMap
-          center={center}
+          center={selected.center}
           zoom={12}
           markers={markers}
-          selectedMarkerId={selectedZone?.id}
+          selectedMarkerId={selected.id}
           height="100%"
         />
-      </div>
-
-      {/* Calc info */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        {/* Live calc badge floating on map */}
+        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md rounded-full px-3 py-1.5 shadow-md flex items-center gap-2">
           <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-[11px] font-medium text-emerald-800">
-            Calculated in {(calcTime / 1000).toFixed(1)}s
+          <span className="text-[11px] font-semibold text-slate-700">
+            Live · {(calcTime / 1000).toFixed(1)}s
           </span>
         </div>
-        <span className="text-[10px] text-emerald-600 font-mono">OSRM · Minimax</span>
       </div>
 
-      {/* Zone cards */}
-      <div className="space-y-2 mb-4">
-        {zones.map((zone, i) => (
-          <ZoneCard
-            key={zone.id}
-            zone={zone}
-            participantsMap={trip.participants}
-            color={COLORS[i] || '#94A3B8'}
-            selected={selectedZoneIdx === i}
-            onSelect={() => setSelectedZoneIdx(i)}
-          />
-        ))}
+      {/* Result hero */}
+      <div className="px-4 mt-4">
+        <div className="text-center mb-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Barry's pick</p>
+          <h1 className="font-display font-extrabold text-2xl text-slate-900 mt-0.5 tracking-tight">
+            {selected.label || `Zone ${selected.rank}`}
+          </h1>
+          <div className="inline-flex items-center gap-1.5 mt-2">
+            <span className={`text-2xl font-display font-extrabold ${
+              selected.equityScore >= 90 ? 'text-emerald-600' :
+              selected.equityScore >= 75 ? 'text-amber-600' :
+              'text-rose-500'
+            }`}>
+              {selected.equityScore}%
+            </span>
+            <span className="text-xs text-slate-500">fair to all</span>
+          </div>
+        </div>
+
+        {/* Burden breakdown */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-3">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3">
+            Effort per member
+          </h3>
+          <div className="space-y-2.5">
+            {Object.entries(selected.burdens).map(([userId, burden]) => {
+              const p = trip.participants.find(p => p.userId === userId);
+              const i = trip.participants.findIndex(p => p.userId === userId);
+              if (!p) return null;
+              const burdenPct = Math.min((burden / selected.maxBurden) * 100, 100);
+              return (
+                <div key={userId}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-[10px]"
+                        style={{ backgroundColor: ORIGIN_COLORS[i % ORIGIN_COLORS.length] }}
+                      >
+                        {p.user?.firstName?.[0]}
+                      </div>
+                      <span className="text-sm font-medium text-slate-900">{p.user?.firstName}</span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-600">{burden.toFixed(1)} effort</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden ml-9">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${burdenPct}%`,
+                        backgroundColor: ORIGIN_COLORS[i % ORIGIN_COLORS.length],
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-100 text-center">
+            <Stat label="Worst case" value={selected.maxBurden.toFixed(1)} />
+            <Stat label="Average" value={selected.meanBurden.toFixed(1)} />
+            <Stat label="Spread" value={selected.stdDevBurden.toFixed(1)} />
+          </div>
+        </div>
+
+        {/* Other zones */}
+        {zones.length > 1 && (
+          <>
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-1">
+              Alternatives
+            </h3>
+            <div className="space-y-2 mb-4">
+              {zones.map((zone, i) => {
+                if (i === selectedIdx) return null;
+                return (
+                  <ZoneRow
+                    key={zone.id}
+                    zone={zone}
+                    color={ZONE_COLORS[i] || '#94A3B8'}
+                    onSelect={() => setSelectedIdx(i)}
+                  />
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
-      <button
-        onClick={handleConfirm}
-        className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-4 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
-      >
-        Start voting dans la zone {selectedZone?.label || zones[selectedZoneIdx].rank}
-      </button>
+      {/* Sticky footer CTA */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 py-3">
+        <div className="max-w-lg mx-auto">
+          <button
+            onClick={handleConfirm}
+            className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
+          >
+            Pick venues in {selected.label || `Zone ${selected.rank}`}
+          </button>
+          <p className="text-center text-[10px] text-slate-400 mt-2">
+            Next: vote on bars, restaurants, or activities in this zone
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
-function ZoneCard({
-  zone, participantsMap, color, selected, onSelect,
-}: {
-  zone: EquityZone;
-  participantsMap: any[];
-  color: string;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const equityColor =
-    zone.equityScore >= 90 ? 'text-emerald-600 bg-emerald-50' :
-    zone.equityScore >= 75 ? 'text-amber-600 bg-amber-50' :
-    'text-red-600 bg-red-50';
-
+function ZoneRow({ zone, color, onSelect }: { zone: EquityZone; color: string; onSelect: () => void }) {
   return (
     <button
       onClick={onSelect}
-      className={`w-full text-left bg-white rounded-2xl p-3.5 border transition-all ${
-        selected ? 'border-barry-blue shadow-md ring-2 ring-blue-200/50' : 'border-gray-100 hover:border-gray-200'
-      }`}
+      className="w-full text-left bg-white rounded-2xl border border-slate-100 hover:border-slate-200 p-3.5 active:scale-[0.99] transition-all"
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2.5">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-sm"
-            style={{ backgroundColor: color }}
-          >
-            {zone.rank}
-          </div>
-          <div>
-            <h3 className="font-semibold text-barry-black">{zone.label || `Zone ${zone.rank}`}</h3>
-            <p className="text-[11px] text-barry-grey font-mono">
-              {zone.center.lat.toFixed(4)}, {zone.center.lng.toFixed(4)}
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-sm"
+          style={{ backgroundColor: color }}
+        >
+          {zone.rank}
         </div>
-        <div className={`px-2.5 py-1 rounded-full ${equityColor}`}>
-          <span className="text-xs font-bold">{zone.equityScore}%</span>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-slate-900 truncate">{zone.label || `Zone ${zone.rank}`}</h4>
+          <p className="text-[11px] text-slate-500">
+            {zone.equityScore}% fair · max effort {zone.maxBurden.toFixed(1)}
+          </p>
         </div>
-      </div>
-
-      <div className="space-y-1">
-        {Object.entries(zone.burdens).map(([userId, burden]) => {
-          const participant = participantsMap.find((p: any) => p.userId === userId);
-          if (!participant) return null;
-          return (
-            <div key={userId} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-barry-blue/10 flex items-center justify-center text-[9px] font-bold text-barry-blue">
-                  {participant.user?.firstName?.[0]}
-                </div>
-                <span className="text-xs text-barry-black">{participant.user?.firstName}</span>
-              </div>
-              <span className="text-[11px] font-semibold text-barry-grey">
-                Effort: {burden.toFixed(1)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-center">
-        <div>
-          <p className="text-sm font-bold text-barry-black">{zone.maxBurden.toFixed(1)}</p>
-          <p className="text-[9px] text-barry-grey uppercase">Max</p>
-        </div>
-        <div>
-          <p className="text-sm font-bold text-barry-black">{zone.meanBurden.toFixed(1)}</p>
-          <p className="text-[9px] text-barry-grey uppercase">Moyenne</p>
-        </div>
-        <div>
-          <p className="text-sm font-bold text-barry-black">{zone.stdDevBurden.toFixed(1)}</p>
-          <p className="text-[9px] text-barry-grey uppercase">Variation</p>
-        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </div>
     </button>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-base font-bold text-slate-900">{value}</p>
+      <p className="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">{label}</p>
+    </div>
   );
 }

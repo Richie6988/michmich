@@ -48,7 +48,7 @@ export default function KittyPage() {
               onClick={() => initKitty(id as string, setupAmount)}
               className="w-full bg-gradient-to-r from-pink-500 to-rose-600 text-white font-semibold py-3 rounded-xl shadow-md active:scale-[0.98] transition-all"
             >
-              Lancer la cagnotte
+              Launch the kitty
             </button>
           </div>
         ) : (
