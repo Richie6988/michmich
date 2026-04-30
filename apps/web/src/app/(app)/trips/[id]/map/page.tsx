@@ -42,7 +42,7 @@ export default function EquityMapPage() {
   const {
     activeTrip, trips, currentUser,
     pinVotes, voteForPin, closePinVote, pickedZone,
-    updateTripStatus,
+    updateTripStatus, setEquityZones, initTransportLegs,
   } = useAppStore();
   const trip = activeTrip || trips.find(t => t.id === id);
 
@@ -67,7 +67,9 @@ export default function EquityMapPage() {
 
       if (!up || participants.length < 2) {
         // Use demo zones to keep the demo flow alive
-        setZones(DEMO_ZONES.map(z => ({ ...z, tripId: trip.id })));
+        const demoZones = DEMO_ZONES.map(z => ({ ...z, tripId: trip.id }));
+        setZones(demoZones);
+        setEquityZones(demoZones);
         setCalcTime(420);
         setUsingDemo(true);
         setLoading(false);
@@ -83,12 +85,15 @@ export default function EquityMapPage() {
         });
         if (cancelled) return;
         setZones(result.zones);
+        setEquityZones(result.zones);
         setCalcTime(Date.now() - start);
         setUsingDemo(false);
       } catch (err: any) {
         if (cancelled) return;
         // Fall back to demo on error too
-        setZones(DEMO_ZONES.map(z => ({ ...z, tripId: trip.id })));
+        const demoZones = DEMO_ZONES.map(z => ({ ...z, tripId: trip.id }));
+        setZones(demoZones);
+        setEquityZones(demoZones);
         setCalcTime(420);
         setUsingDemo(true);
       } finally {
@@ -200,6 +205,8 @@ export default function EquityMapPage() {
     if (winningZoneId && allVoted) {
       closePinVote(trip.id, winningZoneId);
       updateTripStatus(trip.id, 'voting');
+      // Re-compute transport estimates now that we have a destination
+      initTransportLegs(trip.id);
       setTimeout(() => router.push(`/trips/${trip.id}/venues` as any), 300);
     }
   };
@@ -388,6 +395,7 @@ export default function EquityMapPage() {
             <button
               onClick={() => {
                 closePinVote(trip.id, selected.id);
+                initTransportLegs(trip.id);
                 setTimeout(() => router.push(`/trips/${trip.id}/venues` as any), 300);
               }}
               className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"

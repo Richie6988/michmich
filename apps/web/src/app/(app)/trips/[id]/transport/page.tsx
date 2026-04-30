@@ -44,8 +44,16 @@ export default function TransportPage() {
           Transport per person
         </h1>
         <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">
-          Add reduction cards or opt out to book yourself.
+          Estimates based on distance to the chosen zone. Add reduction cards or opt out to book yourself.
         </p>
+        {legs.length > 0 && (
+          <button
+            onClick={() => initTransportLegs(id as string)}
+            className="mt-2 text-[11px] text-barry-blue font-medium hover:underline"
+          >
+            Recompute estimates
+          </button>
+        )}
       </div>
 
       <div className="space-y-2 mb-4">

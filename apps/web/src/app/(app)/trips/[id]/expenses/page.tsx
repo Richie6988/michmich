@@ -123,6 +123,7 @@ export default function ExpensesPage() {
         <div className="space-y-2">
           {tripExpenses.map(exp => (
             <ExpenseRow key={exp.id} expense={exp} currentUserId={currentUser?.id}
+              participants={trip.participants.map(p => p.user!).filter(Boolean)}
               onRemove={() => removeExpense(id as string, exp.id)} />
           ))}
         </div>
@@ -193,11 +194,21 @@ export default function ExpensesPage() {
   );
 }
 
-function ExpenseRow({ expense, currentUserId, onRemove }: { expense: Expense; currentUserId?: string; onRemove: () => void }) {
+function ExpenseRow({ expense, currentUserId, participants, onRemove }: {
+  expense: Expense;
+  currentUserId?: string;
+  participants: User[];
+  onRemove: () => void;
+}) {
   const [showActions, setShowActions] = useState(false);
   const cat = CATEGORIES.find(c => c.value === expense.category) || CATEGORIES[CATEGORIES.length - 1];
   const myShare = expense.shares.find(s => s.userId === currentUserId);
   const iPaid = expense.paidBy === currentUserId;
+
+  const userName = (uid: string) => {
+    const u = participants.find(p => p.id === uid);
+    return u ? `${u.firstName} ${u.lastName?.[0] || ''}`.trim() : uid;
+  };
 
   return (
     <div
@@ -233,7 +244,7 @@ function ExpenseRow({ expense, currentUserId, onRemove }: { expense: Expense; cu
           <div className="space-y-1 mb-3">
             {expense.shares.map(s => (
               <div key={s.userId} className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-700">{s.userId}</span>
+                <span className="text-slate-700">{userName(s.userId)}</span>
                 <span className="font-semibold text-slate-900">
                   {s.amount.toFixed(2)} EUR
                   {expense.splitMode === 'percent' && s.shares !== undefined && (

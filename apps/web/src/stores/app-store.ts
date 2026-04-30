@@ -13,6 +13,7 @@ import type {
   BalanceTransaction,
 } from '@barry/shared-types';
 import { buildShares, computeBalances, computeSettlements } from '@/lib/utils/expenses';
+import { findVenueById, venueCostPerPerson } from '@/lib/data/venues';
 
 // ============================================================
 // MOCK USERS
@@ -773,19 +774,58 @@ export const useAppStore = create<AppState>()(
   // TRANSPORT LEGS
   transportLegs: {},
   initTransportLegs: (tripId) => {
-    const trip = get().trips.find(t => t.id === tripId);
+    const state = get();
+    const trip = state.trips.find(t => t.id === tripId);
     if (!trip) return;
-    const legs: TransportLeg[] = trip.participants.map(p => ({
-      participantId: p.id,
-      participantName: p.user?.firstName,
-      mode: (p.transportMode || 'transit') as TransportMode,
-      estimatedCost: 12, // demo default
-      reductionCard: null,
-      reductionPct: 0,
-      finalCost: 12,
-      selfBooked: false,
-      status: 'pending' as const,
-    }));
+
+    // Use the picked zone (or first zone) as the destination
+    const zoneId = state.pickedZone[tripId];
+    // Best-effort destination - look in equityZones (last calculation)
+    const zone = state.equityZones.find(z => z.id === zoneId);
+    const destination: GeoPoint = zone?.center || { lat: 48.8589, lng: 2.3613 }; // Marais default
+
+    const haversine = (a: GeoPoint, b: GeoPoint): number => {
+      const R = 6371; // km
+      const dLat = (b.lat - a.lat) * Math.PI / 180;
+      const dLng = (b.lng - a.lng) * Math.PI / 180;
+      const lat1 = a.lat * Math.PI / 180;
+      const lat2 = b.lat * Math.PI / 180;
+      const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(x));
+    };
+
+    // Cost per km for each transport mode (EUR)
+    const costPerKm: Record<TransportMode, number> = {
+      walk: 0,
+      bike: 0,
+      transit: 0.5, // metro/bus average
+      car: 0.85, // fuel + parking
+      train: 1.2,
+      flight: 8,
+    };
+    const minCost: Record<TransportMode, number> = {
+      walk: 0, bike: 0, transit: 2.10, car: 3, train: 5, flight: 50,
+    };
+
+    const legs: TransportLeg[] = trip.participants.map(p => {
+      const mode = (p.transportMode || 'transit') as TransportMode;
+      const origin = p.originLocation;
+      const distanceKm = origin ? haversine(origin, destination) : 5;
+      // Round-trip cost
+      const rawCost = Math.max(minCost[mode], distanceKm * 2 * costPerKm[mode]);
+      const estimatedCost = Math.round(rawCost * 100) / 100;
+      return {
+        participantId: p.id,
+        participantName: p.user?.firstName,
+        mode,
+        estimatedCost,
+        reductionCard: null,
+        reductionPct: 0,
+        finalCost: estimatedCost,
+        selfBooked: false,
+        status: 'pending' as const,
+      };
+    });
     set(s => ({ transportLegs: { ...s.transportLegs, [tripId]: legs } }));
   },
   updateTransportLeg: (tripId, participantId, patch) => {
@@ -826,7 +866,10 @@ export const useAppStore = create<AppState>()(
     const accommodationCost = selectedAcc ? selectedAcc.totalPrice : 0;
     const legs = state.transportLegs[tripId] || [];
     const transportCost = legs.filter(l => !l.selfBooked).reduce((s, l) => s + l.finalCost, 0);
-    const venueCost = state.pickedVenue[tripId] ? trip.participants.length * 35 : 0; // demo: 35 EUR/person
+    const venueId = state.pickedVenue[tripId];
+    const venue = venueId ? findVenueById(venueId) : null;
+    const venuePerPerson = venue ? venueCostPerPerson(venue) : 35;
+    const venueCost = venueId ? trip.participants.length * venuePerPerson : 0;
     const total = accommodationCost + transportCost + venueCost;
 
     // Don't persist empty requests
@@ -938,12 +981,14 @@ export const useAppStore = create<AppState>()(
     const reservations: Reservation[] = [];
 
     if (venueId) {
+      const venue = findVenueById(venueId);
+      const perPerson = venue ? venueCostPerPerson(venue) : 35;
       reservations.push({
         id: `r${Date.now()}-v`,
         tripId, type: 'venue',
         reference: venueId,
-        description: 'Restaurant / Bar reservation',
-        amount: (state.trips.find(t => t.id === tripId)?.participants.length || 1) * 35,
+        description: venue ? `${venue.name} - ${venue.category}` : 'Restaurant / Bar reservation',
+        amount: (state.trips.find(t => t.id === tripId)?.participants.length || 1) * perPerson,
         status: 'confirmed',
         createdAt: new Date().toISOString(),
         confirmationCode: 'BR-' + Math.random().toString(36).slice(2, 8).toUpperCase(),

@@ -88,6 +88,7 @@ export default function BookingPage() {
   }
 
   if (phase === 'done') {
+    const totalAmount = tripReservations.reduce((s, r) => s + r.amount, 0);
     return (
       <div className="px-4 py-6 pb-32">
         <div className="text-center mb-6">
@@ -96,6 +97,16 @@ export default function BookingPage() {
             All booked
           </h1>
           <p className="text-sm text-slate-500 mt-1">Your trip is locked in.</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-4 mb-3 border border-emerald-100">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Total reserved</span>
+            <span className="font-display font-extrabold text-2xl text-emerald-900">{totalAmount.toFixed(2)} EUR</span>
+          </div>
+          <p className="text-[11px] text-emerald-700 mt-1">
+            {tripReservations.length} confirmation{tripReservations.length === 1 ? '' : 's'}
+          </p>
         </div>
 
         <div className="space-y-2 mb-4">
@@ -125,14 +136,22 @@ export default function BookingPage() {
           ))}
         </div>
 
-        <button
-          onClick={() => router.push(`/trips/${id}` as any)}
-          className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
-        >
-          Back to trip
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={() => router.push(`/trips/${id}/expenses` as any)}
+            className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all"
+          >
+            Track expenses during the trip
+          </button>
+          <button
+            onClick={() => router.push(`/trips/${id}` as any)}
+            className="w-full bg-white border-2 border-slate-200 text-slate-700 font-semibold py-3 rounded-2xl active:scale-[0.98] transition-all"
+          >
+            Back to trip overview
+          </button>
+        </div>
         <p className="text-center text-[11px] text-slate-400 mt-3">
-          Confirmation emails sent to all participants. After the trip, head to Expenses to settle.
+          Confirmation emails sent to all participants.
         </p>
       </div>
     );
