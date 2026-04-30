@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMark } from '@/components/barry/brand';
+import { CARD_PROVIDERS } from '@/lib/data/reduction-cards';
+import type { ReductionCard } from '@barry/shared-types';
 
 const TRANSPORT_OPTIONS = [
   { value: 'walk' as const, label: 'Walk' },
@@ -11,6 +13,7 @@ const TRANSPORT_OPTIONS = [
   { value: 'transit' as const, label: 'Public transit' },
   { value: 'car' as const, label: 'Car' },
   { value: 'train' as const, label: 'Train' },
+  { value: 'flight' as const, label: 'Flight' },
 ];
 
 const LANGUAGE_OPTIONS = [
@@ -182,6 +185,104 @@ export default function ProfilePage() {
             <Toggle
               checked={preferences.notifications}
               onChange={(v) => updatePreferences({ notifications: v })}
+            />
+          </SettingRow>
+        </div>
+
+        {/* SECTION: Travel preferences (defaults reused on every Barry setup) */}
+        <SectionHeader title="Travel preferences" />
+        <p className="text-[11px] text-slate-500 -mt-1.5 mb-2 px-1">
+          Saved here once, reused on every Barry. Saves typing.
+        </p>
+        <div className="bg-white rounded-2xl border border-slate-100 mb-4 divide-y divide-slate-100">
+          <SettingRow
+            label="Email for booking reports"
+            value={preferences.defaultEmail || currentUser.email || 'Not set'}
+            open={openSection === 'travel-email'}
+            onToggle={() => setOpenSection(openSection === 'travel-email' ? null : 'travel-email')}
+          >
+            <input
+              type="email"
+              value={preferences.defaultEmail || ''}
+              onChange={e => updatePreferences({ defaultEmail: e.target.value })}
+              placeholder="you@example.com"
+              className="w-full mt-2 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            />
+          </SettingRow>
+
+          <SettingRow
+            label="Default max one-way duration"
+            value={preferences.defaultMaxTime ? `${preferences.defaultMaxTime} ${preferences.defaultMaxTimeUnit || 'min'}` : 'Not set'}
+            open={openSection === 'travel-time'}
+            onToggle={() => setOpenSection(openSection === 'travel-time' ? null : 'travel-time')}
+          >
+            <div className="flex gap-2 mt-2">
+              <input
+                type="number"
+                value={preferences.defaultMaxTime || ''}
+                onChange={e => updatePreferences({ defaultMaxTime: parseInt(e.target.value) || undefined })}
+                placeholder="45"
+                min={0}
+                className="flex-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              />
+              <select
+                value={preferences.defaultMaxTimeUnit || 'min'}
+                onChange={e => updatePreferences({ defaultMaxTimeUnit: e.target.value as 'min' | 'h' })}
+                className="bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200"
+              >
+                <option value="min">min</option>
+                <option value="h">hours</option>
+              </select>
+            </div>
+          </SettingRow>
+
+          <SettingRow
+            label="Total maximum budget"
+            value={preferences.defaultMaxBudget ? `${preferences.defaultMaxBudget} ${preferences.defaultMaxBudgetCurrency || 'EUR'}` : 'Not set'}
+            open={openSection === 'travel-budget'}
+            onToggle={() => setOpenSection(openSection === 'travel-budget' ? null : 'travel-budget')}
+          >
+            <div className="flex gap-2 mt-2">
+              <input
+                type="number"
+                value={preferences.defaultMaxBudget || ''}
+                onChange={e => updatePreferences({ defaultMaxBudget: parseInt(e.target.value) || undefined })}
+                placeholder="100"
+                min={0}
+                className="flex-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              />
+              <select
+                value={preferences.defaultMaxBudgetCurrency || 'EUR'}
+                onChange={e => updatePreferences({ defaultMaxBudgetCurrency: e.target.value as any })}
+                className="bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200"
+              >
+                <option value="EUR">EUR</option>
+                <option value="USD">USD</option>
+                <option value="GBP">GBP</option>
+                <option value="CHF">CHF</option>
+              </select>
+            </div>
+          </SettingRow>
+
+          <SettingRow
+            label="Self-book transport by default"
+            value={preferences.defaultSelfBook ? 'On' : 'Off'}
+          >
+            <Toggle
+              checked={preferences.defaultSelfBook || false}
+              onChange={(v) => updatePreferences({ defaultSelfBook: v })}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label="Loyalty / reduction cards"
+            value={`${(preferences.defaultReductionCards || []).length} saved`}
+            open={openSection === 'travel-cards'}
+            onToggle={() => setOpenSection(openSection === 'travel-cards' ? null : 'travel-cards')}
+          >
+            <ReductionCardsManager
+              cards={preferences.defaultReductionCards || []}
+              onChange={(cards) => updatePreferences({ defaultReductionCards: cards })}
             />
           </SettingRow>
         </div>
@@ -662,6 +763,130 @@ function BalanceHistorySheet({ transactions, onClose }: {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// REDUCTION CARDS MANAGER (re-used for default loyalty cards)
+// ============================================================
+function ReductionCardsManager({
+  cards, onChange,
+}: { cards: ReductionCard[]; onChange: (cards: ReductionCard[]) => void }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [provider, setProvider] = useState('');
+  const [number, setNumber] = useState('');
+
+  const handleAdd = () => {
+    if (!provider) return;
+    const p = CARD_PROVIDERS.find(x => x.id === provider);
+    if (!p) return;
+    onChange([
+      ...cards,
+      {
+        id: `rc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        provider,
+        label: p.label,
+        cardNumber: number,
+        reductionPct: p.defaultReduction || 0,
+      },
+    ]);
+    setProvider('');
+    setNumber('');
+    setShowAdd(false);
+  };
+
+  const handleRemove = (id: string) => {
+    onChange(cards.filter(c => c.id !== id));
+  };
+
+  return (
+    <div className="pt-2 space-y-2">
+      {cards.length > 0 && (
+        <div className="space-y-1.5">
+          {cards.map(c => (
+            <div key={c.id} className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate">{c.label}</p>
+                <p className="text-[10px] text-slate-600 truncate">
+                  {c.cardNumber || 'No number'}
+                  {c.reductionPct ? ` · -${c.reductionPct}%` : ''}
+                </p>
+              </div>
+              <button
+                onClick={() => handleRemove(c.id)}
+                className="w-7 h-7 rounded-full hover:bg-rose-100 flex items-center justify-center text-rose-600"
+                aria-label="Remove"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAdd ? (
+        <div className="bg-slate-50 rounded-xl p-3 space-y-2">
+          <select
+            value={provider}
+            onChange={e => setProvider(e.target.value)}
+            className="w-full bg-white rounded-lg px-3 py-2 text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          >
+            <option value="">Pick a card provider...</option>
+            <optgroup label="Rail (France)">
+              {CARD_PROVIDERS.filter(p => p.type === 'rail' && p.countries?.includes('FR')).map(p => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Rail (Other Europe)">
+              {CARD_PROVIDERS.filter(p => p.type === 'rail' && !p.countries?.includes('FR')).map(p => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Airlines">
+              {CARD_PROVIDERS.filter(p => p.type === 'air').map(p => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Bus">
+              {CARD_PROVIDERS.filter(p => p.type === 'bus').map(p => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </optgroup>
+          </select>
+          <input
+            type="text"
+            value={number}
+            onChange={e => setNumber(e.target.value)}
+            placeholder="Card / member number"
+            className="w-full bg-white rounded-lg px-3 py-2 text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleAdd}
+              disabled={!provider}
+              className="flex-1 px-3 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg disabled:opacity-40 active:scale-95 transition-all"
+            >
+              Add card
+            </button>
+            <button
+              onClick={() => { setShowAdd(false); setProvider(''); setNumber(''); }}
+              className="px-3 py-2 text-slate-600 text-xs font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowAdd(true)}
+          className="w-full py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs text-slate-700 font-semibold transition-colors"
+        >
+          + Add a card
+        </button>
+      )}
     </div>
   );
 }

@@ -85,6 +85,15 @@ export interface UserPreferences {
   defaultTimeWeight: number;
   defaultMoneyWeight: number;
   homeLocation: GeoPoint | null;
+  homeLabel?: string | null;
+  /** Default values reused on every Barry setup (saves typing) */
+  defaultMaxTime?: number;
+  defaultMaxTimeUnit?: 'min' | 'h';
+  defaultMaxBudget?: number;
+  defaultMaxBudgetCurrency?: 'EUR' | 'USD' | 'GBP' | 'CHF';
+  defaultEmail?: string;
+  defaultSelfBook?: boolean;
+  defaultReductionCards?: ReductionCard[];
   locale: string;
 }
 

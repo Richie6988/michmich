@@ -1125,6 +1125,7 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
   const venues = VENUES_BY_ZONE[zoneId] || FALLBACK_VENUES;
   const lockedVenueId = pickedVenue[trip.id];
   const isAdmin = trip.organizerId === currentUser?.id;
+  const isSolo = trip.participants.length === 1;
   const [openVenueId, setOpenVenueId] = useState<string | null>(null);
   const [openAccId, setOpenAccId] = useState<string | null>(null);
 

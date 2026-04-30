@@ -59,20 +59,45 @@ export function SetupSheet({ tripId, participantId, onClose }: {
   );
 
   // Time and budget — input with unit/currency selector
-  const [maxTime, setMaxTime] = useState(participant?.maxTime || 45);
-  const [maxTimeUnit, setMaxTimeUnit] = useState<'min' | 'h'>(participant?.maxTimeUnit || 'min');
-  const [maxBudget, setMaxBudget] = useState(participant?.maxMoney || 15);
-  const [maxBudgetCurrency, setMaxBudgetCurrency] = useState<'EUR' | 'USD' | 'GBP' | 'CHF'>(participant?.maxMoneyCurrency || 'EUR');
+  const [maxTime, setMaxTime] = useState(
+    participant?.maxTime
+    || (isMe ? preferences.defaultMaxTime : null)
+    || 45
+  );
+  const [maxTimeUnit, setMaxTimeUnit] = useState<'min' | 'h'>(
+    participant?.maxTimeUnit
+    || (isMe ? preferences.defaultMaxTimeUnit : null)
+    || 'min'
+  );
+  const [maxBudget, setMaxBudget] = useState(
+    participant?.maxMoney
+    || (isMe ? preferences.defaultMaxBudget : null)
+    || 15
+  );
+  const [maxBudgetCurrency, setMaxBudgetCurrency] = useState<'EUR' | 'USD' | 'GBP' | 'CHF'>(
+    participant?.maxMoneyCurrency
+    || (isMe ? preferences.defaultMaxBudgetCurrency : null)
+    || 'EUR'
+  );
 
   // Email for booking reports
-  const [email, setEmail] = useState(participant?.email || (isMe ? currentUser?.email : '') || '');
+  const [email, setEmail] = useState(
+    participant?.email
+    || (isMe ? (preferences.defaultEmail || currentUser?.email) : '')
+    || ''
+  );
 
   // Self-book toggle
-  const [selfBook, setSelfBook] = useState(participant?.selfBook || false);
+  const [selfBook, setSelfBook] = useState(
+    participant?.selfBook
+    ?? (isMe ? preferences.defaultSelfBook : null)
+    ?? false
+  );
 
   // Reduction cards (multiple)
   const [reductionCards, setReductionCards] = useState<ReductionCard[]>(
-    participant?.reductionCards || []
+    participant?.reductionCards
+    || (isMe ? (preferences.defaultReductionCards || []) : [])
   );
   const [showAddCard, setShowAddCard] = useState(false);
   const [newCardProvider, setNewCardProvider] = useState<string>('');
@@ -185,7 +210,7 @@ export function SetupSheet({ tripId, participantId, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto">
+      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
           <div>
             <h2 className="font-display font-bold text-lg text-slate-900">
@@ -234,12 +259,13 @@ export function SetupSheet({ tripId, participantId, onClose }: {
 
               {/* Suggestions dropdown */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute z-10 left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-lg max-h-64 overflow-y-auto">
+                <div className="absolute z-50 left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-lg max-h-64 overflow-y-auto">
                   {suggestions.map((s, i) => (
                     <button
                       key={`${s.lat}-${s.lon}-${i}`}
-                      onClick={() => handlePickSuggestion(s)}
-                      className="w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
+                      onMouseDown={(e) => { e.preventDefault(); handlePickSuggestion(s); }}
+                      onTouchStart={(e) => { e.preventDefault(); handlePickSuggestion(s); }}
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50 active:bg-slate-100 transition-colors border-b border-slate-100 last:border-b-0 cursor-pointer"
                     >
                       <div className="flex items-start gap-2">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="1.8" className="flex-shrink-0 mt-0.5">
@@ -455,9 +481,9 @@ export function SetupSheet({ tripId, participantId, onClose }: {
             </div>
           )}
 
-          {/* Max travel time — input field with unit */}
+          {/* Max one-way travel duration — input field with unit */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Max travel time</label>
+            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Max one-way travel duration</label>
             <div className="flex gap-2">
               <input
                 type="number"
@@ -481,7 +507,7 @@ export function SetupSheet({ tripId, participantId, onClose }: {
 
           {/* Max budget — input field with currency */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Max one-way budget</label>
+            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Total maximum budget</label>
             <div className="flex gap-2">
               <input
                 type="number"
