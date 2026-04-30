@@ -1030,6 +1030,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'barry-app-state',
+      version: 2, // bump when persisted shape changes
       storage: createJSONStorage(() => (typeof window !== 'undefined' ? window.localStorage : undefined as any)),
       // Only persist user-controlled data, NOT mock trips/chats
       partialize: (state) => ({
@@ -1038,6 +1039,17 @@ export const useAppStore = create<AppState>()(
         inAppBalance: state.inAppBalance,
         balanceTransactions: state.balanceTransactions,
       }),
+      // Migrate older versions
+      migrate: (persistedState: any, version: number) => {
+        if (!persistedState) return persistedState;
+        // v0/v1 -> v2: ensure balanceTransactions array exists
+        if (version < 2) {
+          persistedState.balanceTransactions = persistedState.balanceTransactions || [];
+          persistedState.paymentMethods = persistedState.paymentMethods || [];
+          persistedState.inAppBalance = persistedState.inAppBalance ?? 0;
+        }
+        return persistedState;
+      },
       // Don't try to read storage during SSR (avoids hydration mismatch)
       skipHydration: false,
     },

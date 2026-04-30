@@ -24,12 +24,13 @@ export default function ProfilePage() {
   const {
     currentUser, preferences, updatePreferences,
     paymentMethods, addPaymentMethod, removePaymentMethod, setDefaultPaymentMethod,
-    inAppBalance, addToBalance,
+    inAppBalance, addToBalance, balanceTransactions,
   } = useAppStore();
 
   const [openSection, setOpenSection] = useState<string | null>(null);
   const [showAddCard, setShowAddCard] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   if (!currentUser) return null;
 
@@ -82,6 +83,14 @@ export default function ProfilePage() {
               Top up
             </button>
           </div>
+          {balanceTransactions.length > 0 && (
+            <button
+              onClick={() => setShowHistory(true)}
+              className="mt-3 w-full text-[11px] font-medium text-emerald-100 hover:text-white py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all"
+            >
+              View {balanceTransactions.length} transaction{balanceTransactions.length === 1 ? '' : 's'}
+            </button>
+          )}
         </div>
 
         {/* SECTION: Preferences */}
@@ -266,6 +275,33 @@ export default function ProfilePage() {
         <p className="text-center text-[10px] text-slate-400 mt-6">
           Barry v0.1 · Prototype · Made in Paris
         </p>
+
+        {/* Dev tools */}
+        <div className="mt-4">
+          <details className="bg-slate-50 rounded-xl">
+            <summary className="px-3 py-2 text-[11px] font-semibold text-slate-500 cursor-pointer hover:text-slate-700">
+              Developer options
+            </summary>
+            <div className="p-3 space-y-2">
+              <button
+                onClick={() => {
+                  if (confirm('Reset all balance and payment data? This will reload the page.')) {
+                    if (typeof window !== 'undefined') {
+                      window.localStorage.removeItem('barry-app-state');
+                      window.location.reload();
+                    }
+                  }
+                }}
+                className="w-full text-xs font-medium text-rose-600 py-2 rounded-lg hover:bg-rose-50 transition-colors"
+              >
+                Reset balance + payment data
+              </button>
+              <p className="text-[10px] text-slate-400 leading-snug px-1">
+                Clears persisted data only. Trip data resets on every reload anyway.
+              </p>
+            </div>
+          </details>
+        </div>
       </main>
 
       {showAddCard && (
@@ -281,6 +317,13 @@ export default function ProfilePage() {
           onClose={() => setShowTopUp(false)}
           onTopUp={(amount) => { addToBalance(amount); setShowTopUp(false); }}
           onAddCard={() => { setShowTopUp(false); setShowAddCard(true); }}
+        />
+      )}
+
+      {showHistory && (
+        <BalanceHistorySheet
+          transactions={balanceTransactions}
+          onClose={() => setShowHistory(false)}
         />
       )}
     </div>
@@ -541,6 +584,72 @@ function TopUpSheet({ hasPaymentMethod, onClose, onTopUp, onAddCard }: {
                 Add {amount.toFixed(2)} EUR
               </button>
             </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BalanceHistorySheet({ transactions, onClose }: {
+  transactions: any[];
+  onClose: () => void;
+}) {
+  const TYPE_COLOR: Record<string, string> = {
+    topup: '#10B981',
+    spend: '#EF4444',
+    refund: '#3B82F6',
+    reimbursement: '#10B981',
+  };
+  const TYPE_LABEL: Record<string, string> = {
+    topup: 'Top-up',
+    spend: 'Spent',
+    refund: 'Refund',
+    reimbursement: 'Reimbursement',
+  };
+
+  return (
+    <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[85vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+          <h2 className="font-display font-bold text-lg text-slate-900">Balance history</h2>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="p-4">
+          {transactions.length === 0 ? (
+            <p className="text-center text-sm text-slate-500 py-8">No transactions yet</p>
+          ) : (
+            <div className="space-y-2">
+              {transactions.map(tx => {
+                const color = TYPE_COLOR[tx.type] || '#64748B';
+                const label = TYPE_LABEL[tx.type] || tx.type;
+                const isCredit = tx.type === 'topup' || tx.type === 'refund' || tx.type === 'reimbursement';
+                return (
+                  <div key={tx.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}15` }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round">
+                        {isCredit
+                          ? <path d="M12 5v14M5 12l7 7 7-7" transform="rotate(180 12 12)" />
+                          : <path d="M12 5v14M5 12l7 7 7-7" />}
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{tx.description}</p>
+                      <p className="text-[11px] text-slate-500">
+                        {label} · {new Date(tx.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
+                    <span className={`text-sm font-bold ${isCredit ? 'text-emerald-600' : 'text-rose-500'}`}>
+                      {isCredit ? '+' : ''}{Math.abs(tx.amount).toFixed(2)} EUR
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
