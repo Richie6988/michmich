@@ -60,10 +60,10 @@ export default function ProfilePage() {
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-xl border-b border-slate-100">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <header className="sticky top-0 z-30 bg-white dark:bg-slate-900/85 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between h-14 px-4 max-w-2xl mx-auto">
-          <button onClick={() => router.push('/')} className="-ml-2 p-2 hover:bg-slate-100 rounded-full transition-colors">
+          <button onClick={() => router.push('/')} className="-ml-2 p-2 hover:bg-slate-100 dark:bg-slate-800 rounded-full transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E293B" strokeWidth="2" strokeLinecap="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
@@ -78,7 +78,7 @@ export default function ProfilePage() {
 
       <main className="max-w-2xl mx-auto px-4 py-5 pb-32">
         {/* Identity card with avatar upload */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-3 flex items-center gap-3">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 mb-3 flex items-center gap-3">
           <div className="relative flex-shrink-0">
             <Avatar user={currentUser} size={64} />
             <button
@@ -102,12 +102,12 @@ export default function ProfilePage() {
             />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="font-display font-bold text-lg text-slate-900 truncate">
+            <h1 className="font-display font-bold text-lg text-slate-900 dark:text-slate-100 truncate">
               {currentUser.firstName} {currentUser.lastName}
             </h1>
-            <p className="text-sm text-slate-500 truncate">{currentUser.email}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{currentUser.email}</p>
             <div className="flex items-center gap-1.5 mt-1">
-              <span className="inline-block px-2 py-0.5 bg-blue-50 text-barry-blue text-[10px] font-bold uppercase tracking-wider rounded-full">
+              <span className="inline-block px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-barry-blue text-[10px] font-bold uppercase tracking-wider rounded-full">
                 Free plan
               </span>
               {currentUser.avatarUrl && (
@@ -132,7 +132,7 @@ export default function ProfilePage() {
             </div>
             <button
               onClick={() => setShowTopUp(true)}
-              className="px-3 py-2 rounded-xl bg-white/20 backdrop-blur-sm text-white text-xs font-bold hover:bg-white/30 active:scale-95 transition-all"
+              className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900/20 backdrop-blur-sm text-white text-xs font-bold hover:bg-white dark:bg-slate-900/30 active:scale-95 transition-all"
             >
               Top up
             </button>
@@ -140,7 +140,7 @@ export default function ProfilePage() {
           {balanceTransactions.length > 0 && (
             <button
               onClick={() => setShowHistory(true)}
-              className="mt-3 w-full text-[11px] font-medium text-emerald-100 hover:text-white py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all"
+              className="mt-3 w-full text-[11px] font-medium text-emerald-100 hover:text-white py-1.5 rounded-lg bg-white dark:bg-slate-900/10 hover:bg-white dark:bg-slate-900/20 transition-all"
             >
               View {balanceTransactions.length} transaction{balanceTransactions.length === 1 ? '' : 's'}
             </button>
@@ -149,7 +149,7 @@ export default function ProfilePage() {
 
         {/* SECTION: Preferences */}
         <SectionHeader title="Preferences" />
-        <div className="bg-white rounded-2xl border border-slate-100 mb-4 divide-y divide-slate-100">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100">
           <SettingRow
             label="Default transport"
             value={TRANSPORT_OPTIONS.find(o => o.value === preferences.defaultTransportMode)?.label || 'Public transit'}
@@ -164,7 +164,7 @@ export default function ProfilePage() {
                   className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                     preferences.defaultTransportMode === opt.value
                       ? 'bg-barry-blue text-white'
-                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
                   }`}
                 >
                   {opt.label}
@@ -187,7 +187,7 @@ export default function ProfilePage() {
                   className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                     preferences.language === opt.value
                       ? 'bg-barry-blue text-white'
-                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
                   }`}
                 >
                   {opt.label}
@@ -208,7 +208,7 @@ export default function ProfilePage() {
                 value={preferences.homeLabel}
                 onChange={e => updatePreferences({ homeLabel: e.target.value })}
                 placeholder="Home, Office, Mom's place..."
-                className="w-full bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
               <button
                 onClick={() => {
@@ -238,14 +238,48 @@ export default function ProfilePage() {
               onChange={(v) => updatePreferences({ notifications: v })}
             />
           </SettingRow>
+
+          <SettingRow
+            label="Appearance"
+            value={
+              preferences.theme === 'dark' ? 'Dark' :
+              preferences.theme === 'light' ? 'Light' :
+              'Auto (follow system)'
+            }
+            open={openSection === 'theme'}
+            onToggle={() => setOpenSection(openSection === 'theme' ? null : 'theme')}
+          >
+            <div className="grid grid-cols-3 gap-1.5 pt-2">
+              {[
+                { value: 'light', label: 'Light' },
+                { value: 'auto', label: 'Auto' },
+                { value: 'dark', label: 'Dark' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => { updatePreferences({ theme: opt.value as any }); setOpenSection(null); }}
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    (preferences.theme || 'auto') === opt.value
+                      ? 'bg-barry-blue text-white'
+                      : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 leading-snug">
+              Auto follows your operating system's appearance setting.
+            </p>
+          </SettingRow>
         </div>
 
         {/* SECTION: Travel preferences (defaults reused on every Barry setup) */}
         <SectionHeader title="Travel preferences" />
-        <p className="text-[11px] text-slate-500 -mt-1.5 mb-2 px-1">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 -mt-1.5 mb-2 px-1">
           Saved here once, reused on every Barry. Saves typing.
         </p>
-        <div className="bg-white rounded-2xl border border-slate-100 mb-4 divide-y divide-slate-100">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100">
           <SettingRow
             label="Email for booking reports"
             value={preferences.defaultEmail || currentUser.email || 'Not set'}
@@ -257,7 +291,7 @@ export default function ProfilePage() {
               value={preferences.defaultEmail || ''}
               onChange={e => updatePreferences({ defaultEmail: e.target.value })}
               placeholder="you@example.com"
-              className="w-full mt-2 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full mt-2 bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </SettingRow>
 
@@ -274,12 +308,12 @@ export default function ProfilePage() {
                 onChange={e => updatePreferences({ defaultMaxTime: parseInt(e.target.value) || undefined })}
                 placeholder="45"
                 min={0}
-                className="flex-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="flex-1 bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
               <select
                 value={preferences.defaultMaxTimeUnit || 'min'}
                 onChange={e => updatePreferences({ defaultMaxTimeUnit: e.target.value as 'min' | 'h' })}
-                className="bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200"
               >
                 <option value="min">min</option>
                 <option value="h">hours</option>
@@ -300,12 +334,12 @@ export default function ProfilePage() {
                 onChange={e => updatePreferences({ defaultMaxBudget: parseInt(e.target.value) || undefined })}
                 placeholder="100"
                 min={0}
-                className="flex-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="flex-1 bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
               <select
                 value={preferences.defaultMaxBudgetCurrency || 'EUR'}
                 onChange={e => updatePreferences({ defaultMaxBudgetCurrency: e.target.value as any })}
-                className="bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200"
               >
                 <option value="EUR">EUR</option>
                 <option value="USD">USD</option>
@@ -340,10 +374,10 @@ export default function ProfilePage() {
 
         {/* SECTION: Payment methods */}
         <SectionHeader title="Payment methods" />
-        <div className="bg-white rounded-2xl border border-slate-100 mb-4 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 overflow-hidden">
           {paymentMethods.length === 0 ? (
             <div className="px-4 py-5 text-center">
-              <p className="text-sm text-slate-500 mb-3">No payment method yet</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">No payment method yet</p>
               <button
                 onClick={() => setShowAddCard(true)}
                 className="px-4 py-2 rounded-xl bg-barry-blue text-white text-sm font-semibold active:scale-95 transition-all"
@@ -360,8 +394,8 @@ export default function ProfilePage() {
                       {pm.brand?.toUpperCase().slice(0, 4) || pm.type.toUpperCase().slice(0, 4)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">{pm.label}</p>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{pm.label}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         {pm.last4 ? `Ends in ${pm.last4}` : pm.type}
                       </p>
                     </div>
@@ -389,7 +423,7 @@ export default function ProfilePage() {
               </div>
               <button
                 onClick={() => setShowAddCard(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-barry-blue hover:bg-slate-50 transition-colors border-t border-slate-100"
+                className="w-full px-4 py-3 text-sm font-semibold text-barry-blue hover:bg-slate-50 dark:bg-slate-900 transition-colors border-t border-slate-100 dark:border-slate-800"
               >
                 + Add another method
               </button>
@@ -401,7 +435,7 @@ export default function ProfilePage() {
         <SectionHeader title="Upgrade" />
         <div className="bg-gradient-to-br from-barry-blue to-blue-700 rounded-2xl p-4 text-white mb-4 shadow-lg shadow-blue-500/15">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">Coming soon</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-900/20 backdrop-blur-sm px-2 py-0.5 rounded-full">Coming soon</span>
           </div>
           <p className="font-display font-extrabold text-xl tracking-tight">Barry Pro</p>
           <p className="text-xs text-blue-100 leading-snug mt-1">
@@ -411,7 +445,7 @@ export default function ProfilePage() {
 
         {/* SECTION: Legal & About */}
         <SectionHeader title="Legal" />
-        <div className="bg-white rounded-2xl border border-slate-100 mb-4 divide-y divide-slate-100">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100">
           <LinkRow href="/legal/terms" label="Terms and conditions" />
           <LinkRow href="/legal/privacy" label="Privacy policy" />
           <LinkRow href="/legal/cookies" label="Cookie policy" />
@@ -419,7 +453,7 @@ export default function ProfilePage() {
 
         {/* SECTION: About */}
         <SectionHeader title="About" />
-        <div className="bg-white rounded-2xl border border-slate-100 mb-4 divide-y divide-slate-100">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100">
           <LinkRow href="mailto:hello@barry.app" label="Contact support" />
           <LinkRow href="https://barry.app" label="barry.app" external />
         </div>
@@ -430,8 +464,8 @@ export default function ProfilePage() {
 
         {/* Dev tools */}
         <div className="mt-4">
-          <details className="bg-slate-50 rounded-xl">
-            <summary className="px-3 py-2 text-[11px] font-semibold text-slate-500 cursor-pointer hover:text-slate-700">
+          <details className="bg-slate-50 dark:bg-slate-900 rounded-xl">
+            <summary className="px-3 py-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-700 dark:text-slate-300">
               Developer options
             </summary>
             <div className="p-3 space-y-2">
@@ -484,7 +518,7 @@ export default function ProfilePage() {
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-1 mt-4">
+    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1 mt-4">
       {title}
     </h2>
   );
@@ -504,8 +538,8 @@ function SettingRow({ label, value, open, onToggle, children }: {
     return (
       <div className="w-full px-4 py-3 flex items-center justify-between text-left">
         <div>
-          <p className="text-sm font-medium text-slate-900">{label}</p>
-          <p className="text-xs text-slate-500">{value}</p>
+          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{label}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{value}</p>
         </div>
         {children}
       </div>
@@ -516,11 +550,11 @@ function SettingRow({ label, value, open, onToggle, children }: {
     <div>
       <button
         onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 dark:bg-slate-900 transition-colors"
       >
         <div>
-          <p className="text-sm font-medium text-slate-900">{label}</p>
-          <p className="text-xs text-slate-500">{value}</p>
+          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{label}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{value}</p>
         </div>
         <svg
           width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"
@@ -542,9 +576,9 @@ function LinkRow({ href, label, external }: { href: string; label: string; exter
       href={href}
       target={external ? '_blank' : undefined}
       rel={external ? 'noopener noreferrer' : undefined}
-      className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+      className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:bg-slate-900 transition-colors"
     >
-      <span className="text-sm font-medium text-slate-900">{label}</span>
+      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{label}</span>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
         {external
           ? <><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></>
@@ -561,7 +595,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       className={`w-11 h-6 rounded-full p-0.5 transition-colors ${checked ? 'bg-barry-blue' : 'bg-slate-200'}`}
     >
       <div
-        className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+        className={`w-5 h-5 bg-white dark:bg-slate-900 rounded-full shadow-sm transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`}
       />
     </button>
   );
@@ -589,10 +623,10 @@ function AddCardSheet({ onClose, onAdd }: {
 
   return (
     <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-3xl max-h-[92vh] overflow-y-auto barry-scroll">
-        <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
-          <h2 className="font-display font-bold text-lg text-slate-900">Add a card</h2>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+      <div onClick={e => e.stopPropagation()} className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl max-h-[92vh] overflow-y-auto barry-scroll">
+        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+          <h2 className="font-display font-bold text-lg text-slate-900 dark:text-slate-100">Add a card</h2>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -601,32 +635,32 @@ function AddCardSheet({ onClose, onAdd }: {
 
         <div className="p-4 space-y-3">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Card number</label>
+            <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Card number</label>
             <input
               type="text"
               value={number}
               onChange={e => setNumber(e.target.value.replace(/[^\d ]/g, '').slice(0, 19))}
               placeholder="1234 5678 9012 3456"
               inputMode="numeric"
-              className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Cardholder name</label>
+            <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Cardholder name</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Full name"
-              className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Expiry</label>
+              <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Expiry</label>
               <input
                 type="text"
                 value={exp}
@@ -637,18 +671,18 @@ function AddCardSheet({ onClose, onAdd }: {
                 }}
                 placeholder="MM/YY"
                 inputMode="numeric"
-                className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">CVC</label>
+              <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">CVC</label>
               <input
                 type="text"
                 value={cvc}
                 onChange={e => setCvc(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
                 placeholder="123"
                 inputMode="numeric"
-                className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
             </div>
           </div>
@@ -658,7 +692,7 @@ function AddCardSheet({ onClose, onAdd }: {
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-slate-100 p-4">
+        <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4">
           <button
             disabled={!canSubmit}
             onClick={() => onAdd({
@@ -689,10 +723,10 @@ function TopUpSheet({ hasPaymentMethod, onClose, onTopUp, onAddCard }: {
 
   return (
     <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl">
-        <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
-          <h2 className="font-display font-bold text-lg text-slate-900">Top up balance</h2>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+      <div onClick={e => e.stopPropagation()} className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl">
+        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+          <h2 className="font-display font-bold text-lg text-slate-900 dark:text-slate-100">Top up balance</h2>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -702,7 +736,7 @@ function TopUpSheet({ hasPaymentMethod, onClose, onTopUp, onAddCard }: {
         <div className="p-4 space-y-3">
           {!hasPaymentMethod ? (
             <div className="text-center py-4">
-              <p className="text-sm text-slate-600 mb-3">You need a payment method first.</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">You need a payment method first.</p>
               <button onClick={onAddCard} className="px-4 py-2 rounded-xl bg-barry-blue text-white text-sm font-semibold">
                 Add a card
               </button>
@@ -715,26 +749,26 @@ function TopUpSheet({ hasPaymentMethod, onClose, onTopUp, onAddCard }: {
                     key={p}
                     onClick={() => setAmount(p)}
                     className={`py-3 rounded-xl text-sm font-bold transition-all ${
-                      amount === p ? 'bg-barry-blue text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      amount === p ? 'bg-barry-blue text-white' : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
                     }`}
                   >
                     {p} EUR
                   </button>
                 ))}
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
-                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Custom amount</label>
+              <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-4">
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Custom amount</label>
                 <div className="flex items-baseline gap-2">
                   <input
                     type="number"
                     value={amount}
                     onChange={e => setAmount(Number(e.target.value) || 0)}
-                    className="flex-1 bg-transparent text-3xl font-display font-extrabold text-slate-900 focus:outline-none"
+                    className="flex-1 bg-transparent text-3xl font-display font-extrabold text-slate-900 dark:text-slate-100 focus:outline-none"
                   />
                   <span className="text-lg font-bold text-slate-400">EUR</span>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500 text-center">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center">
                 Demo mode: no real charge.
               </p>
               <button
@@ -771,10 +805,10 @@ function BalanceHistorySheet({ transactions, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[85vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
-          <h2 className="font-display font-bold text-lg text-slate-900">Balance history</h2>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+      <div onClick={e => e.stopPropagation()} className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[85vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+          <h2 className="font-display font-bold text-lg text-slate-900 dark:text-slate-100">Balance history</h2>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -782,7 +816,7 @@ function BalanceHistorySheet({ transactions, onClose }: {
         </div>
         <div className="p-4">
           {transactions.length === 0 ? (
-            <p className="text-center text-sm text-slate-500 py-8">No transactions yet</p>
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-8">No transactions yet</p>
           ) : (
             <div className="space-y-2">
               {transactions.map(tx => {
@@ -790,7 +824,7 @@ function BalanceHistorySheet({ transactions, onClose }: {
                 const label = TYPE_LABEL[tx.type] || tx.type;
                 const isCredit = tx.type === 'topup' || tx.type === 'refund' || tx.type === 'reimbursement';
                 return (
-                  <div key={tx.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div key={tx.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}15` }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round">
                         {isCredit
@@ -799,8 +833,8 @@ function BalanceHistorySheet({ transactions, onClose }: {
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{tx.description}</p>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{tx.description}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         {label} · {new Date(tx.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </p>
                     </div>
@@ -858,8 +892,8 @@ function ReductionCardsManager({
           {cards.map(c => (
             <div key={c.id} className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate">{c.label}</p>
-                <p className="text-[10px] text-slate-600 truncate">
+                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{c.label}</p>
+                <p className="text-[10px] text-slate-600 dark:text-slate-400 truncate">
                   {c.cardNumber || 'No number'}
                   {c.reductionPct ? ` · -${c.reductionPct}%` : ''}
                 </p>
@@ -879,11 +913,11 @@ function ReductionCardsManager({
       )}
 
       {showAdd ? (
-        <div className="bg-slate-50 rounded-xl p-3 space-y-2">
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-3 space-y-2">
           <select
             value={provider}
             onChange={e => setProvider(e.target.value)}
-            className="w-full bg-white rounded-lg px-3 py-2 text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full bg-white dark:bg-slate-900 rounded-lg px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
           >
             <option value="">Pick a card provider...</option>
             <optgroup label="Rail (France)">
@@ -912,7 +946,7 @@ function ReductionCardsManager({
             value={number}
             onChange={e => setNumber(e.target.value)}
             placeholder="Card / member number"
-            className="w-full bg-white rounded-lg px-3 py-2 text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full bg-white dark:bg-slate-900 rounded-lg px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
           />
           <div className="flex gap-2">
             <button
@@ -924,7 +958,7 @@ function ReductionCardsManager({
             </button>
             <button
               onClick={() => { setShowAdd(false); setProvider(''); setNumber(''); }}
-              className="px-3 py-2 text-slate-600 text-xs font-medium"
+              className="px-3 py-2 text-slate-600 dark:text-slate-400 text-xs font-medium"
             >
               Cancel
             </button>
@@ -933,7 +967,7 @@ function ReductionCardsManager({
       ) : (
         <button
           onClick={() => setShowAdd(true)}
-          className="w-full py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs text-slate-700 font-semibold transition-colors"
+          className="w-full py-2 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 font-semibold transition-colors"
         >
           + Add a card
         </button>

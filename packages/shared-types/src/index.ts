@@ -94,6 +94,8 @@ export interface UserPreferences {
   defaultEmail?: string;
   defaultSelfBook?: boolean;
   defaultReductionCards?: ReductionCard[];
+  /** UI color theme. 'auto' follows OS prefers-color-scheme. */
+  theme?: 'light' | 'dark' | 'auto';
   locale: string;
 }
 

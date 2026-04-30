@@ -384,6 +384,7 @@ export const useAppStore = create<AppState>()(
     notifications: true,
     homeLocation: MOCK_USERS[0].homeLocation,
     homeLabel: 'Home',
+    theme: 'auto',
   },
   paymentMethods: [],
   inAppBalance: 0,

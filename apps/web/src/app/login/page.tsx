@@ -61,12 +61,12 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <BarryMascot mood="happy" size={88} />
-            <h1 className="font-display font-extrabold text-3xl text-slate-900 mt-3 tracking-tight">
+            <h1 className="font-display font-extrabold text-3xl text-slate-900 dark:text-slate-100 mt-3 tracking-tight">
               {mode === 'login' && 'Welcome back.'}
               {mode === 'signup' && 'Hey there.'}
               {mode === 'forgot' && 'Forgot your password?'}
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {mode === 'login' && 'Pick up where you left off.'}
               {mode === 'signup' && "Let's set up your account."}
               {mode === 'forgot' && "We'll email you a reset link."}
@@ -74,11 +74,11 @@ export default function LoginPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-5">
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-5">
             <button
               onClick={() => { setMode('login'); setForgotSent(false); }}
               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                mode === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                mode === 'login' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               Sign in
@@ -86,7 +86,7 @@ export default function LoginPage() {
             <button
               onClick={() => { setMode('signup'); setForgotSent(false); }}
               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                mode === 'signup' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                mode === 'signup' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               Create account
@@ -94,7 +94,7 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 space-y-3">
             {forgotSent && mode === 'forgot' ? (
               <div className="text-center py-4">
                 <div className="w-12 h-12 mx-auto rounded-full bg-emerald-100 flex items-center justify-center mb-3">
@@ -102,8 +102,8 @@ export default function LoginPage() {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <p className="font-display font-bold text-base text-slate-900">Check your email</p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="font-display font-bold text-base text-slate-900 dark:text-slate-100">Check your email</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   If an account exists for {email}, we've sent a reset link.
                 </p>
                 <button
@@ -118,36 +118,36 @@ export default function LoginPage() {
                 {mode === 'signup' && (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">First name</label>
+                      <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">First name</label>
                       <input
                         type="text"
                         value={firstName}
                         onChange={e => setFirstName(e.target.value)}
                         placeholder="Marie"
-                        className="w-full bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Last name</label>
+                      <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Last name</label>
                       <input
                         type="text"
                         value={lastName}
                         onChange={e => setLastName(e.target.value)}
                         placeholder="Dupont"
-                        className="w-full bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                       />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Email</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                     onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                   />
                 </div>
@@ -155,7 +155,7 @@ export default function LoginPage() {
                 {mode !== 'forgot' && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Password</label>
+                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Password</label>
                       {mode === 'login' && (
                         <button
                           onClick={() => setMode('forgot')}
@@ -170,7 +170,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder={mode === 'signup' ? 'At least 6 characters' : 'Your password'}
-                      className="w-full bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                       onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                     />
                   </div>
@@ -189,7 +189,7 @@ export default function LoginPage() {
                 {mode === 'forgot' && (
                   <button
                     onClick={() => setMode('login')}
-                    className="w-full text-sm text-slate-500 font-medium hover:text-slate-700"
+                    className="w-full text-sm text-slate-500 dark:text-slate-400 font-medium hover:text-slate-700 dark:text-slate-300"
                   >
                     Back to sign in
                   </button>
@@ -197,17 +197,17 @@ export default function LoginPage() {
 
                 {/* Demo users for quick login (mock data) */}
                 {mode === 'login' && (
-                  <div className="pt-3 border-t border-slate-100">
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Or sign in as a demo user</p>
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Or sign in as a demo user</p>
                     <div className="space-y-1">
                       {MOCK_TEST_USERS.map(u => (
                         <button
                           key={u.email}
                           onClick={() => { login(u.email); router.push(redirect as any); }}
-                          className="w-full text-left text-xs bg-slate-50 hover:bg-slate-100 rounded-lg px-3 py-2 transition-colors"
+                          className="w-full text-left text-xs bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2 transition-colors"
                         >
-                          <span className="font-semibold text-slate-900">{u.firstName} {u.lastName}</span>
-                          <span className="text-slate-500"> · {u.email}</span>
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">{u.firstName} {u.lastName}</span>
+                          <span className="text-slate-500 dark:text-slate-400"> · {u.email}</span>
                         </button>
                       ))}
                     </div>

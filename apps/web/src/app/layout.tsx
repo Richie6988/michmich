@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Manrope, JetBrains_Mono } from 'next/font/google';
 
 import '@/styles/globals.css';
+import { ThemeManager } from '@/components/theme/theme-manager';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -50,7 +51,10 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${manrope.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased bg-white dark:bg-slate-950 dark:text-slate-100 transition-colors">
+        <ThemeManager />
+        {children}
+      </body>
     </html>
   );
 }

@@ -68,11 +68,11 @@ function TripRow({ trip }: { trip: Trip }) {
   return (
     <div className="relative group">
       <Link href={href} className="block">
-        <div className="flex items-center gap-3 py-3 px-3 hover:bg-slate-50 rounded-xl transition-colors">
+        <div className="flex items-center gap-3 py-3 px-3 hover:bg-slate-50 dark:bg-slate-900 rounded-xl transition-colors">
           <AvatarStack users={trip.participants.map(p => p.user)} max={3} size={36} />
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-900 text-[15px] truncate mb-0.5">{trip.name}</h3>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-[15px] truncate mb-0.5">{trip.name}</h3>
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <span className={`inline-block w-1.5 h-1.5 rounded-full ${STATUS_DOT[trip.status] || 'bg-slate-400'}`} />
               <span className="font-medium">{STATUS_LABEL[trip.status] || trip.status}</span>
               {date && <><span className="text-slate-300">·</span><span>{date}</span></>}
@@ -116,10 +116,10 @@ function TripRow({ trip }: { trip: Trip }) {
       {menuOpen && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-          <div className="absolute right-3 top-12 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 w-52 z-40">
+          <div className="absolute right-3 top-12 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 py-2 w-52 z-40">
             <button
               onClick={handleDuplicate}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 text-left"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-900 text-left"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -129,7 +129,7 @@ function TripRow({ trip }: { trip: Trip }) {
             </button>
             {isOngoing && (
               <>
-                <div className="border-t border-slate-100 my-1" />
+                <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
                 <button
                   onClick={handleFinish}
                   className="w-full flex items-center gap-2 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50 text-left"
@@ -171,7 +171,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-xl border-b border-slate-100">
+      <header className="sticky top-0 z-30 bg-white dark:bg-slate-900/85 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between h-14 px-4 max-w-3xl mx-auto">
           <div className="flex items-center gap-2">
             <BarryMark size={26} />
@@ -183,9 +183,9 @@ export default function HomePage() {
             <div className="relative">
               <button
                 onClick={() => setMenuOpen(o => !o)}
-                className="flex items-center gap-2 hover:bg-slate-100 rounded-full pl-2 pr-1 py-1 transition-colors"
+                className="flex items-center gap-2 hover:bg-slate-100 dark:bg-slate-800 rounded-full pl-2 pr-1 py-1 transition-colors"
               >
-                <span className="text-xs font-semibold text-slate-700 max-w-[90px] truncate hidden sm:inline">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 max-w-[90px] truncate hidden sm:inline">
                   {currentUser.firstName}
                 </span>
                 <Avatar user={currentUser} size={36} className="shadow-md" />
@@ -193,12 +193,12 @@ export default function HomePage() {
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 w-56 z-40">
-                    <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-sm font-bold text-slate-900">{currentUser.firstName} {currentUser.lastName}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
+                  <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 py-2 w-56 z-40">
+                    <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{currentUser.firstName} {currentUser.lastName}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{currentUser.email}</p>
                     </div>
-                    <Link href="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                    <Link href="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-900">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 1116 0" />
                       </svg>
@@ -262,13 +262,13 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
             Free
           </div>
         </div>
-        <h1 className="font-display font-extrabold text-4xl sm:text-5xl text-slate-900 tracking-tight leading-[1.05] mb-3">
+        <h1 className="font-display font-extrabold text-4xl sm:text-5xl text-slate-900 dark:text-slate-100 tracking-tight leading-[1.05] mb-3">
           Stop arguing about{' '}
           <span className="bg-gradient-to-r from-barry-blue via-blue-600 to-indigo-600 bg-clip-text text-transparent">
             where to meet.
           </span>
         </h1>
-        <p className="text-base text-slate-600 max-w-md mx-auto leading-relaxed">
+        <p className="text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
           Barry is the smart way to plan with friends. He picks the fairest spot, splits the bills,
           books your transport — and your hotel if you're going far.
         </p>
@@ -291,10 +291,10 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
       </section>
 
       {/* THE PROBLEM Barry solves */}
-      <section className="bg-white rounded-3xl border border-slate-100 p-6 mb-6">
+      <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 mb-6">
         <div className="text-center mb-5">
           <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600">The trip-planning hellloop</p>
-          <h2 className="font-display font-bold text-xl text-slate-900 mt-1">Sound familiar?</h2>
+          <h2 className="font-display font-bold text-xl text-slate-900 dark:text-slate-100 mt-1">Sound familiar?</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <ProblemCard
@@ -341,9 +341,9 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="bg-white rounded-3xl border border-slate-100 p-6 mb-6">
-        <h2 className="font-display font-bold text-xl text-slate-900 mb-1">How Barry works</h2>
-        <p className="text-xs text-slate-500 mb-5">Four steps. No friction.</p>
+      <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 mb-6">
+        <h2 className="font-display font-bold text-xl text-slate-900 dark:text-slate-100 mb-1">How Barry works</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">Four steps. No friction.</p>
         <div className="space-y-4">
           <BigStep n={1} color="from-blue-500 to-blue-700" title="Tell Barry what you want" desc="A Friday dinner? A weekend in Lisbon? Wanderlust or trip — pick one. Add friends." />
           <BigStep n={2} color="from-orange-500 to-pink-600" title="Everyone's preferences" desc="Each person sets their starting point, transport mode, budget. Barry handles the math." />
@@ -398,8 +398,8 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
 
       {/* FINAL CTA */}
       <section className="text-center py-6">
-        <p className="font-display font-bold text-2xl text-slate-900 mb-1">Ready to plan something?</p>
-        <p className="text-sm text-slate-500 mb-4">Free, no friction, takes a minute.</p>
+        <p className="font-display font-bold text-2xl text-slate-900 dark:text-slate-100 mb-1">Ready to plan something?</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Free, no friction, takes a minute.</p>
         <Link href="/trips/new">
           <div className="inline-block bg-gradient-to-r from-barry-blue to-blue-700 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-blue-500/25 hover:shadow-xl active:scale-[0.98] transition-all">
             Create my first Barry
@@ -407,13 +407,13 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
         </Link>
       </section>
 
-      <footer className="border-t border-slate-200 pt-6 mt-6 text-center">
-        <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-500">
-          <Link href="/legal/terms" className="hover:text-slate-700">Terms</Link>
+      <footer className="border-t border-slate-200 dark:border-slate-700 pt-6 mt-6 text-center">
+        <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+          <Link href="/legal/terms" className="hover:text-slate-700 dark:text-slate-300">Terms</Link>
           <span>·</span>
-          <Link href="/legal/privacy" className="hover:text-slate-700">Privacy</Link>
+          <Link href="/legal/privacy" className="hover:text-slate-700 dark:text-slate-300">Privacy</Link>
           <span>·</span>
-          <Link href="/legal/cookies" className="hover:text-slate-700">Cookies</Link>
+          <Link href="/legal/cookies" className="hover:text-slate-700 dark:text-slate-300">Cookies</Link>
         </div>
         <p className="text-[10px] text-slate-400 mt-2">Made with care for everyone tired of group chats.</p>
       </footer>
@@ -422,17 +422,17 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
 }
 
 function PillarCard({ color, icon, title, subtitle }: { color: string; icon: React.ReactNode; title: string; subtitle: string }) {
-  const bg: any = { blue: 'bg-blue-50', orange: 'bg-orange-50', emerald: 'bg-emerald-50' };
+  const bg: any = { blue: 'bg-blue-50 dark:bg-blue-950', orange: 'bg-orange-50', emerald: 'bg-emerald-50' };
   const fg: any = { blue: '#2563EB', orange: '#F97316', emerald: '#10B981' };
   return (
-    <div className={`${bg[color] || 'bg-slate-50'} rounded-2xl p-4`}>
-      <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-3 shadow-sm">
+    <div className={`${bg[color] || 'bg-slate-50 dark:bg-slate-900'} rounded-2xl p-4`}>
+      <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center mb-3 shadow-sm">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={fg[color] || '#64748B'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           {icon}
         </svg>
       </div>
-      <h3 className="font-display font-bold text-sm text-slate-900 mb-1">{title}</h3>
-      <p className="text-xs text-slate-600 leading-snug">{subtitle}</p>
+      <h3 className="font-display font-bold text-sm text-slate-900 dark:text-slate-100 mb-1">{title}</h3>
+      <p className="text-xs text-slate-600 dark:text-slate-400 leading-snug">{subtitle}</p>
     </div>
   );
 }
@@ -440,13 +440,13 @@ function PillarCard({ color, icon, title, subtitle }: { color: string; icon: Rea
 function ProblemCard({ iconColor, icon, title, desc }: { iconColor: string; icon: React.ReactNode; title: string; desc: string }) {
   return (
     <div className="bg-rose-50 rounded-2xl p-3 text-center">
-      <div className="w-10 h-10 mx-auto rounded-xl bg-white flex items-center justify-center mb-2 shadow-sm">
+      <div className="w-10 h-10 mx-auto rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center mb-2 shadow-sm">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           {icon}
         </svg>
       </div>
-      <p className="font-bold text-[13px] text-slate-900 mb-1">{title}</p>
-      <p className="text-[11px] text-slate-600 leading-snug">{desc}</p>
+      <p className="font-bold text-[13px] text-slate-900 dark:text-slate-100 mb-1">{title}</p>
+      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">{desc}</p>
     </div>
   );
 }
@@ -458,8 +458,8 @@ function BigStep({ n, color, title, desc }: { n: number; color: string; title: s
         {n}
       </div>
       <div className="flex-1 pt-0.5">
-        <p className="font-bold text-sm text-slate-900 mb-0.5">{title}</p>
-        <p className="text-xs text-slate-600 leading-snug">{desc}</p>
+        <p className="font-bold text-sm text-slate-900 dark:text-slate-100 mb-0.5">{title}</p>
+        <p className="text-xs text-slate-600 dark:text-slate-400 leading-snug">{desc}</p>
       </div>
     </div>
   );
@@ -467,8 +467,8 @@ function BigStep({ n, color, title, desc }: { n: number; color: string; title: s
 
 function UseCase({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="flex items-start gap-3 bg-white/5 rounded-xl px-3 py-2.5 backdrop-blur-sm">
-      <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+    <div className="flex items-start gap-3 bg-white dark:bg-slate-900/5 rounded-xl px-3 py-2.5 backdrop-blur-sm">
+      <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900/10 flex items-center justify-center flex-shrink-0">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           {icon}
         </svg>
@@ -483,9 +483,9 @@ function UseCase({ icon, title, desc }: { icon: React.ReactNode; title: string; 
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="bg-white border border-slate-100 rounded-2xl p-3 text-center">
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-3 text-center">
       <p className="font-display font-extrabold text-2xl bg-gradient-to-br from-barry-blue to-blue-700 bg-clip-text text-transparent">{value}</p>
-      <p className="text-[10px] font-medium text-slate-500 mt-0.5">{label}</p>
+      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{label}</p>
     </div>
   );
 }
@@ -499,10 +499,10 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
       <div className="flex items-center gap-3 mb-6">
         <BarryMascot mood="default" size={64} animate={false} />
         <div className="flex-1">
-          <h1 className="font-display font-extrabold text-2xl text-slate-900 tracking-tight">
+          <h1 className="font-display font-extrabold text-2xl text-slate-900 dark:text-slate-100 tracking-tight">
             Hey {currentUser?.firstName}.
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {activeTrips.length > 0
               ? `${activeTrips.length} ongoing ${activeTrips.length === 1 ? 'plan' : 'plans'}.`
               : 'Where the smart group meets.'}
@@ -512,11 +512,11 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
 
       <Link href="/trips/new" className="block group mb-6">
         <div className="relative overflow-hidden bg-gradient-to-br from-barry-blue to-blue-700 text-white rounded-3xl p-5 shadow-xl shadow-blue-500/20 hover:shadow-2xl active:scale-[0.99] transition-all">
-          <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-white dark:bg-slate-900/10 rounded-full blur-2xl" />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white dark:bg-slate-900/5 rounded-full blur-2xl" />
           <div className="relative flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
@@ -533,11 +533,11 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
         </div>
       </Link>
 
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-3">
+      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-3">
         <button
           onClick={() => setTab('active')}
           className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-            tab === 'active' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+            tab === 'active' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
           }`}
         >
           Ongoing
@@ -550,12 +550,12 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
         <button
           onClick={() => setTab('past')}
           className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-            tab === 'past' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+            tab === 'past' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
           }`}
         >
           Past
           {pastTrips.length > 0 && (
-            <span className="ml-1.5 text-[10px] font-bold bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded-full">
+            <span className="ml-1.5 text-[10px] font-bold bg-slate-300 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full">
               {pastTrips.length}
             </span>
           )}
@@ -563,16 +563,16 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
       </div>
 
       {visible.length > 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
           {visible.map((trip: Trip, i: number) => (
-            <div key={trip.id} className={i > 0 ? 'border-t border-slate-100' : ''}>
+            <div key={trip.id} className={i > 0 ? 'border-t border-slate-100 dark:border-slate-800' : ''}>
               <TripRow trip={trip} />
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
-          <p className="text-sm text-slate-500">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-8 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {tab === 'active' ? 'No ongoing trips right now.' : 'No past trips yet.'}
           </p>
         </div>
