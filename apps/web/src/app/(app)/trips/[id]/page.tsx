@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMascot } from '@/components/barry/brand';
+import { Avatar, AvatarStack } from '@/components/ui/avatar';
 import { BarryMap } from '@/components/map/barry-map';
 import { SetupSheet } from '@/components/trip/setup-sheet';
 import { ScrollCardList } from '@/components/trip/scroll-card-list';
@@ -602,12 +603,7 @@ function ParticipantsSection({
           const canEdit = isMe || isAdmin;
           return (
             <div key={p.id} className="px-3 py-3 flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
-                style={{ backgroundColor: color }}
-              >
-                {p.user?.firstName?.[0]?.toUpperCase()}{p.user?.lastName?.[0]?.toUpperCase()}
-              </div>
+              <Avatar user={p.user} size={40} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="text-sm font-semibold text-slate-900 truncate">
@@ -948,12 +944,7 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
             const color = colorForUser(m.userId);
             return (
               <div key={m.id} className="flex items-start gap-2">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0 mt-0.5"
-                  style={{ backgroundColor: color }}
-                >
-                  {m.user?.firstName?.[0]?.toUpperCase() || '?'}
-                </div>
+                <Avatar user={m.user} size={24} className="mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-semibold leading-tight" style={{ color: isMe ? '#64748B' : color }}>
                     {isMe ? 'You' : m.user?.firstName}
@@ -1478,12 +1469,7 @@ function PreFundRecapCard({ trip, transportLegs, accommodations }: any) {
             const transportLabel = TRANSPORT_LABEL[leg.mode] || leg.mode;
             return (
               <div key={p.id} className="flex items-center gap-2 text-xs">
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[9px] flex-shrink-0"
-                  style={{ backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
-                >
-                  {p.user?.firstName?.[0]?.toUpperCase()}
-                </div>
+                <Avatar user={p.user} size={20} />
                 <p className="flex-1 min-w-0 truncate text-slate-700">
                   <span className="font-semibold text-slate-900">{p.user?.firstName}</span>
                   {' '}will travel {transportLabel}
@@ -1558,12 +1544,7 @@ function PostBookingReport({ trip, reservations, transportLegs }: any) {
           return (
             <div key={p.id} className="bg-slate-50 rounded-xl p-3">
               <div className="flex items-center gap-2 mb-2">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs"
-                  style={{ backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
-                >
-                  {p.user?.firstName?.[0]?.toUpperCase()}
-                </div>
+                <Avatar user={p.user} size={28} />
                 <p className="text-sm font-bold text-slate-900">{p.user?.firstName} {p.user?.lastName}</p>
                 {p.email && (
                   <span className="text-[10px] text-emerald-700 bg-emerald-100 rounded-full px-2 py-0.5 font-bold">

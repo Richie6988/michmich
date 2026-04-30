@@ -216,6 +216,8 @@ interface AppState {
   signup: (firstName: string, lastName: string, email: string) => void;
   setGuestMode: (firstName: string) => void;
   logout: () => void;
+  /** Patch fields on the current user (firstName, lastName, avatarUrl, phone, locale...) */
+  updateCurrentUser: (patch: Partial<User>) => void;
 
   // User preferences (persisted to localStorage)
   preferences: UserPreferences;
@@ -525,6 +527,24 @@ export const useAppStore = create<AppState>()(
   },
 
   logout: () => set({ currentUser: null, isAuthenticated: false, isGuest: false }),
+
+  updateCurrentUser: (patch) => set(s => {
+    if (!s.currentUser) return s;
+    const next = { ...s.currentUser, ...patch };
+    // Also update the user in any trips where they are organizer or participant
+    const trips = s.trips.map(t => {
+      const isOrg = t.organizerId === next.id;
+      const updatedParticipants = t.participants.map(p =>
+        p.userId === next.id ? { ...p, user: next } : p
+      );
+      return {
+        ...t,
+        organizer: isOrg ? next : t.organizer,
+        participants: updatedParticipants,
+      };
+    });
+    return { currentUser: next, trips };
+  }),
 
   setUserLocation: (loc) => set({ userLocation: loc }),
 

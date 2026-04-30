@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMark } from '@/components/barry/brand';
+import { Avatar } from '@/components/ui/avatar';
 import { CARD_PROVIDERS } from '@/lib/data/reduction-cards';
 import type { ReductionCard } from '@barry/shared-types';
 
@@ -34,6 +35,27 @@ export default function ProfilePage() {
   const [showAddCard, setShowAddCard] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const { updateCurrentUser } = useAppStore();
+
+  const handleAvatarUpload = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please choose an image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image too large. Pick something under 5 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (typeof e.target?.result === 'string') {
+        updateCurrentUser({ avatarUrl: e.target.result });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   if (!currentUser) return null;
 
@@ -55,19 +77,48 @@ export default function ProfilePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-5 pb-32">
-        {/* Identity card */}
+        {/* Identity card with avatar upload */}
         <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-3 flex items-center gap-3">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-barry-blue to-blue-700 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-blue-500/15">
-            {currentUser.firstName[0]}{currentUser.lastName[0]}
+          <div className="relative flex-shrink-0">
+            <Avatar user={currentUser} size={64} />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-barry-blue text-white flex items-center justify-center shadow-lg hover:bg-blue-700 active:scale-95 transition-all border-2 border-white"
+              aria-label="Change avatar"
+              title="Upload a profile picture"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={e => handleAvatarUpload(e.target.files?.[0] || null)}
+              className="hidden"
+            />
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="font-display font-bold text-lg text-slate-900 truncate">
               {currentUser.firstName} {currentUser.lastName}
             </h1>
             <p className="text-sm text-slate-500 truncate">{currentUser.email}</p>
-            <span className="inline-block mt-1 px-2 py-0.5 bg-blue-50 text-barry-blue text-[10px] font-bold uppercase tracking-wider rounded-full">
-              Free plan
-            </span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="inline-block px-2 py-0.5 bg-blue-50 text-barry-blue text-[10px] font-bold uppercase tracking-wider rounded-full">
+                Free plan
+              </span>
+              {currentUser.avatarUrl && (
+                <button
+                  onClick={() => updateCurrentUser({ avatarUrl: null })}
+                  className="text-[10px] text-rose-600 font-semibold hover:underline"
+                >
+                  Remove photo
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

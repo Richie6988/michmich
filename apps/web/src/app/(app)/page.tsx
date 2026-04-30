@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMark, BarryMascot } from '@/components/barry/brand';
+import { Avatar, AvatarStack } from '@/components/ui/avatar';
 import { formatDateShort } from '@/lib/utils/format-date';
 import type { Trip } from '@barry/shared-types';
 
@@ -35,22 +36,7 @@ function TripRow({ trip }: { trip: Trip }) {
   return (
     <Link href={href} className="block group">
       <div className="flex items-center gap-3 py-3 px-3 hover:bg-slate-50 rounded-xl transition-colors">
-        <div className="flex -space-x-2">
-          {trip.participants.slice(0, 3).map((p, i) => (
-            <div
-              key={p.id}
-              className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-[11px] font-bold text-white shadow-sm"
-              style={{ backgroundColor: ['#2563EB', '#F97316', '#10B981', '#8B5CF6'][i % 4], zIndex: 4 - i }}
-            >
-              {p.user?.firstName?.[0] || '?'}
-            </div>
-          ))}
-          {trip.participants.length > 3 && (
-            <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[11px] font-bold text-slate-600 shadow-sm">
-              +{trip.participants.length - 3}
-            </div>
-          )}
-        </div>
+        <AvatarStack users={trip.participants.map(p => p.user)} max={3} size={36} />
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-slate-900 text-[15px] truncate mb-0.5">{trip.name}</h3>
           <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -110,9 +96,7 @@ export default function HomePage() {
                 <span className="text-xs font-semibold text-slate-700 max-w-[90px] truncate hidden sm:inline">
                   {currentUser.firstName}
                 </span>
-                <span className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-xs shadow-md">
-                  {currentUser.firstName?.[0]}{currentUser.lastName?.[0]}
-                </span>
+                <Avatar user={currentUser} size={36} className="shadow-md" />
               </button>
               {menuOpen && (
                 <>

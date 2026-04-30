@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMascot } from '@/components/barry/brand';
 import { InteractiveMascot } from '@/components/barry/interactive-mascot';
+import { AvatarStack } from '@/components/ui/avatar';
 import { formatDateLong, formatDateShort } from '@/lib/utils/format-date';
 
 export default function TripLayout({ children }: { children: React.ReactNode }) {
@@ -110,22 +111,7 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
               )}
             </div>
             {trip && (
-              <div className="flex -space-x-1.5">
-                {trip.participants.slice(0, 3).map((p, i) => (
-                  <div
-                    key={p.id}
-                    className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white"
-                    style={{ backgroundColor: ['#2563EB', '#F97316', '#10B981'][i % 3], zIndex: 3 - i }}
-                  >
-                    {p.user?.firstName?.[0] || '?'}
-                  </div>
-                ))}
-                {trip.participants.length > 3 && (
-                  <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[9px] font-bold text-slate-600">
-                    +{trip.participants.length - 3}
-                  </div>
-                )}
-              </div>
+              <AvatarStack users={trip.participants.map(p => p.user)} max={3} size={28} />
             )}
           </div>
         </div>
