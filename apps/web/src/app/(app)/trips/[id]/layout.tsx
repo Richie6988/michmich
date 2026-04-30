@@ -4,7 +4,8 @@ import React, { useEffect } from 'react';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAppStore } from '@/stores/app-store';
-import { formatDateLong } from '@/lib/utils/format-date';
+import { BarryMascot } from '@/components/barry/brand';
+import { formatDateLong, formatDateShort } from '@/lib/utils/format-date';
 
 export default function TripLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,15 +21,9 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
   const basePath = `/trips/${id}`;
   const isOverview = pathname === basePath;
 
-  // Determine sub-page label for breadcrumb
   const subPage = (() => {
-    if (pathname.endsWith('/dates')) return 'Dates';
     if (pathname.endsWith('/constraints')) return 'My setup';
     if (pathname.endsWith('/map')) return 'Map';
-    if (pathname.endsWith('/vote')) return 'Vote';
-    if (pathname.endsWith('/venues')) return 'Venues';
-    if (pathname.endsWith('/accommodation')) return 'Stay';
-    if (pathname.endsWith('/transport')) return 'Transport';
     if (pathname.endsWith('/funds')) return 'Funds';
     if (pathname.endsWith('/booking')) return 'Booking';
     if (pathname.endsWith('/chat')) return 'Chat';
@@ -38,8 +33,20 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
     return null;
   })();
 
+  // Trip date display
+  const tripDateLabel = trip ? (() => {
+    if (trip.mode === 'trip' && trip.scheduledAt && trip.endDate) {
+      const start = new Date(trip.scheduledAt);
+      const end = new Date(trip.endDate);
+      const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
+      return `${formatDateShort(trip.scheduledAt)} → ${formatDateShort(trip.endDate)} · ${nights} ${nights === 1 ? 'night' : 'nights'}`;
+    }
+    if (trip.scheduledAt) return formatDateLong(trip.scheduledAt);
+    return null;
+  })() : null;
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 relative">
       <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-xl border-b border-slate-100">
         <div className="px-4 py-3 max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
@@ -52,6 +59,14 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
+
+            {/* Header mascot — small, on the left */}
+            {isOverview && (
+              <div className="flex-shrink-0">
+                <BarryMascot mood="happy" size={32} />
+              </div>
+            )}
+
             <div className="flex-1 min-w-0">
               {subPage ? (
                 <>
@@ -64,12 +79,21 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
                 </>
               ) : (
                 <>
-                  <h1 className="font-display font-bold text-base text-slate-900 truncate">
-                    {trip?.name || 'Trip'}
-                  </h1>
-                  {trip?.scheduledAt && (
-                    <p className="text-[11px] text-slate-500">
-                      {formatDateLong(trip.scheduledAt)}
+                  <div className="flex items-center gap-1.5">
+                    <h1 className="font-display font-bold text-base text-slate-900 truncate">
+                      {trip?.name || 'Trip'}
+                    </h1>
+                    {trip?.mode && (
+                      <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                        trip.mode === 'trip' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {trip.mode === 'trip' ? '🏨 Trip' : '🍷 Wanderlust'}
+                      </span>
+                    )}
+                  </div>
+                  {tripDateLabel && (
+                    <p className="text-[11px] text-slate-500 truncate">
+                      {tripDateLabel}
                     </p>
                   )}
                 </>
@@ -97,9 +121,14 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto pb-24">
+      <main className="max-w-2xl mx-auto pb-24 relative">
         {children}
       </main>
+
+      {/* Floating side mascots — visible on wide screens (xl: 1280px+) */}
+      <div className="hidden xl:block fixed left-8 bottom-8 z-20 pointer-events-none opacity-90">
+        <BarryMascot mood="happy" size={120} />
+      </div>
     </div>
   );
 }

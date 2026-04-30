@@ -232,7 +232,14 @@ interface AppState {
   trips: Trip[];
   activeTrip: Trip | null;
   setActiveTrip: (tripId: string) => void;
-  createGroupTrip: (name: string, type: string, date: string, friendNames?: string[]) => Trip;
+  createGroupTrip: (
+    name: string,
+    type: string,
+    date: string,
+    friendNames?: string[],
+    mode?: 'wanderlust' | 'trip',
+    endDate?: string,
+  ) => Trip;
   updateTripStatus: (tripId: string, status: Trip['status']) => void;
   addParticipantByName: (tripId: string, name: string) => void;
   removeParticipant: (tripId: string, participantId: string) => void;
@@ -463,7 +470,7 @@ export const useAppStore = create<AppState>()(
     set({ activeTrip: trip });
   },
 
-  createGroupTrip: (name, type, date, friendNames) => {
+  createGroupTrip: (name, type, date, friendNames, mode, endDate) => {
     const user = get().currentUser!;
     const id = `t${Date.now()}`;
     const orgPart = {
@@ -494,8 +501,11 @@ export const useAppStore = create<AppState>()(
     const newTrip: Trip = {
       id, name, description: null,
       organizerId: user.id, organizer: user,
-      tripType: type as Trip['tripType'], status: 'inviting',
+      tripType: type as Trip['tripType'],
+      mode: mode || 'wanderlust',
+      status: 'inviting',
       scheduledAt: date,
+      endDate: endDate || null,
       stealthMode: false, maxTimeBudget: null, maxMoneyBudget: null,
       inviteToken: Math.random().toString(36).slice(2, 10),
       selectedVenueId: null,

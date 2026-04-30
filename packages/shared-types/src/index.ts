@@ -97,8 +97,12 @@ export interface Trip {
   organizerId: string;
   organizer?: User;
   tripType: TripType;
+  /** 'wanderlust' = single date / outing, 'trip' = multi-day with start+end */
+  mode?: 'wanderlust' | 'trip';
   status: TripStatus;
   scheduledAt: string | null;
+  /** End date for multi-day trips (only used when mode='trip') */
+  endDate?: string | null;
   stealthMode: boolean;
   maxTimeBudget: number | null;
   maxMoneyBudget: number | null;

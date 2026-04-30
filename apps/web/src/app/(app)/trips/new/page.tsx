@@ -7,15 +7,19 @@ import { BarryMascot, BarryMark } from '@/components/barry/brand';
 
 const AVATAR_COLORS = ['#2563EB', '#F97316', '#10B981', '#8B5CF6', '#EF4444'];
 
+type Mode = 'wanderlust' | 'trip';
+
 export default function CreateTripPage() {
   const router = useRouter();
   const createGroupTrip = useAppStore(s => s.createGroupTrip);
+  const [mode, setMode] = useState<Mode>('wanderlust');
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [invites, setInvites] = useState<string[]>([]);
   const [draftFriend, setDraftFriend] = useState('');
 
-  const canCreate = name.trim().length >= 2;
+  const canCreate = name.trim().length >= 2 && (mode === 'wanderlust' ? true : (date && endDate));
   const friendCount = invites.filter(n => n.trim()).length;
 
   const handleAddDraft = () => {
@@ -32,11 +36,15 @@ export default function CreateTripPage() {
   const handleCreate = () => {
     if (!canCreate) return;
     const friendNames = invites.filter(n => n.trim());
+    const startDate = date ? new Date(date).toISOString() : new Date(Date.now() + 3 * 86400000).toISOString();
+    const endDateIso = mode === 'trip' && endDate ? new Date(endDate).toISOString() : undefined;
     const trip = createGroupTrip(
       name,
       'custom',
-      date ? new Date(date).toISOString() : new Date(Date.now() + 3 * 86400000).toISOString(),
+      startDate,
       friendNames.length > 0 ? friendNames : undefined,
+      mode,
+      endDateIso,
     );
     router.push(`/trips/${trip.id}` as any);
   };
@@ -71,40 +79,124 @@ export default function CreateTripPage() {
           <p className="text-sm text-slate-500 mt-1">Solo or with friends. Doesn't matter.</p>
         </div>
 
+        {/* Mode toggle */}
+        <div className="bg-white rounded-2xl p-3 border border-slate-100 mb-3">
+          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">Type</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setMode('wanderlust')}
+              className={`p-3 rounded-xl border-2 transition-all text-left ${
+                mode === 'wanderlust'
+                  ? 'border-barry-blue bg-blue-50'
+                  : 'border-slate-100 hover:border-slate-200'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-base">🍷</span>
+                <span className={`font-bold text-sm ${mode === 'wanderlust' ? 'text-barry-blue' : 'text-slate-700'}`}>
+                  Wanderlust
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                One-day outing. Pick a date, a venue, share the bill.
+              </p>
+            </button>
+            <button
+              onClick={() => setMode('trip')}
+              className={`p-3 rounded-xl border-2 transition-all text-left ${
+                mode === 'trip'
+                  ? 'border-barry-blue bg-blue-50'
+                  : 'border-slate-100 hover:border-slate-200'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-base">🏨</span>
+                <span className={`font-bold text-sm ${mode === 'trip' ? 'text-barry-blue' : 'text-slate-700'}`}>
+                  Trip
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Multi-day. Hotels, transport, the whole thing.
+              </p>
+            </button>
+          </div>
+        </div>
+
         {/* Name */}
         <div className="bg-white rounded-2xl p-4 border border-slate-100 mb-3">
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Name your Barry</label>
+          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+            Name your Barry
+          </label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="Friday dinner, Weekend at Bertrand's..."
+            placeholder={mode === 'wanderlust' ? 'Friday dinner, Sunday hike...' : 'Weekend in Barcelona, Anna\'s wedding...'}
             className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
             autoFocus
           />
         </div>
 
-        {/* Date */}
+        {/* Dates */}
         <div className="bg-white rounded-2xl p-4 border border-slate-100 mb-3">
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-            Date <span className="text-slate-400 font-normal">(can change later)</span>
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
-            min={new Date().toISOString().slice(0, 10)}
-          />
+          {mode === 'wanderlust' ? (
+            <>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                Date <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+                min={new Date().toISOString().slice(0, 10)}
+              />
+              <p className="text-[11px] text-slate-500 mt-1.5">
+                Leave empty to settle the date with the group later.
+              </p>
+            </>
+          ) : (
+            <>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                Trip dates
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-[10px] text-slate-500 mb-1">From</p>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={e => setDate(e.target.value)}
+                    className="w-full bg-slate-50 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    min={new Date().toISOString().slice(0, 10)}
+                  />
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 mb-1">To</p>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={e => setEndDate(e.target.value)}
+                    className="w-full bg-slate-50 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    min={date || new Date().toISOString().slice(0, 10)}
+                  />
+                </div>
+              </div>
+              {date && endDate && (
+                <p className="text-[11px] text-slate-500 mt-2">
+                  {Math.max(1, Math.round((new Date(endDate).getTime() - new Date(date).getTime()) / 86400000))} {Math.max(1, Math.round((new Date(endDate).getTime() - new Date(date).getTime()) / 86400000)) === 1 ? 'night' : 'nights'}
+                </p>
+              )}
+            </>
+          )}
         </div>
 
-        {/* Friends - optional */}
+        {/* Friends */}
         <div className="bg-white rounded-2xl p-4 border border-slate-100 mb-3">
           <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
             Friends <span className="text-slate-400 font-normal">(optional · {friendCount})</span>
           </label>
 
-          {/* Draft input */}
           <div className="flex gap-2 mb-2">
             <input
               type="text"
@@ -123,14 +215,10 @@ export default function CreateTripPage() {
             </button>
           </div>
 
-          {/* Friend chips */}
           {invites.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {invites.map((nameVal, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-1.5 bg-blue-50 rounded-full pl-1 pr-2 py-1"
-                >
+                <div key={i} className="flex items-center gap-1.5 bg-blue-50 rounded-full pl-1 pr-2 py-1">
                   <div
                     className="w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[9px]"
                     style={{ backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
@@ -149,12 +237,11 @@ export default function CreateTripPage() {
           )}
 
           <p className="text-[11px] text-slate-500 mt-3 leading-snug">
-            Skip this and Barry just plans for you. You can always add friends later from the trip page.
+            Skip this and Barry just plans for you. You can always add friends later.
           </p>
         </div>
       </main>
 
-      {/* Sticky footer CTA */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 py-3 z-40">
         <div className="max-w-lg mx-auto">
           <button

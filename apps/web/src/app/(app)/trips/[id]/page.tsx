@@ -160,6 +160,9 @@ export default function TripOverviewPage() {
 
   return (
     <div className="px-4 py-4 space-y-5 pb-24">
+      {/* SECTION 0: TRIP RECAP - dates, length, mode */}
+      <TripRecapCard trip={trip} />
+
       {/* SECTION 1: PARTICIPANTS + INVITE */}
       <ParticipantsSection
         trip={trip}
@@ -178,16 +181,19 @@ export default function TripOverviewPage() {
         onCopyInvite={handleCopyInvite}
       />
 
-      {/* SECTION 2: PLAN — Date poll + Chat side-by-side (or stacked on mobile) */}
-      {!isSolo && (
-        <section>
-          <SectionHeader title="Plan" />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <DatePollCard tripId={trip.id} poll={poll} totalMembers={totalMembers} isAdmin={isAdmin} currentUserId={currentUser?.id} />
-            <ChatCard tripId={trip.id} messages={messages} currentUserId={currentUser?.id} input={chatInput} setInput={setChatInput} onSend={handleSendChat} />
-          </div>
-        </section>
-      )}
+      {/* SECTION 2: PLAN — Date poll + Chat side-by-side (always, even solo) */}
+      <section>
+        <SectionHeader title="Plan" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
+          {/* Date poll only when wanderlust (trip mode has dates set at creation) */}
+          {(trip.mode === 'wanderlust' || !trip.mode) ? (
+            <DatePollCard tripId={trip.id} poll={poll} totalMembers={totalMembers} isAdmin={isAdmin} currentUserId={currentUser?.id} isSolo={isSolo} tripMode={trip.mode} />
+          ) : (
+            <TripDatesLockedCard trip={trip} />
+          )}
+          <ChatCard tripId={trip.id} messages={messages} currentUserId={currentUser?.id} input={chatInput} setInput={setChatInput} onSend={handleSendChat} />
+        </div>
+      </section>
 
       {/* SECTION 3: BARRY'S MAP — show pins only when participants ready */}
       <section>
@@ -225,11 +231,14 @@ export default function TripOverviewPage() {
         </section>
       )}
 
-      {/* SECTION 5: VENUES + ACCOMMODATION — once zone is locked */}
-      {tripPickedZone && (
+      {/* SECTION 5: VENUES + ACCOMMODATION — show as soon as ANY pin vote OR zone is locked */}
+      {(tripPickedZone || (tripPinVotes && tripPinVotes.length > 0)) && (
         <section>
-          <SectionHeader title="Where you'll go" />
-          <VenuesAndStaySection trip={trip} zoneId={tripPickedZone} />
+          <SectionHeader title={tripPickedZone ? "Where you'll go" : "Early picks (zone not locked yet)"} />
+          <VenuesAndStaySection
+            trip={trip}
+            zoneId={tripPickedZone || winningZoneId || zones[0]?.id || 'demo-z1'}
+          />
         </section>
       )}
 
@@ -272,6 +281,112 @@ export default function TripOverviewPage() {
 // ============================================================
 // COMPONENTS
 // ============================================================
+
+function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between mb-2 px-1">
+      <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{title}</h2>
+      {action}
+    </div>
+  );
+}
+
+function TripRecapCard({ trip }: { trip: any }) {
+
+  let dateLine = '';
+  let lengthLine = '';
+  if (isWanderlust) {
+    dateLine = trip.scheduledAt ? formatDateLong(trip.scheduledAt) : 'Date to be picked';
+    lengthLine = 'One-day outing';
+  } else if (trip.scheduledAt && trip.endDate) {
+    const start = new Date(trip.scheduledAt);
+    const end = new Date(trip.endDate);
+    const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
+    dateLine = `${formatDateLong(trip.scheduledAt)} → ${formatDateLong(trip.endDate)}`;
+    lengthLine = `${nights} ${nights === 1 ? 'night' : 'nights'}`;
+  } else {
+    dateLine = 'Dates to be set';
+    lengthLine = 'Multi-day trip';
+  }
+
+  return (
+    <div className={`rounded-2xl p-4 border-2 ${
+      isWanderlust
+        ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100'
+        : 'bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100'
+    }`}>
+      <div className="flex items-start gap-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
+          isWanderlust ? 'bg-blue-100' : 'bg-violet-100'
+        }`}>
+          {isWanderlust ? '🍷' : '🏨'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${
+              isWanderlust ? 'text-blue-700' : 'text-violet-700'
+            }`}>
+              {isWanderlust ? 'Wanderlust' : 'Trip'}
+            </span>
+            <span className="text-[10px] text-slate-500">·</span>
+            <span className="text-[10px] font-medium text-slate-600">{lengthLine}</span>
+          </div>
+          <p className="text-sm font-semibold text-slate-900 leading-tight">{dateLine}</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            {trip.participants.length} {trip.participants.length === 1 ? 'participant' : 'participants'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TripDatesLockedCard({ trip }: { trip: any }) {
+  const start = trip.scheduledAt ? new Date(trip.scheduledAt) : null;
+  const end = trip.endDate ? new Date(trip.endDate) : null;
+  const nights = start && end ? Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000)) : 0;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col h-full">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        </div>
+        <p className="font-display font-bold text-base text-slate-900">Trip dates</p>
+        <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-violet-700 bg-violet-100 px-2 py-0.5 rounded-full">
+          Set
+        </span>
+      </div>
+
+      <div className="flex-1 flex flex-col gap-3">
+        {start && end ? (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">From</p>
+                <p className="text-sm font-bold text-slate-900">{formatDateShort(trip.scheduledAt)}</p>
+                <p className="text-[10px] text-slate-500">{start.toLocaleDateString('en-US', { weekday: 'short' })}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">To</p>
+                <p className="text-sm font-bold text-slate-900">{formatDateShort(trip.endDate)}</p>
+                <p className="text-[10px] text-slate-500">{end.toLocaleDateString('en-US', { weekday: 'short' })}</p>
+              </div>
+            </div>
+            <div className="bg-violet-50 rounded-xl p-2 text-center">
+              <p className="text-xs font-bold text-violet-700">{nights} {nights === 1 ? 'night' : 'nights'}</p>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-slate-500 text-center py-4">Dates not yet finalized.</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
@@ -449,13 +564,14 @@ function ParticipantStatusLine({ participant }: { participant: any }) {
   );
 }
 
-function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId }: any) {
+function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId, isSolo, tripMode }: any) {
   const { voteDatePoll, addDateOption, closeDatePoll } = useAppStore();
   const [showAdd, setShowAdd] = useState(false);
   const [newDate, setNewDate] = useState('');
 
   const voted = poll ? new Set(poll.votes.map((v: any) => v.userId)).size : 0;
   const isClosed = poll?.status === 'closed';
+  const isWanderlust = tripMode === 'wanderlust' || !tripMode;
 
   const myVoteFor = (optionId: string) => {
     if (!poll) return null;
@@ -484,7 +600,7 @@ function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId }: an
     : [];
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
@@ -493,7 +609,9 @@ function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId }: an
               <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
             </svg>
           </div>
-          <p className="font-display font-bold text-base text-slate-900">Dates</p>
+          <p className="font-display font-bold text-base text-slate-900">
+            {isSolo ? (isWanderlust ? "Pick a day" : "Pick dates") : "Dates"}
+          </p>
         </div>
         {poll && (
           <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
@@ -621,7 +739,7 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
   }, [messages.length]);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
@@ -641,7 +759,7 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
         </button>
       </div>
 
-      <div ref={scrollRef} className="space-y-2 mb-2 min-h-[120px] max-h-[200px] overflow-y-auto pr-1">
+      <div ref={scrollRef} className="space-y-2 mb-2 flex-1 min-h-[180px] max-h-[400px] overflow-y-auto pr-1">
         {lastFew.length === 0 ? (
           <p className="text-xs text-slate-400 text-center py-6">No messages yet</p>
         ) : (
