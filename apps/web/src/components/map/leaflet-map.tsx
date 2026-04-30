@@ -99,9 +99,37 @@ function ClickHandler({ onMapClick }: { onMapClick?: (p: GeoPoint) => void }) {
   return null;
 }
 
+function ViewportListener({ onViewportChange }: { onViewportChange: (vp: any) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    const fire = () => {
+      const c = map.getCenter();
+      const b = map.getBounds();
+      onViewportChange({
+        center: { lat: c.lat, lng: c.lng },
+        zoom: map.getZoom(),
+        bounds: {
+          north: b.getNorth(),
+          south: b.getSouth(),
+          east: b.getEast(),
+          west: b.getWest(),
+        },
+      });
+    };
+    fire(); // initial
+    map.on('moveend', fire);
+    map.on('zoomend', fire);
+    return () => {
+      map.off('moveend', fire);
+      map.off('zoomend', fire);
+    };
+  }, [map, onViewportChange]);
+  return null;
+}
+
 export function LeafletMap({
   center, zoom = 13, markers = [], className = '',
-  height = '100%', interactive = true, onMapClick, selectedMarkerId,
+  height = '100%', interactive = true, onMapClick, selectedMarkerId, onViewportChange,
 }: BarryMapProps) {
   return (
     <div className={`relative ${className}`} style={{ height }}>
@@ -123,6 +151,7 @@ export function LeafletMap({
         />
         <MapController center={center} zoom={zoom} />
         {onMapClick && <ClickHandler onMapClick={onMapClick} />}
+        {onViewportChange && <ViewportListener onViewportChange={onViewportChange} />}
 
         {markers.map(m => (
           <Marker

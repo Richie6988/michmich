@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMascot, BarryMark } from '@/components/barry/brand';
@@ -11,13 +11,24 @@ type Mode = 'wanderlust' | 'trip';
 
 export default function CreateTripPage() {
   const router = useRouter();
-  const createGroupTrip = useAppStore(s => s.createGroupTrip);
+  const { createGroupTrip, isAuthenticated, isGuest } = useAppStore();
   const [mode, setMode] = useState<Mode>('wanderlust');
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [invites, setInvites] = useState<string[]>([]);
   const [draftFriend, setDraftFriend] = useState('');
+
+  // Auth guard: redirect to login if not authenticated (guests can't create)
+  useEffect(() => {
+    if (!isAuthenticated || isGuest) {
+      router.replace(`/login?redirect=${encodeURIComponent('/trips/new')}` as any);
+    }
+  }, [isAuthenticated, isGuest, router]);
+
+  if (!isAuthenticated || isGuest) {
+    return null; // wait for redirect
+  }
 
   const canCreate = name.trim().length >= 2 && (mode === 'wanderlust' ? true : (date && endDate));
   const friendCount = invites.filter(n => n.trim()).length;

@@ -13,6 +13,15 @@ export interface MapMarker {
   onClick?: () => void;
 }
 
+export interface MapViewport {
+  /** Viewport center after pan/zoom */
+  center: GeoPoint;
+  /** Current zoom level */
+  zoom: number;
+  /** Visible bounding box on the map */
+  bounds: { north: number; south: number; east: number; west: number };
+}
+
 export interface BarryMapProps {
   center: GeoPoint;
   zoom?: number;
@@ -22,6 +31,8 @@ export interface BarryMapProps {
   interactive?: boolean;
   onMapClick?: (point: GeoPoint) => void;
   selectedMarkerId?: string;
+  /** Fired on every pan/zoom — used by overlays to compute off-screen markers */
+  onViewportChange?: (viewport: MapViewport) => void;
 }
 
 // Lazy-load to avoid SSR issues with Leaflet (window not defined)

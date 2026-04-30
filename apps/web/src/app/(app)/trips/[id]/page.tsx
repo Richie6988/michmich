@@ -12,6 +12,7 @@ import { DetailPopup } from '@/components/trip/detail-popup';
 import { formatDateLong, formatDateShort, formatTimeShort } from '@/lib/utils/format-date';
 import { computeBalances } from '@/lib/utils/expenses';
 import { calculateEquity, participantsToApiFormat, isEquityEngineUp } from '@/lib/api/equity-engine';
+import { computeSoloEdgeZones, shouldUseSoloEdgeMode } from '@/lib/utils/solo-zones';
 import { VENUES_BY_ZONE, FALLBACK_VENUES, findVenueById, venueCostPerPerson, DEMO_ACCOMMODATIONS } from '@/lib/data/venues';
 import type { EquityZone, MapMarker, VenueVoteResponse } from '@barry/shared-types';
 
@@ -91,6 +92,24 @@ export default function TripOverviewPage() {
     let cancelled = false;
     setZoneLoading(true);
     (async () => {
+      // SOLO MODE: bypass equity-engine, compute edge zones from max travel time
+      if (shouldUseSoloEdgeMode(trip.participants.length)) {
+        const me = trip.participants[0];
+        if (me?.originLocation && me?.maxTime && me?.transportMode) {
+          const soloZones = computeSoloEdgeZones({
+            origin: me.originLocation,
+            maxTimeMin: me.maxTime,
+            mode: me.transportMode as any,
+          }).map(z => ({ ...z, tripId: trip.id }));
+          if (cancelled) return;
+          setZones(soloZones);
+          setEquityZones(soloZones);
+          setUsingDemo(false);
+          setZoneLoading(false);
+          return;
+        }
+      }
+
       const up = await isEquityEngineUp();
       if (cancelled) return;
       const participants = participantsToApiFormat(trip.participants);
@@ -160,6 +179,9 @@ export default function TripOverviewPage() {
 
   return (
     <div className="px-4 py-4 space-y-5 pb-24">
+      {/* Guest banner — encourage signup for non-authenticated users */}
+      <GuestBanner />
+
       {/* SECTION 0: TRIP RECAP - dates, length, mode */}
       <TripRecapCard trip={trip} />
 
@@ -307,7 +329,33 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
   );
 }
 
+function GuestBanner() {
+  const { isGuest } = useAppStore();
+  if (!isGuest) return null;
+
+  return (
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-100 rounded-2xl p-3.5 flex items-start gap-3">
+      <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+        <BarryMascot mood="thinking" size={28} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-slate-900">You're a guest</p>
+        <p className="text-[11px] text-slate-600 leading-snug">
+          Create an account to save preferences, get email reports, and plan your own Barry.
+        </p>
+      </div>
+      <Link
+        href="/login"
+        className="bg-barry-blue text-white text-[11px] font-bold rounded-lg px-3 py-2 flex-shrink-0 active:scale-95 transition-transform"
+      >
+        Sign up
+      </Link>
+    </div>
+  );
+}
+
 function TripRecapCard({ trip }: { trip: any }) {
+  const isWanderlust = trip.mode === 'wanderlust' || !trip.mode;
 
   let dateLine = '';
   let lengthLine = '';
@@ -818,6 +866,7 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
 }
 
 function MapEmbed({ trip, zones, allReady, loading, usingDemo, constraintsReady, totalMembers }: any) {
+  const [viewport, setViewport] = useState<any>(null);
   // Compute center: average of participant origins or default to Paris
   const participantsWithOrigin = trip.participants.filter((p: any) => p.originLocation);
   const defaultCenter = { lat: 48.8589, lng: 2.3613 };
@@ -878,10 +927,18 @@ function MapEmbed({ trip, zones, allReady, loading, usingDemo, constraintsReady,
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
       <div className="relative h-72">
-        <BarryMap center={center} zoom={zoom} markers={markers} height="100%" />
+        <BarryMap
+          center={center}
+          zoom={zoom}
+          markers={markers}
+          height="100%"
+          onViewportChange={setViewport}
+        />
 
         {/* Participant edge-arrows when zoomed in */}
-        <ParticipantEdgeArrows participants={trip.participants} />
+        {viewport && (
+          <ParticipantEdgeArrows participants={trip.participants} viewport={viewport} />
+        )}
 
         {/* Mascot floating bottom-left */}
         <div className="absolute bottom-3 left-3 z-[1500] bg-white/95 backdrop-blur-md rounded-xl p-2 shadow-lg flex items-center gap-2">
@@ -924,12 +981,73 @@ function MapEmbed({ trip, zones, allReady, loading, usingDemo, constraintsReady,
   );
 }
 
-function ParticipantEdgeArrows({ participants }: { participants: any[] }) {
-  // This component listens to map pan/zoom and shows arrow hints when participants are off-screen.
-  // For now, render a static "X off-screen" pill in the corner. Full edge arrow tracking would
-  // require integrating with Leaflet's map instance via a ref - left as future enhancement.
-  // (Current Leaflet integration in BarryMap doesn't expose pan events to parent.)
-  return null;
+function ParticipantEdgeArrows({ participants, viewport }: { participants: any[]; viewport: any }) {
+  if (!viewport?.bounds) return null;
+  const { bounds, center } = viewport;
+
+  // Find off-screen participants
+  const offscreen = participants
+    .filter(p => p.originLocation)
+    .map((p: any, i: number) => {
+      const { lat, lng } = p.originLocation;
+      const isOut = lat > bounds.north || lat < bounds.south || lng > bounds.east || lng < bounds.west;
+      if (!isOut) return null;
+      // Compute angle from viewport center to participant
+      const dy = lat - center.lat; // north positive
+      const dx = lng - center.lng; // east positive
+      const angle = Math.atan2(-dy, dx); // CSS rotate angle, 0 = right
+      return { participant: p, index: i, angle, dx, dy };
+    })
+    .filter(Boolean) as { participant: any; index: number; angle: number; dx: number; dy: number }[];
+
+  if (offscreen.length === 0) return null;
+
+  // Place each arrow at the edge of the map container, in the direction of the participant
+  return (
+    <div className="absolute inset-0 pointer-events-none z-[1400]">
+      {offscreen.map(({ participant, index, angle, dx, dy }) => {
+        // Project onto the viewport edge: clamp to a circle inscribed in the rectangle
+        // The map container is treated as 100% so we use percentages from center
+        // Use the larger of |dx|,|dy| to determine which edge to clamp to
+        const ax = dx;
+        const ay = -dy; // CSS y axis is flipped
+        const m = Math.max(Math.abs(ax), Math.abs(ay));
+        if (m === 0) return null;
+        const nx = ax / m; // -1..1
+        const ny = ay / m;
+        // Position from center +/- 45% so arrow stays inside container with margin
+        const left = `${50 + nx * 42}%`;
+        const top = `${50 + ny * 42}%`;
+        const color = AVATAR_COLORS[index % AVATAR_COLORS.length];
+        const rotateDeg = (angle * 180) / Math.PI;
+
+        return (
+          <div
+            key={participant.id}
+            className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-1"
+            style={{ left, top }}
+          >
+            {/* Avatar disc */}
+            <div
+              className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white font-bold text-[10px] shadow-lg"
+              style={{ backgroundColor: color }}
+            >
+              {participant.user?.firstName?.[0]?.toUpperCase() || '?'}
+            </div>
+            {/* Triangle arrow pointing toward participant */}
+            <div
+              className="w-3 h-3"
+              style={{
+                transform: `rotate(${rotateDeg}deg)`,
+                background: color,
+                clipPath: 'polygon(0 50%, 100% 0, 100% 100%)',
+              }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function PinVoteCard({ trip, zones, tripPinVotes, myPinVote, currentUserId, isAdmin, isSolo, allPinVoted, totalPinVoted, totalMembers, winningZoneId, onVote, onLock }: any) {

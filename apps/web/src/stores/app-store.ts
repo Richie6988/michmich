@@ -209,7 +209,11 @@ interface AppState {
   // Auth
   currentUser: User | null;
   isAuthenticated: boolean;
+  /** True if currently in 'guest' mode — has consulted a Barry via invite link without account */
+  isGuest: boolean;
   login: (email: string) => void;
+  signup: (firstName: string, lastName: string, email: string) => void;
+  setGuestMode: (firstName: string) => void;
   logout: () => void;
 
   // User preferences (persisted to localStorage)
@@ -346,6 +350,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
   currentUser: MOCK_USERS[0],
   isAuthenticated: true,
+  isGuest: false,
   userLocation: null,
   trips: MOCK_TRIPS,
   activeTrip: null,
@@ -464,10 +469,49 @@ export const useAppStore = create<AppState>()(
 
   login: (email) => {
     const user = MOCK_USERS.find(u => u.email === email) || MOCK_USERS[0];
-    set({ currentUser: user, isAuthenticated: true });
+    set({ currentUser: user, isAuthenticated: true, isGuest: false });
   },
 
-  logout: () => set({ currentUser: null, isAuthenticated: false }),
+  signup: (firstName, lastName, email) => {
+    const newUser: User = {
+      id: `u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      email,
+      firstName,
+      lastName,
+      avatarUrl: null,
+      phone: null,
+      locale: 'en',
+      defaultTransportMode: 'transit',
+      defaultTimeWeight: 0.5,
+      defaultMoneyWeight: 0.5,
+      homeLocation: null,
+      subscriptionTier: 'free',
+      createdAt: new Date().toISOString(),
+    };
+    set({ currentUser: newUser, isAuthenticated: true, isGuest: false });
+  },
+
+  setGuestMode: (firstName) => {
+    // Create a temporary guest profile - persists nothing important
+    const guestUser: User = {
+      id: `guest-${Date.now()}`,
+      email: '',
+      firstName: firstName || 'Guest',
+      lastName: '',
+      avatarUrl: null,
+      phone: null,
+      locale: 'en',
+      defaultTransportMode: 'transit',
+      defaultTimeWeight: 0.5,
+      defaultMoneyWeight: 0.5,
+      homeLocation: null,
+      subscriptionTier: 'free',
+      createdAt: new Date().toISOString(),
+    };
+    set({ currentUser: guestUser, isAuthenticated: false, isGuest: true });
+  },
+
+  logout: () => set({ currentUser: null, isAuthenticated: false, isGuest: false }),
 
   setUserLocation: (loc) => set({ userLocation: loc }),
 
@@ -1082,10 +1126,13 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'barry-app-state',
-      version: 2, // bump when persisted shape changes
+      version: 3, // bump when persisted shape changes
       storage: createJSONStorage(() => (typeof window !== 'undefined' ? window.localStorage : undefined as any)),
       // Only persist user-controlled data, NOT mock trips/chats
       partialize: (state) => ({
+        currentUser: state.currentUser,
+        isAuthenticated: state.isAuthenticated,
+        isGuest: state.isGuest,
         preferences: state.preferences,
         paymentMethods: state.paymentMethods,
         inAppBalance: state.inAppBalance,
@@ -1099,6 +1146,11 @@ export const useAppStore = create<AppState>()(
           persistedState.balanceTransactions = persistedState.balanceTransactions || [];
           persistedState.paymentMethods = persistedState.paymentMethods || [];
           persistedState.inAppBalance = persistedState.inAppBalance ?? 0;
+        }
+        // v2 -> v3: auth state added; existing users keep being authenticated
+        if (version < 3) {
+          persistedState.isAuthenticated = persistedState.isAuthenticated ?? true;
+          persistedState.isGuest = persistedState.isGuest ?? false;
         }
         return persistedState;
       },
