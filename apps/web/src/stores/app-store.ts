@@ -218,6 +218,8 @@ interface AppState {
   logout: () => void;
   /** Patch fields on the current user (firstName, lastName, avatarUrl, phone, locale...) */
   updateCurrentUser: (patch: Partial<User>) => void;
+  /** Clone an existing trip with a new id, fresh votes/dates/funds, but keep participants + setup */
+  duplicateTrip: (sourceTripId: string, newName?: string) => Trip | null;
 
   // User preferences (persisted to localStorage)
   preferences: UserPreferences;
@@ -545,6 +547,65 @@ export const useAppStore = create<AppState>()(
     });
     return { currentUser: next, trips };
   }),
+
+  duplicateTrip: (sourceTripId, newName) => {
+    const src = get().trips.find(t => t.id === sourceTripId);
+    if (!src) return null;
+    const newId = `t${Date.now()}`;
+    // Clone participants with fresh ids but keep their user/setup info
+    const newParticipants = src.participants.map((p, i) => ({
+      id: `p${Date.now()}-${i}`,
+      tripId: newId,
+      userId: p.userId,
+      user: p.user,
+      status: 'invited' as const, // reset everyone to invited
+      transportMode: p.transportMode,
+      timeWeight: p.timeWeight,
+      moneyWeight: p.moneyWeight,
+      maxTime: p.maxTime,
+      maxMoney: p.maxMoney,
+      maxTimeUnit: p.maxTimeUnit,
+      maxMoneyCurrency: p.maxMoneyCurrency,
+      email: p.email,
+      selfBook: p.selfBook,
+      reductionCards: p.reductionCards,
+      originLocation: p.originLocation,
+      originLabel: p.originLabel,
+      // Reset all computed fields
+      burdenScore: null,
+      routeDuration: null,
+      routeDistance: null,
+      routeCost: null,
+      routeGeometry: null,
+      voteVenueId: null,
+    }));
+    // Mark organizer as accepted
+    const orgIdx = newParticipants.findIndex(p => p.userId === src.organizerId);
+    if (orgIdx >= 0) (newParticipants[orgIdx] as any).status = 'accepted';
+
+    const newTrip: Trip = {
+      id: newId,
+      name: newName || `${src.name} (copy)`,
+      description: src.description,
+      organizerId: src.organizerId,
+      organizer: src.organizer,
+      tripType: src.tripType,
+      mode: src.mode,
+      status: 'inviting',
+      scheduledAt: null, // reset date
+      endDate: null,
+      stealthMode: src.stealthMode,
+      maxTimeBudget: src.maxTimeBudget,
+      maxMoneyBudget: src.maxMoneyBudget,
+      inviteToken: Math.random().toString(36).slice(2, 10),
+      selectedVenueId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      participants: newParticipants,
+    };
+    set(s => ({ trips: [newTrip, ...s.trips], activeTrip: newTrip }));
+    return newTrip;
+  },
 
   setUserLocation: (loc) => set({ userLocation: loc }),
 

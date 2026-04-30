@@ -526,5 +526,142 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 
 ---
 
-*Last updated: April 2026 — Phase 3A in progress*
+## 15. CURRENT IMPLEMENTATION STATE (Wave 11)
+
+> Updated continuously. This section reflects what's actually shipped vs what's planned.
+
+### 15.1 Repo & deployment
+
+- **Monorepo** at `github.com/Richie6988/michmich` (turbo + npm workspaces)
+- Local dev on Windows: portable Node + Postgres + Redis under `portable/`
+- Start script: `start-barry.ps1` — boots PG (5433), Redis (6380), equity-engine (Python 8000), Next.js web (3000)
+- `claude.md` — this file. **Always update on major waves.**
+- `DEV_QUEUE.md` — backlog with priority + scope estimate per item
+
+### 15.2 What's BUILT
+
+#### Auth & nav
+- Home `/` with login top-right (button OR avatar+menu)
+- `/login` with 3 tabs: sign in / create account / forgot password (mock reset)
+- Demo user quick-login (Chloé, Tom, Marc)
+- `/profile` with avatar upload, balance, payment methods, prefs, **travel preferences** (saved defaults: home, max duration, max budget, self-book, loyalty cards, email)
+- `/join/[token]` — forced "Who are you?" modal as first screen, blurred trip preview behind
+- `/legal/{terms,privacy,cookies}` — GDPR-aware static pages
+
+#### Trip overview (`/trips/[id]`)
+- **Top KPI bar**: 4-step traffic light (Setup → Zone → Venue → Booked)
+- **Vertical chrono line** on left margin connecting 12 sections, each numbered colored dot
+- 12 sections in order:
+  1. Participants + invite (blue)
+  2. Plan (purple) — date poll + chat side-by-side
+  3. To-do list (amber) — assignable tasks with avatar, quick chips
+  4. Map (cyan) — Leaflet inline with zones, edge arrows for off-screen participants
+  5. Pin vote (orange) — appears when zones ready, hides after lock
+  6. Picks for your group (rose) — bars/restaurants + hotels (trip mode only) with filter chips above
+  7. Activities + car rental (teal) — wanderlust gets activities only; trip gets activities + cars
+  8. Trip summary (violet) — pre-fund recap with per-person transport
+  9. Fund Barry (pink) — **inline per-participant pay flow** with confirm modal, in-app balance OR card, auto-trigger booking when 100%
+  10. Booking + report (emerald) — appears once funds complete
+  11. Expenses (Tricount) (indigo) — split + balances
+  12. Memories (fuchsia) — photo upload + grid + zoom modal
+
+#### Components (the design DNA building blocks)
+- `apps/web/src/components/ui/avatar.tsx` — **Avatar + AvatarStack** (universal, deterministic color from user.id, renders profile pic if uploaded). Used everywhere instead of inline initials bubbles.
+- `apps/web/src/components/ui/skeleton.tsx` — `Skeleton`, `SkeletonScrollCard`, `SkeletonScrollCardList`, `SkeletonBlock`, `SkeletonZones` for loading states
+- `apps/web/src/components/barry/brand.tsx` — `BarryMascot` (5 moods), `BarryMark`, `BarryLogo`, `BarryLoader`
+- `apps/web/src/components/barry/interactive-mascot.tsx` — Tamagotchi: click → bounce + speech bubble, 14 random messages
+- `apps/web/src/components/trip/trip-progress.tsx` — KPI 4-step progress bar
+- `apps/web/src/components/trip/todo-section.tsx` — TODO with assignment + quick chips
+- `apps/web/src/components/trip/memory-gallery.tsx` — Photo grid + zoom modal + delete
+- `apps/web/src/components/trip/activities-and-cars.tsx` — Activities + CarRental scroll sections with popup detail
+- `apps/web/src/components/trip/filters-bar.tsx` — Chip-style filters with `VENUE_FILTERS`, `HOTEL_FILTERS`, `ACTIVITY_FILTERS`, `CAR_FILTERS`
+- `apps/web/src/components/trip/setup-sheet.tsx` — wider (max-w-2xl), Nominatim autocomplete with `onMouseDown` fix, prefills from preferences
+- `apps/web/src/components/trip/scroll-card-list.tsx` — horizontal-scroll image cards (TheFork-style)
+- `apps/web/src/components/trip/detail-popup.tsx` — bottom sheet with hero image + 3-button thumb vote + Pick CTA
+- `apps/web/src/lib/data/venues.ts` — `VENUES_BY_ZONE` (12 venues, 3 zones), `DEMO_ACCOMMODATIONS`
+- `apps/web/src/lib/data/activities.ts` — 14 activities scoped wanderlust/trip/both + 6 car rentals
+- `apps/web/src/lib/data/reduction-cards.ts` — 40+ EU loyalty/reduction cards (SNCF/KLM/BahnCard/Trenitalia/Renfe/SBB/ÖBB/Iberia/Ryanair etc.)
+- `apps/web/src/lib/utils/trip-export.ts` — **PDF (browser print) + ICS (RFC 5545) export**
+- `apps/web/src/lib/design/tokens.ts` — graphic DNA tokens (COLORS, GRADIENTS, SHADOWS, RADIUS, CLASSES, MOTION)
+
+#### Trip header menu (more / "...")
+- Duplicate Barry → clones trip with fresh votes/dates/funds
+- Copy invite link → copies `/join/<token>` URL
+- Add to calendar (.ics)
+- Export PDF recap (opens print-friendly tab)
+
+### 15.3 Store actions (Zustand persist v3)
+
+**Auth**: `login`, `signup`, `setGuestMode`, `logout`, `updateCurrentUser` (patches User + propagates to all trips)
+
+**Trips**: `createGroupTrip`, `duplicateTrip`, `updateTripStatus`, `setActiveTrip`, `addParticipantByName`, `removeParticipant`, `updateParticipantConstraints`
+
+**Voting**: `voteForPin`, `closePinVote`, `voteForVenue`, `closeVenueVote`, `voteForAccommodation`, `selectAccommodation`, `voteDatePoll`, `addDateOption`, `closeDatePoll`
+
+**Tasks/photos**: `addTask`, `toggleTask`, `removeTask`, `reassignTask`, `addTripPhoto`, `removeTripPhoto`
+
+**Funds**: `createFundsRequest`, `payFundsContribution` (with `useBalance` flag), `performBookings`
+
+**Persisted slots** (v3): `currentUser`, `isAuthenticated`, `isGuest`, `preferences`, `paymentMethods`, `inAppBalance`, `balanceTransactions`. Migration handler in place for v2 → v3.
+
+### 15.4 Real APIs in use
+
+- **OSM Overpass** — POI fetch (with timeout fallback to seeded venues)
+- **Nominatim** — address autocomplete in setup sheet
+- **OSRM** — routing/duration/cost
+- **Equity Engine** (Python FastAPI) — minimax burden optimization. Cached health-check (`isEquityEngineUp` 30s memo) so failures don't spam.
+- **Carto Voyager** — Leaflet tile layer (no Mapbox, no API key)
+- **Booking deep-links** — built but mock; would call real partner APIs in production
+
+### 15.5 What's NOT yet built
+
+- **Real OAuth** (Google / Apple) — currently demo email login
+- **Real Stripe Connect** — funds flow is mock UI
+- **Real bookings** via partners (TheFork, Booking.com, SNCF Connect) — currently generate confirmation codes locally
+- **Push notifications** — service worker + opt-in opt — see DEV_QUEUE.md
+- **Dark mode** — see DEV_QUEUE.md (audit-heavy)
+- **WebSocket real-time voting** — currently optimistic + persisted
+- **Mobile (Expo)** — skeleton only; web is the active codebase
+- **NestJS API real entities** — has skeleton, no production endpoints
+- **Tests** — Jest, Playwright, Detox not yet set up
+- **i18n FR translations** — locale plumbed, FR strings TBD
+
+### 15.6 Validation pipeline (every wave)
+
+1. **Babel parse** all TS/TSX with `@babel/parser` — catches syntax errors
+2. **TypeScript syntax check** with `tsc --noEmit` (no types lib loaded so it's syntax-only) — catches TS-specific syntax issues
+3. **Emoji scan** (Python regex over codebase) — confirms 0 emojis (we use SVG icons only)
+4. **Import resolution** check — verifies all `@/...` paths resolve
+5. **Conventional commit** with detailed multi-section message
+6. Push to `main` immediately after green validation
+
+### 15.7 Wave history (recent)
+
+| Commit | Wave | Highlights |
+|---|---|---|
+| 1f20c93 | 11-phase1 | Universal Avatar + profile pic upload + design tokens |
+| c4b684e | 10B | Emoji purge, popup polish, chat scroll fix, KPI bar, filters, chrono line, activities + cars, TODO, memory gallery, tamagotchi mascot |
+| 2b4b25a | 10A | Create-Barry crash fix, auth flow, setup polish, profile travel prefs |
+| b229963 | 9D-9F | Auth gating, solo edge zones, map viewport edge arrows |
+| 49d7b3e | 9C | Dynamic landing + cached engine health |
+| 47f7e60 | 9B | Setup overhaul, 40+ EU cards, post-booking report |
+| cf3fa62 | 9A | Wanderlust/trip mode + visible mascot + recap |
+
+### 15.8 The graphic DNA (design system)
+
+Single source of truth: `apps/web/src/lib/design/tokens.ts`
+
+- **Brand** primary: barry-blue `#2563EB`, accent coral `#F97316`, success `#10B981`
+- **Avatar palette**: 8 deterministic colors (same person = same color across the app, hashed from user.id)
+- **Radius**: sm `lg` (8) / md `xl` (12) / lg `2xl` (16) / xl `3xl` (24) / full
+- **Cards**: `bg-white rounded-2xl border border-slate-100`
+- **CTA buttons**: `bg-gradient-to-r from-barry-blue to-blue-700 text-white shadow-lg shadow-blue-500/20`
+- **Modals**: full `rounded-3xl` (no half-rounded), custom `barry-scroll` thin scrollbar so the corners look right
+- **Typography**: Inter (body) + Manrope (display) + JetBrains Mono (code)
+- **Motion**: 150-300ms snappy transitions, mascot uses spring bounce only
+- **Icons**: stroke SVG only, never emojis. Width=2 standard.
+
+---
+
+*Last updated: April 30, 2026 — Wave 11 (avatars + DNA + per-participant fund + duplicate + skeleton + PDF/ICS)*
 *Maintained by: Claude (AI architect) + Richie (founder)*

@@ -3,92 +3,83 @@
 Living backlog of feature requests, technical debt, and improvement ideas.
 Items at the top are higher priority. Items get checked off with the commit hash that landed them.
 
-## Pending — User-requested features
+## In progress / partially done
 
-### 1. Skeleton loaders during equity calculation
-While Barry is computing recommendations (zones, venues, accommodations, activities), show
-shimmer/skeleton placeholders instead of just a spinner or empty state. This is meant for the
-moments where the user knows something is happening but the screen looks empty:
+### 1. Skeleton loaders during equity calculation — **PARTIAL** (`pending wave 11 phase 2`)
+**Done:** `Skeleton`, `SkeletonScrollCard`, `SkeletonScrollCardList`, `SkeletonBlock`, `SkeletonZones` components live in `components/ui/skeleton.tsx`. CSS shimmer (`barry-skeleton` class) added to globals.css. Wired into `MapEmbed` zones strip when calculating + zones empty.
 
-- Map zones loading -> skeleton zone cards
-- Activities/venues catalog -> skeleton scroll cards (with image placeholder + 2 lines)
-- Trip recap loading -> skeleton bars
-- Reduction-card dropdown loading -> skeleton list
+**Still TODO:**
+- Wire into `ScrollCardList` so venues/hotels/activities/cars show skeletons while loading
+- Wire into reduction-card dropdown when fetching providers
+- Wire into trip recap card while waiting for transport legs
 
-Library option: build native CSS shimmer (no extra deps), using `bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 bg-[length:200%_100%] animate-shimmer`.
-
-### 2. Push notifications
-Send notifications (web push API + service worker, plus native APNs/FCM on mobile when shipped):
-
-- A new vote arrives on the date poll (only to participants who haven't voted yet)
-- A new task is assigned to me
-- A new task is added to the trip (digest, not per-task)
-- Funding milestone reached: 25% / 50% / 100%
+### 2. Push notifications — NOT STARTED (large)
+Web push API + service worker + opt-in flow + notification service. Notifies on:
+- New vote on the date poll (to participants who haven't voted)
+- New task assigned to me
+- Digest of new tasks added to the trip
+- Funding milestone reached (25%, 50%, 100%)
 - Booking confirmed (per-participant report just landed)
-- A new chat message (rate-limited)
+- New chat message (rate-limited)
 
-Will need: subscription endpoint, opt-in flow in profile preferences, notification service
-(self-hosted via web-push lib, or external like OneSignal). Probably ship behind a feature flag.
+Self-host via `web-push` lib or use OneSignal. Behind a feature flag. Profile preferences toggle. Estimate: 2-3 days.
 
-### 3. Duplicate Barry feature
-For recurring trips with the same group ("we do this Friday dinner every month"):
+### 3. Duplicate Barry feature — **DONE** (`pending wave 11 phase 2`)
+Implementation:
+- Store action `duplicateTrip(sourceTripId, newName?)` clones a trip with fresh id, fresh dates/votes/funds/photos but keeps participants + their setup (origin, transport, cards, budget, etc.)
+- UI: "Duplicate Barry" item in the trip header more menu (kebab icon)
+- After creation, redirects to the new trip
 
-- Action on a completed Barry: "Duplicate"
-- Pre-fills: same name, same participants, same starting points, same transport modes,
-  same reduction cards, but resets votes/dates/funding/photos/expenses
-- Optional: "Repeat weekly/monthly" auto-create
+### 4. Export trip recap to PDF / .ics — **DONE** (`pending wave 11 phase 2`)
+Implementation in `lib/utils/trip-export.ts`:
+- **ICS**: hand-rolled RFC 5545 builder with proper escaping. Multi-day trips use DATE values with exclusive DTEND. Single-day uses DATE for both. UID stable per trip. Downloads as blob.
+- **PDF**: builds print-friendly HTML, opens in new tab, auto-triggers `window.print()` on load. User saves as PDF via browser. No jsPDF dep needed.
+- Both wired into trip header more menu.
 
-Reuses the createGroupTrip action with extra options. Show in the home page list as "Duplicate" on completed trips, and in the trip detail header menu.
+### 5. Dark mode toggle — NOT STARTED (audit-heavy)
+- `theme: 'light' | 'dark' | 'auto'` in preferences, hooked to `<html class="dark">`
+- Audit every gradient and slate color across the app for `dark:` variants
+- Carto Voyager → `dark_all` map tile layer when dark
+- Reduced-motion fallback for shimmer/bounce
+- Estimate: 2-3 days of methodical pass.
 
-### 4. Export trip recap to PDF / calendar (.ics)
-Two formats:
+### 6. Accessibility audit — NOT STARTED
+- Keyboard nav: focus traps in popups, tab order in custom dropdowns
+- Screen readers: ARIA labels on all icon-only buttons, ARIA live regions for chat/toasts
+- Focus-visible: strong outline on tab focus
+- Color contrast: audit slate-400/500 on white against WCAG AA
+- `prefers-reduced-motion`: skip mascot bounce + shimmer
+- Tools: Lighthouse + axe-core in CI. Manual VoiceOver/NVDA pass.
+- Estimate: 2 days.
 
-- PDF: full trip recap (dates, participants, transport legs, accommodations, total cost,
-  reduction cards used, expense breakdown, settlements). Use jsPDF or pdf-lib client-side.
-- ICS: calendar event(s). For wanderlust = single event. For trip = start + end dates,
-  plus optional sub-events (boarding times, hotel check-in/out, restaurant reservation,
-  activities). Use ical.js or hand-roll the format (it's simple).
+### 7. Per-participant fund payment — **DONE** (`pending wave 11 phase 2`)
+Inline fund mechanics in `FundsCard`:
+- Per-participant rows with avatar, amount, status (Paid / Pay button / Awaiting...)
+- "Pay" opens confirm modal with two payment methods (in-app balance if sufficient, or card via Stripe)
+- Calls `payFundsContribution(tripId, contributionId, useBalance)`
+- Auto-triggers `performBookings` when 100% paid
+- Progress bar in hero card
 
-Add "Export" menu in trip header with PDF / Add to calendar buttons.
-
-### 5. Dark mode toggle
-- Toggle in profile preferences and possibly OS-level auto-detect (`prefers-color-scheme`)
-- Tailwind's `dark:` classes throughout (or new color tokens in a CSS variable system)
-- Need to audit every gradient and color (the landing page especially has lots of slate-50/blue-50 backgrounds)
-- Map tile layer may need a dark variant (Carto has `dark_all`, swap based on theme)
-
-Recommended approach: create `theme: 'light' | 'dark' | 'auto'` in preferences, hook to a
-`<html class="dark">` toggle, ship Tailwind dark variants in a follow-up wave (this is several
-days of audit work).
-
-### 6. Accessibility audit
-- Keyboard nav: every interactive element should be reachable by tab; current pain points:
-  custom dropdowns, popups (focus trap missing), card grids
-- Screen readers: ARIA labels on all icon-only buttons (we have some but not consistent),
-  ARIA live regions for the chat and toast notifications
-- Focus visible state: bring back a strong outline (currently relying on browser defaults
-  which vary)
-- Color contrast: audit the slate-400 / slate-500 secondary text on white backgrounds
-  against WCAG AA
-- Reduced motion: respect `prefers-reduced-motion` for the mascot bounce / shimmer / page
-  transitions
-
-Tools: Lighthouse + axe-core in CI. Manual VoiceOver/NVDA pass before shipping.
+### 8. Join page first popup — **DONE** (`pending wave 11 phase 2`)
+- Forced "Who are you?" modal as first thing on `/join/[token]`
+- Trip preview blurred behind for context (`blur-sm pointer-events-none`)
+- Modal has Barry mascot, hero text, name input, primary CTA "Join {trip.name}"
+- Sign up upsell collapsed under a small link, expandable
 
 ## Pending — Technical debt
 
-- The `MediaCard` component in trip page is now unused after MemoryGallery replaced it -
-  delete on the next pass
-- Persistence migration system: any future shape change needs a new `version` bump and a
-  migrate block. Document this convention.
-- `equityZones`, `pinVotes`, `accommodations` etc. in store should arguably move to a
-  scoped per-trip slice (current Record<tripId, X> works but does extra work on every set)
-- Duplicate seeding bug (acc1777542003383) was fixed by ID randomization, but the seeding
-  itself (forEach in useEffect) still runs twice in strict mode. Idempotent enough now,
-  but cleaner would be a useRef guard.
+- The `MediaCard` component in trip page is now unused after MemoryGallery replaced it - delete on the next pass
+- Persistence migration system: any future shape change needs a new `version` bump and a migrate block. Document this convention.
+- `equityZones`, `pinVotes`, `accommodations` etc. in store should arguably move to a scoped per-trip slice (current Record<tripId, X> works but does extra work on every set)
+- Duplicate seeding bug (acc1777542003383) was fixed by ID randomization, but the seeding itself (forEach in useEffect) still runs twice in strict mode. Idempotent enough now, but cleaner would be a useRef guard.
+- Replace remaining initials in trip subroute pages (cagnotte, chat, constraints, itinerary, map, funds) with `<Avatar>` component - currently using legacy bubbles
+- Dark mode and accessibility audits are sequential big tasks; bundle them into one "polish wave" (wave 13)
 
 ## Done
 
+- Wave 11-phase1: Universal Avatar component + profile pic upload + design tokens - `1f20c93`
+- Wave 10B: Emoji purge + popup polish + chat scroll + KPI + filters + chrono line + activities + cars + todo + memory + tamagotchi - `c4b684e`
+- Wave 10A: Create Barry crash fix + auth flow restructure + setup polish + profile travel prefs - `2b4b25a`
 - Wave 9F: Map viewport edge arrows for off-screen participants - `b229963`
 - Wave 9E: Solo edge mode (max range, not barycentre) - `b229963`
 - Wave 9D: Auth gating (login + signup + guest flow via /join) - `b229963`
@@ -96,3 +87,4 @@ Tools: Lighthouse + axe-core in CI. Manual VoiceOver/NVDA pass before shipping.
 - Wave 9B: Setup overhaul (40+ EU loyalty cards, flight, email, self-book, units, no priority slider) + trip recap pre-fund + post-booking report - `47f7e60`
 - Wave 9A: Wanderlust/trip mode toggle, mascot in header, chat=poll height, right-click block - `cf3fa62`
 - Wave 8: Seamless create + inline date poll + chat scroll + address autocomplete + image cards + zone-aware map - `f560d9a`
+

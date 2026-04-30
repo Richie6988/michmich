@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMascot } from '@/components/barry/brand';
 import { Avatar, AvatarStack } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { BarryMap } from '@/components/map/barry-map';
 import { SetupSheet } from '@/components/trip/setup-sheet';
 import { ScrollCardList } from '@/components/trip/scroll-card-list';
@@ -1080,7 +1081,7 @@ function MapEmbed({ trip, zones, allReady, loading, usingDemo, constraintsReady,
         )}
       </div>
 
-      {zones.length > 0 && (
+      {zones.length > 0 ? (
         <div className="p-3 grid grid-cols-3 gap-2">
           {zones.slice(0, 3).map((z: any, i: number) => (
             <div key={z.id} className="bg-slate-50 rounded-xl p-2 text-center">
@@ -1092,7 +1093,17 @@ function MapEmbed({ trip, zones, allReady, loading, usingDemo, constraintsReady,
             </div>
           ))}
         </div>
-      )}
+      ) : loading ? (
+        <div className="p-3 grid grid-cols-3 gap-2">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="bg-slate-50 rounded-xl p-2 text-center">
+              <Skeleton className="w-6 h-6 rounded-lg mx-auto mb-1" />
+              <Skeleton className="h-3 w-16 mx-auto mb-1" />
+              <Skeleton className="h-2 w-12 mx-auto" />
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1584,8 +1595,8 @@ function PostBookingReport({ trip, reservations, transportLegs }: any) {
 
 
 function FundsCard({ tripId, fundsRequest }: { tripId: string; fundsRequest: any }) {
-  const router = useRouter();
-  const { createFundsRequest } = useAppStore();
+  const { createFundsRequest, payFundsContribution, currentUser, inAppBalance, performBookings } = useAppStore();
+  const [confirmPayId, setConfirmPayId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!fundsRequest || fundsRequest.totalAmount === 0) {
@@ -1604,34 +1615,172 @@ function FundsCard({ tripId, fundsRequest }: { tripId: string; fundsRequest: any
     );
   }
 
-  const paid = fundsRequest.contributions.filter((c: any) => c.status === 'paid').length;
-  const total = fundsRequest.contributions.length;
+  const contribs = fundsRequest.contributions || [];
+  const paidContribs = contribs.filter((c: any) => c.status === 'paid');
+  const myContrib = contribs.find((c: any) => c.userId === currentUser?.id);
+  const paidCount = paidContribs.length;
+  const totalCount = contribs.length;
+  const paidAmount = paidContribs.reduce((s: number, c: any) => s + c.amount, 0);
+  const totalAmount = fundsRequest.totalAmount;
+  const pct = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
+  const allDone = paidCount === totalCount && totalCount > 0;
+
+  // Auto-trigger booking when complete
+  useEffect(() => {
+    if (allDone && fundsRequest.status !== 'complete') {
+      performBookings(tripId);
+    }
+  }, [allDone, fundsRequest.status, tripId]);
 
   return (
-    <Link href={`/trips/${tripId}/funds` as any} className="block bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-4 text-white shadow-lg shadow-pink-500/15 active:scale-[0.99] transition-all">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-pink-100">Total to collect</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
-          {paid}/{total} paid
-        </span>
+    <div className="space-y-3">
+      {/* HERO: total + progress */}
+      <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-4 text-white shadow-lg shadow-pink-500/20">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-pink-100">Total to collect</span>
+          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+            allDone ? 'bg-emerald-400 text-emerald-900' : 'bg-white/20 text-white'
+          }`}>
+            {paidCount}/{totalCount} paid
+          </span>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <p className="font-display font-extrabold text-3xl">{totalAmount.toFixed(2)} EUR</p>
+          {paidAmount > 0 && (
+            <p className="text-xs text-pink-100">({paidAmount.toFixed(0)} collected)</p>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-white rounded-full transition-all duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+
+        <div className="mt-3 grid grid-cols-3 gap-2 text-[10px]">
+          <div>
+            <p className="text-pink-100">Venues</p>
+            <p className="font-bold">{fundsRequest.breakdown.venues.toFixed(0)} EUR</p>
+          </div>
+          <div>
+            <p className="text-pink-100">Stay</p>
+            <p className="font-bold">{fundsRequest.breakdown.accommodation.toFixed(0)} EUR</p>
+          </div>
+          <div>
+            <p className="text-pink-100">Transport</p>
+            <p className="font-bold">{fundsRequest.breakdown.transport.toFixed(0)} EUR</p>
+          </div>
+        </div>
       </div>
-      <p className="font-display font-extrabold text-3xl mt-1">{fundsRequest.totalAmount.toFixed(2)} EUR</p>
-      <div className="mt-3 grid grid-cols-3 gap-2 text-[10px]">
-        <div>
-          <p className="text-pink-100">Venues</p>
-          <p className="font-bold">{fundsRequest.breakdown.venues.toFixed(0)} EUR</p>
+
+      {/* Per-participant payment list */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-3">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-1">Who's paying what</p>
+        <div className="space-y-1.5">
+          {contribs.map((c: any) => {
+            const isMe = c.userId === currentUser?.id;
+            const isPaid = c.status === 'paid';
+            return (
+              <div
+                key={c.id}
+                className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 ${
+                  isPaid ? 'bg-emerald-50' : 'bg-slate-50'
+                }`}
+              >
+                <Avatar user={c.user} size={32} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">
+                    {isMe ? 'You' : (c.user?.firstName || c.userName || 'Guest')}
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    {c.amount.toFixed(2)} EUR
+                    {isPaid && c.paidAt && <> · paid {new Date(c.paidAt).toLocaleDateString()}</>}
+                  </p>
+                </div>
+                {isPaid ? (
+                  <span className="inline-flex items-center gap-1 text-emerald-700 text-[11px] font-bold">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Paid
+                  </span>
+                ) : isMe ? (
+                  <button
+                    onClick={() => setConfirmPayId(c.id)}
+                    className="px-3 py-1.5 bg-pink-500 text-white text-xs font-bold rounded-lg hover:bg-pink-600 active:scale-95 transition-all"
+                  >
+                    Pay {c.amount.toFixed(0)} EUR
+                  </button>
+                ) : (
+                  <span className="text-[10px] text-slate-400 font-medium">Awaiting...</span>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <div>
-          <p className="text-pink-100">Stay</p>
-          <p className="font-bold">{fundsRequest.breakdown.accommodation.toFixed(0)} EUR</p>
-        </div>
-        <div>
-          <p className="text-pink-100">Transport</p>
-          <p className="font-bold">{fundsRequest.breakdown.transport.toFixed(0)} EUR</p>
-        </div>
+
+        {!myContrib?.status || myContrib.status !== 'paid' ? (
+          <p className="text-[10px] text-slate-400 mt-2 px-1">
+            We'll only book once everyone has paid. Stripe-secured.
+          </p>
+        ) : (
+          <p className="text-[10px] text-emerald-700 font-semibold mt-2 px-1">
+            Your part is secured. Waiting on the others.
+          </p>
+        )}
       </div>
-      <p className="text-[11px] text-pink-100 mt-3 font-medium">Tap to fund Barry</p>
-    </Link>
+
+      {/* Pay confirm modal */}
+      {confirmPayId && (
+        <div
+          className="fixed inset-0 z-[2000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setConfirmPayId(null)}
+        >
+          <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl">
+            {(() => {
+              const c = contribs.find((x: any) => x.id === confirmPayId);
+              if (!c) return null;
+              const canUseBalance = inAppBalance >= c.amount;
+              return (
+                <>
+                  <div className="bg-gradient-to-br from-pink-500 to-rose-600 text-white px-5 py-5 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-pink-100">Your share</p>
+                    <p className="font-display font-extrabold text-3xl mt-1">{c.amount.toFixed(2)} EUR</p>
+                    <p className="text-xs text-pink-100 mt-1">Pick a payment method</p>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    {canUseBalance && (
+                      <button
+                        onClick={() => { payFundsContribution(tripId, c.id, true); setConfirmPayId(null); }}
+                        className="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl p-3 text-left transition-colors"
+                      >
+                        <p className="text-sm font-bold text-emerald-900">Pay from in-app balance</p>
+                        <p className="text-[11px] text-emerald-700">{inAppBalance.toFixed(2)} EUR available</p>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { payFundsContribution(tripId, c.id, false); setConfirmPayId(null); }}
+                      className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl p-3 text-left transition-colors"
+                    >
+                      <p className="text-sm font-bold text-slate-900">Pay with card</p>
+                      <p className="text-[11px] text-slate-500">Visa / Mastercard / Amex via Stripe</p>
+                    </button>
+                    <button
+                      onClick={() => setConfirmPayId(null)}
+                      className="w-full text-sm text-slate-500 font-medium py-2 hover:text-slate-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
