@@ -388,15 +388,6 @@ function TripDatesLockedCard({ trip }: { trip: any }) {
   );
 }
 
-function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between mb-2 px-1">
-      <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{title}</h2>
-      {action}
-    </div>
-  );
-}
-
 function ParticipantsSection({
   trip, currentUser, isAdmin, onSetup, onRemove,
   showAddPerson, setShowAddPerson, newPersonName, setNewPersonName, handleAddPerson,

@@ -11,6 +11,7 @@ import type {
   FundsRequest, FundsContribution,
   Reservation,
   BalanceTransaction,
+  ReductionCard,
 } from '@barry/shared-types';
 import { buildShares, computeBalances, computeSettlements } from '@/lib/utils/expenses';
 import { findVenueById, venueCostPerPerson } from '@/lib/data/venues';
@@ -249,6 +250,11 @@ interface AppState {
     moneyWeight?: number;
     maxTime?: number | null;
     maxMoney?: number | null;
+    maxTimeUnit?: 'min' | 'h';
+    maxMoneyCurrency?: 'EUR' | 'USD' | 'GBP' | 'CHF';
+    email?: string;
+    selfBook?: boolean;
+    reductionCards?: ReductionCard[];
     originLocation?: GeoPoint | null;
     originLabel?: string | null;
   }) => void;

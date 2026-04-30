@@ -126,6 +126,19 @@ export interface CreateTripInput {
 
 // --- Participant ---
 
+/** A reduction/loyalty card the participant has (e.g. SNCF Voyageur, KLM Flying Blue) */
+export interface ReductionCard {
+  id: string;
+  /** e.g. 'sncf', 'klm', 'airfrance', 'lufthansa', 'iberia', 'ryanair', 'eurostar' */
+  provider: string;
+  /** Display name e.g. 'SNCF Voyageur' */
+  label: string;
+  /** Customer/loyalty number */
+  cardNumber: string;
+  /** Optional discount percentage (0-100), used for cost estimation */
+  reductionPct?: number;
+}
+
 export interface Participant {
   id: string;
   tripId: string;
@@ -137,6 +150,16 @@ export interface Participant {
   moneyWeight: number;
   maxTime: number | null;
   maxMoney: number | null;
+  /** Unit for maxTime: 'min' or 'h' */
+  maxTimeUnit?: 'min' | 'h';
+  /** Currency for maxMoney: 'EUR', 'USD', 'GBP', 'CHF' */
+  maxMoneyCurrency?: 'EUR' | 'USD' | 'GBP' | 'CHF';
+  /** Email for booking reports (required for self-booking workflow) */
+  email?: string;
+  /** True = participant will book their own transport tickets, Barry skips that for them */
+  selfBook?: boolean;
+  /** All reduction/loyalty cards held by this participant */
+  reductionCards?: ReductionCard[];
   originLocation: GeoPoint | null;
   originLabel: string | null;
   burdenScore: number | null;
