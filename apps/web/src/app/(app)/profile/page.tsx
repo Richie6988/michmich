@@ -346,29 +346,38 @@ function SettingRow({ label, value, open, onToggle, children }: {
   children?: React.ReactNode;
 }) {
   const expandable = !!onToggle;
+
+  // Non-expandable: render as div so children (which may be a <button>) don't nest
+  if (!expandable) {
+    return (
+      <div className="w-full px-4 py-3 flex items-center justify-between text-left">
+        <div>
+          <p className="text-sm font-medium text-slate-900">{label}</p>
+          <p className="text-xs text-slate-500">{value}</p>
+        </div>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div>
       <button
         onClick={onToggle}
-        disabled={!expandable}
-        className={`w-full px-4 py-3 flex items-center justify-between text-left ${expandable ? 'hover:bg-slate-50 transition-colors' : ''}`}
+        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
       >
         <div>
           <p className="text-sm font-medium text-slate-900">{label}</p>
           <p className="text-xs text-slate-500">{value}</p>
         </div>
-        {expandable ? (
-          <svg
-            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"
-            className={`transition-transform ${open ? 'rotate-90' : ''}`}
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        ) : (
-          children
-        )}
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"
+          className={`transition-transform ${open ? 'rotate-90' : ''}`}
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </button>
-      {expandable && open && (
+      {open && (
         <div className="px-4 pb-3">{children}</div>
       )}
     </div>
@@ -396,7 +405,7 @@ function LinkRow({ href, label, external }: { href: string; label: string; exter
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
-      onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
+      onClick={() => onChange(!checked)}
       className={`w-11 h-6 rounded-full p-0.5 transition-colors ${checked ? 'bg-barry-blue' : 'bg-slate-200'}`}
     >
       <div

@@ -55,7 +55,8 @@ export default function TripOverviewPage() {
 
   const handleCopyInvite = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(`https://barry.app/join/${trip.inviteToken}`);
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      navigator.clipboard.writeText(`${origin}/join/${trip.inviteToken}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
