@@ -266,6 +266,7 @@ interface AppState {
   createDatePoll: (tripId: string, options: { date: string; label?: string }[]) => DatePoll;
   voteDatePoll: (tripId: string, optionId: string, response: DateVoteResponse) => void;
   closeDatePoll: (tripId: string, selectedOptionId: string) => void;
+  addDateOption: (tripId: string, date: string) => void;
 
   // Expenses (Tricount)
   expenses: Record<string, Expense[]>;
@@ -595,8 +596,15 @@ export const useAppStore = create<AppState>()(
       if (!poll) return s;
       const otherVotes = poll.votes.filter(v => !(v.userId === userId && v.optionId === optionId));
       const newVotes = [...otherVotes, { userId, optionId, response, votedAt: new Date().toISOString() }];
+      // Recompute scores: yes=2, maybe=1, no=0
+      const newOptions = poll.options.map(o => {
+        const optVotes = newVotes.filter(v => v.optionId === o.id);
+        const score = optVotes.reduce((sum, v) =>
+          sum + (v.response === 'yes' ? 2 : v.response === 'maybe' ? 1 : 0), 0);
+        return { ...o, score };
+      });
       return {
-        datePolls: { ...s.datePolls, [tripId]: { ...poll, votes: newVotes } },
+        datePolls: { ...s.datePolls, [tripId]: { ...poll, votes: newVotes, options: newOptions } },
       };
     });
   },
@@ -609,6 +617,34 @@ export const useAppStore = create<AppState>()(
         datePolls: {
           ...s.datePolls,
           [tripId]: { ...poll, status: 'closed' as const, selectedOptionId },
+        },
+      };
+    });
+  },
+
+  addDateOption: (tripId, date) => {
+    set(s => {
+      let poll = s.datePolls[tripId];
+      if (!poll) {
+        // Create poll on first add
+        poll = {
+          id: `poll-${tripId}`,
+          tripId,
+          status: 'open' as const,
+          selectedOptionId: null,
+          options: [],
+          votes: [],
+          createdAt: new Date().toISOString(),
+        };
+      }
+      const optionId = `do${Date.now()}`;
+      const newOption = { id: optionId, date, score: 0 };
+      // Avoid duplicates
+      if (poll.options.find(o => o.date === date)) return s;
+      return {
+        datePolls: {
+          ...s.datePolls,
+          [tripId]: { ...poll, options: [...poll.options, newOption] },
         },
       };
     });
@@ -735,7 +771,7 @@ export const useAppStore = create<AppState>()(
   addAccommodation: (tripId, input) => {
     const acc: Accommodation = {
       ...input,
-      id: `acc${Date.now()}`,
+      id: `acc${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       votes: [],
       selected: false,
     };

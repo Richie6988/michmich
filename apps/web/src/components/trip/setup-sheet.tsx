@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '@/stores/app-store';
-import { reverseGeocode } from '@/lib/api/nominatim';
+import { reverseGeocode, geocode, type NominatimResult } from '@/lib/api/nominatim';
 import type { TransportMode, GeoPoint } from '@barry/shared-types';
 
 const TRANSPORT_OPTIONS: { value: TransportMode; label: string; icon: JSX.Element; color: string }[] = [
@@ -41,20 +41,64 @@ export function SetupSheet({ tripId, participantId, onClose }: {
   const canEdit = isMe || isOrganizer;
   const myLeg = (transportLegs[tripId] || []).find(l => l.participantId === participantId);
 
-  // Pre-fill from existing data: participant record OR (if it's me) my profile preferences
+  // Pre-fill from existing data: participant record OR participant's user defaults OR (if me) my profile preferences
+  const userDefaults = participant?.user;
   const initialOrigin = participant?.originLocation
-    || (isMe ? (preferences?.homeLocation || currentUser?.homeLocation || userLocation) : null);
+    || userDefaults?.homeLocation
+    || (isMe ? (preferences?.homeLocation || userLocation) : null);
   const initialLabel = participant?.originLabel
     || (isMe ? (preferences?.homeLabel || 'Home') : 'Home');
 
   const [originLabel, setOriginLabel] = useState(initialLabel);
   const [origin, setOrigin] = useState<GeoPoint | null>(initialOrigin || null);
-  const [mode, setMode] = useState<TransportMode>(participant?.transportMode || (isMe ? preferences.defaultTransportMode : 'transit'));
+  const [mode, setMode] = useState<TransportMode>(
+    participant?.transportMode
+    || userDefaults?.defaultTransportMode
+    || (isMe ? preferences.defaultTransportMode : 'transit')
+  );
   const [maxTime, setMaxTime] = useState(participant?.maxTime || 45);
   const [maxBudget, setMaxBudget] = useState(participant?.maxMoney || 15);
-  const [weight, setWeight] = useState(participant?.timeWeight ?? 0.5);
+  const [weight, setWeight] = useState(
+    participant?.timeWeight
+    ?? userDefaults?.defaultTimeWeight
+    ?? 0.5
+  );
   const [reductionCard, setReductionCard] = useState<string | null>(myLeg?.reductionCard || null);
   const [reductionPct, setReductionPct] = useState<number>(myLeg?.reductionPct || 0);
+
+  // Address autocomplete state
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [confirmedAddress, setConfirmedAddress] = useState(!!initialOrigin);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Search Nominatim as user types (debounced)
+  const handleLabelChange = (value: string) => {
+    setOriginLabel(value);
+    setConfirmedAddress(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      const results = await geocode(value, 5);
+      setSuggestions(results);
+      setShowSuggestions(true);
+      setSearching(false);
+    }, 350);
+  };
+
+  const handlePickSuggestion = (s: NominatimResult) => {
+    setOriginLabel(s.display_name);
+    setOrigin({ lat: parseFloat(s.lat), lng: parseFloat(s.lon) });
+    setConfirmedAddress(true);
+    setShowSuggestions(false);
+    setSuggestions([]);
+  };
 
   // Reverse-geocode if origin lat/lng but no readable label
   useEffect(() => {
@@ -70,10 +114,14 @@ export function SetupSheet({ tripId, participantId, onClose }: {
   const handleUseCurrent = () => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        pos => {
+        async pos => {
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setOrigin(loc);
-          setOriginLabel('Current location');
+          setConfirmedAddress(true);
+          // Reverse-geocode to readable label
+          const label = await reverseGeocode(loc);
+          if (label) setOriginLabel(label);
+          else setOriginLabel('Current location');
         },
         () => alert('Location permission denied')
       );
@@ -120,22 +168,71 @@ export function SetupSheet({ tripId, participantId, onClose }: {
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Origin / starting point */}
+          {/* Origin / starting point with Nominatim autocomplete */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Starting point</label>
-            <input
-              type="text"
-              value={originLabel}
-              onChange={e => setOriginLabel(e.target.value)}
-              placeholder="Home, Office, friend's place..."
-              className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              disabled={!canEdit}
-            />
-            {origin && (
-              <p className="text-[11px] text-slate-500 mt-1.5">
-                {origin.lat.toFixed(4)}, {origin.lng.toFixed(4)}
+            <div className="relative">
+              <input
+                type="text"
+                value={originLabel}
+                onChange={e => handleLabelChange(e.target.value)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                placeholder="Type an address, city or place..."
+                className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 pr-9"
+                disabled={!canEdit}
+              />
+              {searching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="w-4 h-4 border-2 border-blue-200 border-t-barry-blue rounded-full animate-spin" />
+                </div>
+              )}
+              {confirmedAddress && !searching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+
+              {/* Suggestions dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute z-10 left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-lg max-h-64 overflow-y-auto">
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={`${s.lat}-${s.lon}-${i}`}
+                      onClick={() => handlePickSuggestion(s)}
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
+                    >
+                      <div className="flex items-start gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="1.8" className="flex-shrink-0 mt-0.5">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span className="text-xs text-slate-700 leading-snug">{s.display_name}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {origin && confirmedAddress && (
+              <p className="text-[11px] text-emerald-600 font-medium mt-1.5 flex items-center gap-1">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Verified · {origin.lat.toFixed(4)}, {origin.lng.toFixed(4)}
               </p>
             )}
+            {originLabel.length >= 3 && !confirmedAddress && !searching && (
+              <p className="text-[11px] text-amber-600 mt-1.5">
+                Pick from the list to confirm the address
+              </p>
+            )}
+
             {canEdit && (
               <button
                 onClick={handleUseCurrent}
@@ -143,11 +240,6 @@ export function SetupSheet({ tripId, participantId, onClose }: {
               >
                 Use current location
               </button>
-            )}
-            {!origin && (
-              <p className="text-[11px] text-amber-600 mt-1.5">
-                No location set yet. Add an address or use current location.
-              </p>
             )}
           </div>
 
@@ -254,9 +346,12 @@ export function SetupSheet({ tripId, participantId, onClose }: {
           <div className="sticky bottom-0 bg-white border-t border-slate-100 p-4">
             <button
               onClick={handleSave}
-              className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
+              disabled={!confirmedAddress}
+              className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {isMe ? 'Save my setup' : `Save ${participant.user?.firstName}'s setup`}
+              {!confirmedAddress
+                ? 'Confirm the address first'
+                : isMe ? 'Save my setup' : `Save ${participant.user?.firstName}'s setup`}
             </button>
           </div>
         )}

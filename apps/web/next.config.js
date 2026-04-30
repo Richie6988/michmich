@@ -6,6 +6,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: '*.mapbox.com' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'picsum.photos' },
+      { protocol: 'https', hostname: 'fastly.picsum.photos' },
     ],
   },
   experimental: {

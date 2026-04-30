@@ -7,10 +7,12 @@ import { useAppStore } from '@/stores/app-store';
 import { BarryMascot } from '@/components/barry/brand';
 import { BarryMap } from '@/components/map/barry-map';
 import { SetupSheet } from '@/components/trip/setup-sheet';
+import { ScrollCardList } from '@/components/trip/scroll-card-list';
+import { DetailPopup } from '@/components/trip/detail-popup';
 import { formatDateLong, formatDateShort, formatTimeShort } from '@/lib/utils/format-date';
 import { computeBalances } from '@/lib/utils/expenses';
 import { calculateEquity, participantsToApiFormat, isEquityEngineUp } from '@/lib/api/equity-engine';
-import { VENUES_BY_ZONE, FALLBACK_VENUES, findVenueById, venueCostPerPerson } from '@/lib/data/venues';
+import { VENUES_BY_ZONE, FALLBACK_VENUES, findVenueById, venueCostPerPerson, DEMO_ACCOMMODATIONS } from '@/lib/data/venues';
 import type { EquityZone, MapMarker, VenueVoteResponse } from '@barry/shared-types';
 
 const AVATAR_COLORS = ['#2563EB', '#F97316', '#10B981', '#8B5CF6', '#EF4444', '#06B6D4', '#EC4899', '#F59E0B'];
@@ -448,32 +450,42 @@ function ParticipantStatusLine({ participant }: { participant: any }) {
 }
 
 function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId }: any) {
-  const router = useRouter();
+  const { voteDatePoll, addDateOption, closeDatePoll } = useAppStore();
+  const [showAdd, setShowAdd] = useState(false);
+  const [newDate, setNewDate] = useState('');
+
   const voted = poll ? new Set(poll.votes.map((v: any) => v.userId)).size : 0;
+  const isClosed = poll?.status === 'closed';
 
-  if (!poll) {
-    return (
-      <Link href={`/trips/${tripId}/dates` as any} className="bg-purple-50 rounded-2xl p-4 hover:bg-purple-100 transition-colors active:scale-[0.99] block">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-          </div>
-          <p className="font-display font-bold text-base text-purple-900">Pick a date</p>
-        </div>
-        <p className="text-xs text-purple-800">Doodle-style poll. Find a date that works for everyone.</p>
-      </Link>
-    );
-  }
+  const myVoteFor = (optionId: string) => {
+    if (!poll) return null;
+    return poll.votes.find((v: any) => v.userId === currentUserId && v.optionId === optionId)?.response || null;
+  };
 
-  const sorted = [...poll.options].sort((a: any, b: any) => b.score - a.score);
-  const top = sorted[0];
+  const tally = (option: any) => {
+    if (!poll) return { yes: 0, maybe: 0, no: 0 };
+    const optVotes = poll.votes.filter((v: any) => v.optionId === option.id);
+    return {
+      yes: optVotes.filter((v: any) => v.response === 'yes').length,
+      maybe: optVotes.filter((v: any) => v.response === 'maybe').length,
+      no: optVotes.filter((v: any) => v.response === 'no').length,
+    };
+  };
+
+  const handleAddOption = () => {
+    if (!newDate) return;
+    addDateOption(tripId, new Date(newDate).toISOString());
+    setNewDate('');
+    setShowAdd(false);
+  };
+
+  const sortedOptions = poll
+    ? [...poll.options].sort((a: any, b: any) => b.score - a.score)
+    : [];
 
   return (
-    <Link href={`/trips/${tripId}/dates` as any} className="bg-white rounded-2xl border border-slate-100 p-4 hover:border-purple-200 transition-all active:scale-[0.99] block">
-      <div className="flex items-center justify-between mb-2">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
@@ -483,24 +495,130 @@ function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId }: an
           </div>
           <p className="font-display font-bold text-base text-slate-900">Dates</p>
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-wide text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-          {voted}/{totalMembers}
-        </span>
+        {poll && (
+          <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+            isClosed ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'
+          }`}>
+            {isClosed ? 'Locked' : `${voted}/${totalMembers}`}
+          </span>
+        )}
       </div>
-      {top && (
-        <div className="text-xs text-slate-600">
-          <span className="font-semibold text-slate-900">{formatDateLong(top.date)}</span>
-          {' '}leading with {top.score} points
+
+      {!poll || poll.options.length === 0 ? (
+        <div className="text-center py-2">
+          <p className="text-xs text-slate-500 mb-2">No date proposed yet.</p>
+          {!showAdd ? (
+            <button
+              onClick={() => setShowAdd(true)}
+              className="px-4 py-2 rounded-xl bg-purple-500 text-white text-xs font-bold active:scale-95 transition-all"
+            >
+              Propose a date
+            </button>
+          ) : (
+            <div className="flex gap-1.5">
+              <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 10)}
+                className="flex-1 bg-slate-50 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
+                autoFocus
+              />
+              <button onClick={handleAddOption} disabled={!newDate} className="px-3 py-2 bg-purple-500 text-white text-xs font-bold rounded-lg disabled:opacity-40">
+                Add
+              </button>
+              <button onClick={() => { setShowAdd(false); setNewDate(''); }} className="px-2 py-2 text-slate-500 text-xs">
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
+      ) : (
+        <>
+          <div className="space-y-2 mb-2">
+            {sortedOptions.slice(0, 4).map((opt: any, i: number) => {
+              const t = tally(opt);
+              const myVote = myVoteFor(opt.id);
+              const isTop = i === 0 && opt.score > 0;
+              return (
+                <div
+                  key={opt.id}
+                  className={`p-2.5 rounded-xl border-2 transition-all ${
+                    opt.id === poll.selectedOptionId ? 'border-emerald-300 bg-emerald-50' :
+                    isTop ? 'border-purple-200 bg-purple-50/50' :
+                    'border-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-sm font-semibold text-slate-900">{formatDateLong(opt.date)}</p>
+                    <span className="text-[10px] font-bold text-slate-500">{opt.score} pts</span>
+                  </div>
+                  {!isClosed && (
+                    <div className="grid grid-cols-3 gap-1">
+                      <button
+                        onClick={() => voteDatePoll(tripId, opt.id, 'no')}
+                        className={`py-1 rounded text-[10px] font-bold transition-all ${myVote === 'no' ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
+                      >No {t.no > 0 && `(${t.no})`}</button>
+                      <button
+                        onClick={() => voteDatePoll(tripId, opt.id, 'maybe')}
+                        className={`py-1 rounded text-[10px] font-bold transition-all ${myVote === 'maybe' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'}`}
+                      >Maybe {t.maybe > 0 && `(${t.maybe})`}</button>
+                      <button
+                        onClick={() => voteDatePoll(tripId, opt.id, 'yes')}
+                        className={`py-1 rounded text-[10px] font-bold transition-all ${myVote === 'yes' ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                      >Yes {t.yes > 0 && `(${t.yes})`}</button>
+                    </div>
+                  )}
+                  {isAdmin && !isClosed && isTop && (
+                    <button
+                      onClick={() => closeDatePoll(tripId, opt.id)}
+                      className="w-full mt-1.5 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold"
+                    >
+                      Lock this date
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {!isClosed && !showAdd && (
+            <button
+              onClick={() => setShowAdd(true)}
+              className="w-full text-[11px] text-purple-700 font-medium py-1.5 rounded-lg border-2 border-dashed border-purple-200 hover:bg-purple-50 transition-colors"
+            >
+              + Propose another date
+            </button>
+          )}
+          {!isClosed && showAdd && (
+            <div className="flex gap-1.5">
+              <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 10)}
+                className="flex-1 bg-slate-50 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
+                autoFocus
+              />
+              <button onClick={handleAddOption} disabled={!newDate} className="px-3 py-2 bg-purple-500 text-white text-xs font-bold rounded-lg disabled:opacity-40">
+                Add
+              </button>
+              <button onClick={() => { setShowAdd(false); setNewDate(''); }} className="px-2 py-2 text-slate-500 text-xs">
+                Cancel
+              </button>
+            </div>
+          )}
+        </>
       )}
-      <p className="text-[11px] text-slate-400 mt-1">Tap to vote or add an option</p>
-    </Link>
+    </div>
   );
 }
 
 function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: any) {
   const router = useRouter();
-  const lastFew = messages.slice(-3);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const lastFew = messages.slice(-8);
+
+  // Auto-scroll to bottom when messages change
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages.length]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col">
@@ -512,15 +630,20 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
             </svg>
           </div>
           <p className="font-display font-bold text-base text-slate-900">Chat</p>
+          {messages.length > 0 && (
+            <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-700 bg-cyan-100 px-2 py-0.5 rounded-full">
+              {messages.length}
+            </span>
+          )}
         </div>
         <button onClick={() => router.push(`/trips/${tripId}/chat` as any)} className="text-[11px] text-cyan-700 font-semibold hover:underline">
           Open
         </button>
       </div>
 
-      <div className="space-y-1.5 mb-2 min-h-[80px] max-h-[140px] overflow-y-auto">
+      <div ref={scrollRef} className="space-y-2 mb-2 min-h-[120px] max-h-[200px] overflow-y-auto pr-1">
         {lastFew.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-4">No messages yet</p>
+          <p className="text-xs text-slate-400 text-center py-6">No messages yet</p>
         ) : (
           lastFew.map((m: any) => {
             const isMe = m.userId === currentUserId;
@@ -528,16 +651,16 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
             return (
               <div key={m.id} className="flex items-start gap-2">
                 <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0 mt-0.5"
                   style={{ backgroundColor: color }}
                 >
                   {m.user?.firstName?.[0]?.toUpperCase() || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold" style={{ color: isMe ? '#64748B' : color }}>
+                  <p className="text-[10px] font-semibold leading-tight" style={{ color: isMe ? '#64748B' : color }}>
                     {isMe ? 'You' : m.user?.firstName}
                   </p>
-                  <p className="text-xs text-slate-700 leading-snug truncate">{m.content}</p>
+                  <p className="text-xs text-slate-700 leading-snug break-words">{m.content}</p>
                 </div>
               </div>
             );
@@ -570,9 +693,18 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
 }
 
 function MapEmbed({ trip, zones, allReady, loading, usingDemo, constraintsReady, totalMembers }: any) {
-  const center = zones[0]?.center || { lat: 48.8589, lng: 2.3613 };
+  // Compute center: average of participant origins or default to Paris
+  const participantsWithOrigin = trip.participants.filter((p: any) => p.originLocation);
+  const defaultCenter = { lat: 48.8589, lng: 2.3613 };
+  const center = zones[0]?.center
+    || (participantsWithOrigin.length > 0
+        ? {
+            lat: participantsWithOrigin.reduce((s: number, p: any) => s + p.originLocation.lat, 0) / participantsWithOrigin.length,
+            lng: participantsWithOrigin.reduce((s: number, p: any) => s + p.originLocation.lng, 0) / participantsWithOrigin.length,
+          }
+        : defaultCenter);
 
-  // Build markers
+  // Build markers - participants always shown when available, zones added when ready
   const markers: MapMarker[] = [];
   trip.participants.forEach((p: any, i: number) => {
     if (p.originLocation) {
@@ -595,58 +727,84 @@ function MapEmbed({ trip, zones, allReady, loading, usingDemo, constraintsReady,
     });
   });
 
-  if (!allReady) {
+  // No participants with origin yet -> only show waiting state
+  if (participantsWithOrigin.length === 0) {
     return (
       <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 text-center">
         <BarryMascot mood="thinking" size={56} />
-        <p className="font-display font-bold text-slate-900 mt-2">Waiting for everyone</p>
+        <p className="font-display font-bold text-slate-900 mt-2">Set up to see the map</p>
         <p className="text-xs text-slate-600 mt-1 max-w-xs mx-auto leading-snug">
-          {constraintsReady} of {totalMembers} have set up. Once everyone's ready, Barry computes the fairest spots.
+          Once participants share their starting points, Barry shows them on the map and computes the fairest spots.
         </p>
       </div>
     );
   }
 
-  if (loading || zones.length === 0) {
-    return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-8 flex flex-col items-center text-center">
-        <BarryMascot mood="searching" size={64} />
-        <p className="text-sm text-slate-600 mt-3">Crunching the math...</p>
-        <div className="mt-3 flex gap-1">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="w-1.5 h-1.5 rounded-full bg-barry-blue animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Compute bbox for fit (used as zoom hint)
+  const lats = participantsWithOrigin.map((p: any) => p.originLocation.lat);
+  const lngs = participantsWithOrigin.map((p: any) => p.originLocation.lng);
+  const spread = Math.max(
+    Math.max(...lats) - Math.min(...lats),
+    Math.max(...lngs) - Math.min(...lngs),
+  );
+  // Tighter zoom when participants close together
+  const zoom = spread < 0.01 ? 14 : spread < 0.05 ? 12 : spread < 0.2 ? 11 : 9;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-      <div className="relative h-64">
-        <BarryMap center={center} zoom={12} markers={markers} height="100%" />
+      <div className="relative h-72">
+        <BarryMap center={center} zoom={zoom} markers={markers} height="100%" />
+
+        {/* Participant edge-arrows when zoomed in */}
+        <ParticipantEdgeArrows participants={trip.participants} />
+
         {/* Mascot floating bottom-left */}
         <div className="absolute bottom-3 left-3 z-[1500] bg-white/95 backdrop-blur-md rounded-xl p-2 shadow-lg flex items-center gap-2">
-          <BarryMascot mood="happy" size={32} />
+          <BarryMascot mood={zones.length > 0 ? 'happy' : 'thinking'} size={32} />
           <div>
-            <p className="text-[10px] font-bold text-slate-900">{zones.length} fair spots</p>
-            <p className="text-[9px] text-slate-500">{usingDemo ? 'Demo zones' : 'Live calc'}</p>
+            <p className="text-[10px] font-bold text-slate-900">
+              {zones.length > 0
+                ? `${zones.length} fair spots`
+                : `${participantsWithOrigin.length}/${totalMembers} ready`}
+            </p>
+            <p className="text-[9px] text-slate-500">
+              {zones.length > 0 ? (usingDemo ? 'Demo zones' : 'Live calc') : loading ? 'Computing...' : 'Need everyone'}
+            </p>
           </div>
         </div>
-      </div>
-      <div className="p-3 grid grid-cols-3 gap-2">
-        {zones.slice(0, 3).map((z: any, i: number) => (
-          <div key={z.id} className="bg-slate-50 rounded-xl p-2 text-center">
-            <div className="w-6 h-6 rounded-lg mx-auto mb-1 flex items-center justify-center font-bold text-white text-[10px]" style={{ backgroundColor: ZONE_COLORS[i] || '#94A3B8' }}>
-              {z.rank}
-            </div>
-            <p className="text-[11px] font-bold text-slate-900 truncate">{z.label || `Zone ${z.rank}`}</p>
-            <p className="text-[10px] text-slate-500">{z.equityScore}% fair</p>
+
+        {/* Loading overlay */}
+        {loading && (
+          <div className="absolute top-3 right-3 z-[1500] bg-white/95 backdrop-blur-md rounded-full px-3 py-1.5 shadow-md flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-barry-blue animate-pulse" />
+            <span className="text-[11px] font-semibold text-slate-700">Crunching...</span>
           </div>
-        ))}
+        )}
       </div>
+
+      {zones.length > 0 && (
+        <div className="p-3 grid grid-cols-3 gap-2">
+          {zones.slice(0, 3).map((z: any, i: number) => (
+            <div key={z.id} className="bg-slate-50 rounded-xl p-2 text-center">
+              <div className="w-6 h-6 rounded-lg mx-auto mb-1 flex items-center justify-center font-bold text-white text-[10px]" style={{ backgroundColor: ZONE_COLORS[i] || '#94A3B8' }}>
+                {z.rank}
+              </div>
+              <p className="text-[11px] font-bold text-slate-900 truncate">{z.label || `Zone ${z.rank}`}</p>
+              <p className="text-[10px] text-slate-500">{z.equityScore}% fair</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
+}
+
+function ParticipantEdgeArrows({ participants }: { participants: any[] }) {
+  // This component listens to map pan/zoom and shows arrow hints when participants are off-screen.
+  // For now, render a static "X off-screen" pill in the corner. Full edge arrow tracking would
+  // require integrating with Leaflet's map instance via a ref - left as future enhancement.
+  // (Current Leaflet integration in BarryMap doesn't expose pan events to parent.)
+  return null;
 }
 
 function PinVoteCard({ trip, zones, tripPinVotes, myPinVote, currentUserId, isAdmin, isSolo, allPinVoted, totalPinVoted, totalMembers, winningZoneId, onVote, onLock }: any) {
@@ -715,108 +873,177 @@ function PinVoteCard({ trip, zones, tripPinVotes, myPinVote, currentUserId, isAd
 }
 
 function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
-  const router = useRouter();
-  const { pickedVenue, accommodations, venueVotes, voteForVenue, closeVenueVote, currentUser } = useAppStore();
+  const {
+    pickedVenue, venueVotes, voteForVenue, closeVenueVote,
+    accommodations, addAccommodation, voteForAccommodation, selectAccommodation,
+    currentUser,
+  } = useAppStore();
 
   const venues = VENUES_BY_ZONE[zoneId] || FALLBACK_VENUES;
   const lockedVenueId = pickedVenue[trip.id];
-  const lockedVenue = lockedVenueId ? findVenueById(lockedVenueId) : null;
-  const myVotes = (venueVotes[trip.id] || []).filter(v => v.userId === currentUser?.id);
   const isAdmin = trip.organizerId === currentUser?.id;
+  const [openVenueId, setOpenVenueId] = useState<string | null>(null);
+  const [openAccId, setOpenAccId] = useState<string | null>(null);
 
-  // Tally
-  const tallies = venues.map(v => {
-    const votes = (venueVotes[trip.id] || []).filter(vv => vv.venueId === v.id);
+  // Seed accommodations once if none exist
+  useEffect(() => {
+    if ((accommodations[trip.id] || []).length === 0) {
+      DEMO_ACCOMMODATIONS.forEach(a => {
+        addAccommodation(trip.id, {
+          tripId: trip.id,
+          type: a.type,
+          name: a.name,
+          pricePerNight: a.pricePerNight,
+          nights: 2,
+          totalPrice: a.pricePerNight * 2,
+          rooms: 1,
+        });
+      });
+    }
+  }, [trip.id]);
+
+  // Build vote tallies for venues
+  const venueTally = (venueId: string) => {
+    const votes = (venueVotes[trip.id] || []).filter(v => v.venueId === venueId);
     return {
-      ...v,
-      love: votes.filter(vv => vv.response === 'love').length,
-      meh: votes.filter(vv => vv.response === 'meh').length,
-      no: votes.filter(vv => vv.response === 'no').length,
-      score: votes.filter(vv => vv.response === 'love').length * 2 + votes.filter(vv => vv.response === 'meh').length,
+      love: votes.filter(v => v.response === 'love').length,
+      meh: votes.filter(v => v.response === 'meh').length,
+      no: votes.filter(v => v.response === 'no').length,
     };
-  }).sort((a, b) => b.score - a.score);
+  };
+  const myVenueVote = (venueId: string) => {
+    return (venueVotes[trip.id] || []).find(v => v.userId === currentUser?.id && v.venueId === venueId)?.response || null;
+  };
+
+  // Top venue based on score
+  const topVenue = [...venues]
+    .map(v => ({ ...v, score: venueTally(v.id).love * 2 + venueTally(v.id).meh }))
+    .sort((a, b) => b.score - a.score)[0];
+
+  const openedVenue = openVenueId ? venues.find(v => v.id === openVenueId) : null;
+  const openedAccId = openAccId;
+  const openedAcc = openedAccId ? DEMO_ACCOMMODATIONS.find(a => a.id === openedAccId) : null;
+
+  // Accommodation votes (use venueVotes by reusing or a parallel mechanism)
+  // For simplicity we reuse the same store's voteForAccommodation if accommodations exist
+  const accs = accommodations[trip.id] || [];
+  const findAccByMockId = (mockId: string) => accs.find(a => a.name === DEMO_ACCOMMODATIONS.find(x => x.id === mockId)?.name);
+
+  const accTally = (mockId: string) => {
+    const acc = findAccByMockId(mockId);
+    if (!acc) return { love: 0, meh: 0, no: 0 };
+    return {
+      love: acc.votes.filter(v => v.response === 'love').length,
+      meh: acc.votes.filter(v => v.response === 'meh').length,
+      no: acc.votes.filter(v => v.response === 'no').length,
+    };
+  };
+  const myAccVote = (mockId: string) => {
+    const acc = findAccByMockId(mockId);
+    if (!acc) return null;
+    return acc.votes.find(v => v.userId === currentUser?.id)?.response || null;
+  };
+  const isAccPicked = (mockId: string) => {
+    const acc = findAccByMockId(mockId);
+    return acc?.selected || false;
+  };
 
   return (
-    <div className="space-y-3">
-      {/* Venue picker */}
-      <div className="bg-white rounded-2xl border border-slate-100 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-slate-900">
-            {lockedVenue ? `Picked: ${lockedVenue.name}` : 'Vote for the venue'}
+    <div className="space-y-4">
+      {/* VENUES — horizontal scroll like TheFork */}
+      <div>
+        <div className="flex items-center justify-between mb-2 px-1">
+          <p className="text-sm font-semibold text-slate-700">
+            {lockedVenueId ? '✓ Venue locked' : 'Venues nearby'}
           </p>
-          <button onClick={() => router.push(`/trips/${trip.id}/venues` as any)} className="text-[11px] text-rose-700 font-semibold hover:underline">
-            Open
-          </button>
+          {!lockedVenueId && isAdmin && topVenue && topVenue.score > 0 && (
+            <button
+              onClick={() => closeVenueVote(trip.id, topVenue.id)}
+              className="text-[11px] text-emerald-700 font-bold hover:underline"
+            >
+              Lock {topVenue.name}
+            </button>
+          )}
         </div>
-        {lockedVenue ? (
-          <div className="bg-emerald-50 rounded-xl p-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-emerald-900">{lockedVenue.name}</p>
-              <p className="text-[11px] text-emerald-700">{lockedVenue.category} · {lockedVenue.address}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {tallies.slice(0, 3).map((v, i) => {
-              const myVote = myVotes.find(mv => mv.venueId === v.id);
-              return (
-                <div key={v.id} className="bg-slate-50 rounded-xl p-2.5">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{v.name}</p>
-                      <p className="text-[10px] text-slate-500">{v.category} · {[1,2,3,4].slice(0, v.price).map(() => 'EUR').join('')}</p>
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-500">
-                      {v.love > 0 && <span className="text-emerald-600">{v.love} love</span>}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1">
-                    <button
-                      onClick={() => voteForVenue(trip.id, v.id, 'no')}
-                      className={`py-1 rounded text-[10px] font-bold ${myVote?.response === 'no' ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-700'}`}
-                    >No</button>
-                    <button
-                      onClick={() => voteForVenue(trip.id, v.id, 'meh')}
-                      className={`py-1 rounded text-[10px] font-bold ${myVote?.response === 'meh' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700'}`}
-                    >Meh</button>
-                    <button
-                      onClick={() => voteForVenue(trip.id, v.id, 'love')}
-                      className={`py-1 rounded text-[10px] font-bold ${myVote?.response === 'love' ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-700'}`}
-                    >Love</button>
-                  </div>
-                </div>
-              );
-            })}
-            {isAdmin && tallies[0] && tallies[0].score > 0 && (
-              <button
-                onClick={() => closeVenueVote(trip.id, tallies[0].id)}
-                className="w-full mt-2 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold"
-              >
-                Lock in {tallies[0].name}
-              </button>
-            )}
-          </div>
-        )}
+        <ScrollCardList
+          items={venues.map(v => ({
+            id: v.id,
+            imageUrl: v.imageUrl,
+            title: v.name,
+            subtitle: `${v.category} · ${[1, 2, 3, 4].slice(0, v.price).map(() => 'EUR').join('')} · ${v.rating}`,
+            badge: v.id === lockedVenueId ? 'Picked' : v.id === topVenue?.id && topVenue.score > 0 ? 'Top' : undefined,
+            badgeColor: v.id === lockedVenueId ? '#10B981' : '#F97316',
+          }))}
+          onCardClick={setOpenVenueId}
+          onLoveCount={(id) => venueTally(id).love}
+          onMyVote={(id) => myVenueVote(id) as any}
+          selectedId={lockedVenueId}
+          cardWidth={200}
+        />
       </div>
 
-      {/* Accommodation shortcut */}
-      <Link href={`/trips/${trip.id}/accommodation` as any} className="bg-white rounded-2xl border border-slate-100 p-3 flex items-center gap-3 hover:border-violet-200 transition-colors active:scale-[0.99]">
-        <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" />
-          </svg>
+      {/* ACCOMMODATIONS — horizontal scroll like Booking */}
+      <div>
+        <div className="flex items-center justify-between mb-2 px-1">
+          <p className="text-sm font-semibold text-slate-700">Where to stay</p>
+          <span className="text-[11px] text-slate-500">{DEMO_ACCOMMODATIONS.length} options · skip if same-day</span>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-900">Accommodation</p>
-          <p className="text-[11px] text-slate-500">Hotels, BnB, Airbnb · skip if same-day</p>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
-      </Link>
+        <ScrollCardList
+          items={DEMO_ACCOMMODATIONS.map(a => ({
+            id: a.id,
+            imageUrl: a.imageUrl,
+            title: a.name,
+            subtitle: `${a.type === 'hotel' ? 'Hotel' : a.type === 'bnb' ? 'BnB' : 'Airbnb'} · ${a.pricePerNight} EUR/night · ${a.rating}`,
+            badge: isAccPicked(a.id) ? 'Picked' : undefined,
+            badgeColor: '#8B5CF6',
+          }))}
+          onCardClick={setOpenAccId}
+          onLoveCount={(id) => accTally(id).love}
+          onMyVote={(id) => myAccVote(id) as any}
+          cardWidth={220}
+        />
+      </div>
+
+      {/* Venue popup */}
+      {openedVenue && (
+        <DetailPopup
+          item={{ ...openedVenue, title: openedVenue.name } as any}
+          isVenue={true}
+          onClose={() => setOpenVenueId(null)}
+          myVote={myVenueVote(openedVenue.id) as any}
+          onVote={(r) => voteForVenue(trip.id, openedVenue.id, r)}
+          loveCount={venueTally(openedVenue.id).love}
+          mehCount={venueTally(openedVenue.id).meh}
+          noCount={venueTally(openedVenue.id).no}
+          isPicked={lockedVenueId === openedVenue.id}
+          canPick={isAdmin && !lockedVenueId}
+          onPick={() => { closeVenueVote(trip.id, openedVenue.id); setOpenVenueId(null); }}
+        />
+      )}
+
+      {/* Accommodation popup */}
+      {openedAcc && (
+        <DetailPopup
+          item={{ ...openedAcc, title: openedAcc.name } as any}
+          isVenue={false}
+          onClose={() => setOpenAccId(null)}
+          myVote={myAccVote(openedAcc.id) as any}
+          onVote={(r) => {
+            const acc = findAccByMockId(openedAcc.id);
+            if (acc) voteForAccommodation(trip.id, acc.id, r);
+          }}
+          loveCount={accTally(openedAcc.id).love}
+          mehCount={accTally(openedAcc.id).meh}
+          noCount={accTally(openedAcc.id).no}
+          isPicked={isAccPicked(openedAcc.id)}
+          canPick={isAdmin && !accs.find(a => a.selected)}
+          onPick={() => {
+            const acc = findAccByMockId(openedAcc.id);
+            if (acc) selectAccommodation(trip.id, acc.id);
+            setOpenAccId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
