@@ -590,6 +590,12 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 - Add to calendar (.ics)
 - Export PDF recap (opens print-friendly tab)
 
+#### Home page trip rows (per-row kebab menu)
+- Duplicate Barry → same action, navigates to new trip
+- For ongoing trips only: Mark as finished (→ status='completed') and Cancel Barry (→ status='cancelled')
+- Confirms before changing status
+- Menu visible on hover (desktop) or always (mobile)
+
 ### 15.3 Store actions (Zustand persist v3)
 
 **Auth**: `login`, `signup`, `setGuestMode`, `logout`, `updateCurrentUser` (patches User + propagates to all trips)

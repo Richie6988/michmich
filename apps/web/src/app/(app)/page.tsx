@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMark, BarryMascot } from '@/components/barry/brand';
 import { Avatar, AvatarStack } from '@/components/ui/avatar';
@@ -31,38 +32,129 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 function TripRow({ trip }: { trip: Trip }) {
+  const router = useRouter();
+  const { duplicateTrip, updateTripStatus } = useAppStore();
+  const [menuOpen, setMenuOpen] = useState(false);
   const date = trip.scheduledAt ? formatDateShort(trip.scheduledAt) : null;
   const href: any = `/trips/${trip.id}`;
+  const isOngoing = !['completed', 'cancelled'].includes(trip.status);
+
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuOpen(false);
+    const newTrip = duplicateTrip(trip.id);
+    if (newTrip) router.push(`/trips/${newTrip.id}` as any);
+  };
+
+  const handleFinish = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuOpen(false);
+    if (confirm(`Mark "${trip.name}" as finished? It will move to Past.`)) {
+      updateTripStatus(trip.id, 'completed');
+    }
+  };
+
+  const handleCancel = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuOpen(false);
+    if (confirm(`Cancel "${trip.name}"? It will move to Past.`)) {
+      updateTripStatus(trip.id, 'cancelled');
+    }
+  };
+
   return (
-    <Link href={href} className="block group">
-      <div className="flex items-center gap-3 py-3 px-3 hover:bg-slate-50 rounded-xl transition-colors">
-        <AvatarStack users={trip.participants.map(p => p.user)} max={3} size={36} />
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-slate-900 text-[15px] truncate mb-0.5">{trip.name}</h3>
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className={`inline-block w-1.5 h-1.5 rounded-full ${STATUS_DOT[trip.status] || 'bg-slate-400'}`} />
-            <span className="font-medium">{STATUS_LABEL[trip.status] || trip.status}</span>
-            {date && <><span className="text-slate-300">·</span><span>{date}</span></>}
-            {trip.mode && (
-              <><span className="text-slate-300">·</span>
-              {trip.mode === 'trip' ? (
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                  <path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" />
-                </svg>
-              ) : (
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                  <path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z" />
-                </svg>
+    <div className="relative group">
+      <Link href={href} className="block">
+        <div className="flex items-center gap-3 py-3 px-3 hover:bg-slate-50 rounded-xl transition-colors">
+          <AvatarStack users={trip.participants.map(p => p.user)} max={3} size={36} />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-slate-900 text-[15px] truncate mb-0.5">{trip.name}</h3>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${STATUS_DOT[trip.status] || 'bg-slate-400'}`} />
+              <span className="font-medium">{STATUS_LABEL[trip.status] || trip.status}</span>
+              {date && <><span className="text-slate-300">·</span><span>{date}</span></>}
+              {trip.mode && (
+                <><span className="text-slate-300">·</span>
+                {trip.mode === 'trip' ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                    <path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" />
+                  </svg>
+                ) : (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                    <path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z" />
+                  </svg>
+                )}
+                </>
               )}
+            </div>
+          </div>
+
+          {/* Right side: kebab menu + chevron */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(o => !o); }}
+              className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100 sm:opacity-100"
+              aria-label="More actions"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2">
+                <circle cx="12" cy="5" r="1.5" />
+                <circle cx="12" cy="12" r="1.5" />
+                <circle cx="12" cy="19" r="1.5" />
+              </svg>
+            </button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" className="group-hover:translate-x-0.5 transition-transform">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
+        </div>
+      </Link>
+
+      {/* Per-row dropdown */}
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+          <div className="absolute right-3 top-12 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 w-52 z-40">
+            <button
+              onClick={handleDuplicate}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 text-left"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+              </svg>
+              Duplicate Barry
+            </button>
+            {isOngoing && (
+              <>
+                <div className="border-t border-slate-100 my-1" />
+                <button
+                  onClick={handleFinish}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50 text-left"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Mark as finished
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 text-left"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                  </svg>
+                  Cancel Barry
+                </button>
               </>
             )}
           </div>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" className="group-hover:translate-x-0.5 transition-transform">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </div>
-    </Link>
+        </>
+      )}
+    </div>
   );
 }
 
