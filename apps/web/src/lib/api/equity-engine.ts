@@ -93,14 +93,25 @@ export function participantsToApiFormat(participants: Participant[]) {
 
 /**
  * Health check — useful to detect if Equity Engine is running.
+ * Cached for 30s to avoid repeated network errors in the console.
  */
+let _engineUp: boolean | null = null;
+let _lastCheck = 0;
+const CHECK_INTERVAL_MS = 30000;
+
 export async function isEquityEngineUp(): Promise<boolean> {
+  const now = Date.now();
+  if (_engineUp !== null && now - _lastCheck < CHECK_INTERVAL_MS) {
+    return _engineUp;
+  }
   try {
     const res = await fetch('http://localhost:8000/health', {
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(2000),
     });
-    return res.ok;
+    _engineUp = res.ok;
   } catch {
-    return false;
+    _engineUp = false;
   }
+  _lastCheck = now;
+  return _engineUp;
 }
