@@ -106,7 +106,9 @@ export default function CreateTripPage() {
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-base">🍷</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mode === 'wanderlust' ? '#2563EB' : '#475569'} strokeWidth="2">
+                  <path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z" />
+                </svg>
                 <span className={`font-bold text-sm ${mode === 'wanderlust' ? 'text-barry-blue' : 'text-slate-700'}`}>
                   Wanderlust
                 </span>
@@ -124,7 +126,9 @@ export default function CreateTripPage() {
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-base">🏨</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mode === 'trip' ? '#2563EB' : '#475569'} strokeWidth="2">
+                  <path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" />
+                </svg>
                 <span className={`font-bold text-sm ${mode === 'trip' ? 'text-barry-blue' : 'text-slate-700'}`}>
                   Trip
                 </span>

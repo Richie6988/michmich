@@ -12,6 +12,7 @@ import type {
   Reservation,
   BalanceTransaction,
   ReductionCard,
+  TripTask, TripPhoto,
 } from '@barry/shared-types';
 import { buildShares, computeBalances, computeSettlements } from '@/lib/utils/expenses';
 import { findVenueById, venueCostPerPerson } from '@/lib/data/venues';
@@ -334,6 +335,18 @@ interface AppState {
   // Reservations (final bookings)
   reservations: Record<string, Reservation[]>;
   performBookings: (tripId: string) => Reservation[];
+
+  // Tasks (TODO items per trip)
+  tasks: Record<string, TripTask[]>;
+  addTask: (tripId: string, title: string, description?: string, assignedTo?: string | null) => void;
+  toggleTask: (tripId: string, taskId: string) => void;
+  removeTask: (tripId: string, taskId: string) => void;
+  reassignTask: (tripId: string, taskId: string, assignedTo: string | null, assignedToName?: string | null) => void;
+
+  // Trip photos (memory gallery)
+  tripPhotos: Record<string, TripPhoto[]>;
+  addTripPhoto: (tripId: string, imageUrl: string, caption?: string) => void;
+  removeTripPhoto: (tripId: string, photoId: string) => void;
 
   // Balance history
   balanceTransactions: BalanceTransaction[];
@@ -1067,6 +1080,97 @@ export const useAppStore = create<AppState>()(
 
   // RESERVATIONS
   reservations: {},
+
+  // TASKS (per-trip TODO items)
+  tasks: {},
+
+  addTask: (tripId, title, description, assignedTo) => {
+    const user = get().currentUser;
+    const tripParticipants = get().trips.find(t => t.id === tripId)?.participants || [];
+    const assignedParticipant = tripParticipants.find(p => p.userId === assignedTo);
+    const task: TripTask = {
+      id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      tripId,
+      title,
+      description: description || null,
+      assignedTo: assignedTo || null,
+      assignedToName: assignedParticipant?.user?.firstName || null,
+      createdBy: user?.id || 'unknown',
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+    set(s => ({
+      tasks: {
+        ...s.tasks,
+        [tripId]: [...(s.tasks[tripId] || []), task],
+      },
+    }));
+  },
+
+  toggleTask: (tripId, taskId) => {
+    set(s => ({
+      tasks: {
+        ...s.tasks,
+        [tripId]: (s.tasks[tripId] || []).map(t =>
+          t.id === taskId
+            ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : null }
+            : t
+        ),
+      },
+    }));
+  },
+
+  removeTask: (tripId, taskId) => {
+    set(s => ({
+      tasks: {
+        ...s.tasks,
+        [tripId]: (s.tasks[tripId] || []).filter(t => t.id !== taskId),
+      },
+    }));
+  },
+
+  reassignTask: (tripId, taskId, assignedTo, assignedToName) => {
+    set(s => ({
+      tasks: {
+        ...s.tasks,
+        [tripId]: (s.tasks[tripId] || []).map(t =>
+          t.id === taskId ? { ...t, assignedTo, assignedToName: assignedToName || null } : t
+        ),
+      },
+    }));
+  },
+
+  // TRIP PHOTOS (memory gallery)
+  tripPhotos: {},
+
+  addTripPhoto: (tripId, imageUrl, caption) => {
+    const user = get().currentUser;
+    const photo: TripPhoto = {
+      id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      tripId,
+      imageUrl,
+      caption: caption || null,
+      uploadedBy: user?.id || 'unknown',
+      uploadedByName: user?.firstName || null,
+      uploadedAt: new Date().toISOString(),
+    };
+    set(s => ({
+      tripPhotos: {
+        ...s.tripPhotos,
+        [tripId]: [photo, ...(s.tripPhotos[tripId] || [])],
+      },
+    }));
+  },
+
+  removeTripPhoto: (tripId, photoId) => {
+    set(s => ({
+      tripPhotos: {
+        ...s.tripPhotos,
+        [tripId]: (s.tripPhotos[tripId] || []).filter(p => p.id !== photoId),
+      },
+    }));
+  },
+
   performBookings: (tripId) => {
     const state = get();
     const accs = state.accommodations[tripId] || [];

@@ -662,3 +662,39 @@ export interface BalanceTransaction {
   tripId: string | null;
   createdAt: string;
 }
+
+// ============================================================
+// TASKS / TODO ITEMS — assignable group todos
+// ============================================================
+
+export interface TripTask {
+  id: string;
+  tripId: string;
+  title: string;
+  description?: string | null;
+  /** User id of the participant assigned to do this task; null = unassigned */
+  assignedTo?: string | null;
+  /** Display name fallback when assigned user has no User object */
+  assignedToName?: string | null;
+  /** Who created the task */
+  createdBy: string;
+  /** Has the task been completed */
+  completed: boolean;
+  completedAt?: string | null;
+  createdAt: string;
+}
+
+// ============================================================
+// TRIP PHOTOS — memory gallery
+// ============================================================
+
+export interface TripPhoto {
+  id: string;
+  tripId: string;
+  /** Data URL or remote URL — for our mock we use object URLs */
+  imageUrl: string;
+  caption?: string | null;
+  uploadedBy: string;
+  uploadedByName?: string | null;
+  uploadedAt: string;
+}

@@ -209,8 +209,8 @@ export function SetupSheet({ tripId, participantId, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-2xl rounded-3xl max-h-[92vh] overflow-y-auto barry-scroll">
         <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
           <div>
             <h2 className="font-display font-bold text-lg text-slate-900">

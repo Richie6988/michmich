@@ -5,6 +5,7 @@ import { usePathname, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAppStore } from '@/stores/app-store';
 import { BarryMascot } from '@/components/barry/brand';
+import { InteractiveMascot } from '@/components/barry/interactive-mascot';
 import { formatDateLong, formatDateShort } from '@/lib/utils/format-date';
 
 export default function TripLayout({ children }: { children: React.ReactNode }) {
@@ -63,7 +64,7 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
             {/* Header mascot — small, on the left */}
             {isOverview && (
               <div className="flex-shrink-0">
-                <BarryMascot mood="happy" size={32} />
+                <InteractiveMascot defaultMood="happy" size={32} />
               </div>
             )}
 
@@ -84,10 +85,19 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
                       {trip?.name || 'Trip'}
                     </h1>
                     {trip?.mode && (
-                      <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                      <span className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
                         trip.mode === 'trip' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {trip.mode === 'trip' ? '🏨 Trip' : '🍷 Wanderlust'}
+                        {trip.mode === 'trip' ? (
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                            <path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" />
+                          </svg>
+                        ) : (
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                            <path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z" />
+                          </svg>
+                        )}
+                        {trip.mode === 'trip' ? 'Trip' : 'Wanderlust'}
                       </span>
                     )}
                   </div>
@@ -125,9 +135,9 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
         {children}
       </main>
 
-      {/* Floating side mascots — visible on wide screens (xl: 1280px+) */}
-      <div className="hidden xl:block fixed left-8 bottom-8 z-20 pointer-events-none opacity-90">
-        <BarryMascot mood="happy" size={120} />
+      {/* Floating side mascot — visible on wide screens (xl: 1280px+) */}
+      <div className="hidden xl:block fixed left-8 bottom-8 z-20">
+        <InteractiveMascot defaultMood="happy" size={120} />
       </div>
     </div>
   );

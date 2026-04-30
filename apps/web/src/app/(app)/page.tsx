@@ -58,7 +58,17 @@ function TripRow({ trip }: { trip: Trip }) {
             <span className="font-medium">{STATUS_LABEL[trip.status] || trip.status}</span>
             {date && <><span className="text-slate-300">·</span><span>{date}</span></>}
             {trip.mode && (
-              <><span className="text-slate-300">·</span><span className="text-[10px] font-bold uppercase tracking-wide">{trip.mode === 'trip' ? '🏨' : '🍷'}</span></>
+              <><span className="text-slate-300">·</span>
+              {trip.mode === 'trip' ? (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                  <path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" />
+                </svg>
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                  <path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z" />
+                </svg>
+              )}
+              </>
             )}
           </div>
         </div>
@@ -211,9 +221,24 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
           <h2 className="font-display font-bold text-xl text-slate-900 mt-1">Sound familiar?</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <ProblemCard emoji="📱" title="Endless group chat" desc='"Where should we meet?" → 47 messages → no decision.' />
-          <ProblemCard emoji="🤷" title="Always the same person travels far" desc="That one friend who's always stuck with the longest commute." />
-          <ProblemCard emoji="💸" title="Settling up later is awful" desc='"Wait, who paid for the Airbnb? Marc still owes me 47€."' />
+          <ProblemCard
+            iconColor="#E11D48"
+            icon={<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>}
+            title="Endless group chat"
+            desc='"Where should we meet?" then 47 messages then no decision.'
+          />
+          <ProblemCard
+            iconColor="#E11D48"
+            icon={<><circle cx="12" cy="10" r="3"/><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/></>}
+            title="Always the same person travels far"
+            desc="That one friend who's always stuck with the longest commute."
+          />
+          <ProblemCard
+            iconColor="#E11D48"
+            icon={<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></>}
+            title="Settling up later is awful"
+            desc='"Wait, who paid for the Airbnb? Marc still owes me 47 EUR."'
+          />
         </div>
       </section>
 
@@ -259,11 +284,31 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
           <h2 className="font-display font-bold text-xl mb-1">Made for…</h2>
           <p className="text-xs text-slate-400 mb-4">Whoever's been the de facto trip organizer.</p>
           <div className="space-y-2.5">
-            <UseCase emoji="🍷" title="Friday dinners" desc="Five friends, five corners of the city. Barry picks the bistro." />
-            <UseCase emoji="🏨" title="Weekend trips" desc="Three nights in Barcelona, six people, three departure cities. Done." />
-            <UseCase emoji="💍" title="EVG / EVJF / weddings" desc="The whole crew, fairly. Even Bertrand from Lille gets a fair shake." />
-            <UseCase emoji="👨‍👩‍👧" title="Family reunions" desc="Grandma in Brittany, brothers scattered. Meet in the middle." />
-            <UseCase emoji="💼" title="Team offsites" desc="Distributed teams. Barry computes the fairest hub." />
+            <UseCase
+              icon={<><path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z"/></>}
+              title="Friday dinners"
+              desc="Five friends, five corners of the city. Barry picks the bistro."
+            />
+            <UseCase
+              icon={<><path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8"/></>}
+              title="Weekend trips"
+              desc="Three nights in Barcelona, six people, three departure cities. Done."
+            />
+            <UseCase
+              icon={<><path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21z"/></>}
+              title="EVG / EVJF / weddings"
+              desc="The whole crew, fairly. Even Bertrand from Lille gets a fair shake."
+            />
+            <UseCase
+              icon={<><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2M16 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87"/></>}
+              title="Family reunions"
+              desc="Grandma in Brittany, brothers scattered. Meet in the middle."
+            />
+            <UseCase
+              icon={<><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></>}
+              title="Team offsites"
+              desc="Distributed teams. Barry computes the fairest hub."
+            />
           </div>
         </div>
       </section>
@@ -316,10 +361,14 @@ function PillarCard({ color, icon, title, subtitle }: { color: string; icon: Rea
   );
 }
 
-function ProblemCard({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
+function ProblemCard({ iconColor, icon, title, desc }: { iconColor: string; icon: React.ReactNode; title: string; desc: string }) {
   return (
     <div className="bg-rose-50 rounded-2xl p-3 text-center">
-      <div className="text-2xl mb-1">{emoji}</div>
+      <div className="w-10 h-10 mx-auto rounded-xl bg-white flex items-center justify-center mb-2 shadow-sm">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {icon}
+        </svg>
+      </div>
       <p className="font-bold text-[13px] text-slate-900 mb-1">{title}</p>
       <p className="text-[11px] text-slate-600 leading-snug">{desc}</p>
     </div>
@@ -340,10 +389,14 @@ function BigStep({ n, color, title, desc }: { n: number; color: string; title: s
   );
 }
 
-function UseCase({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
+function UseCase({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
     <div className="flex items-start gap-3 bg-white/5 rounded-xl px-3 py-2.5 backdrop-blur-sm">
-      <span className="text-xl flex-shrink-0">{emoji}</span>
+      <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {icon}
+        </svg>
+      </div>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-sm">{title}</p>
         <p className="text-xs text-slate-300 leading-snug">{desc}</p>

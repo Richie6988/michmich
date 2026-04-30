@@ -335,7 +335,7 @@ function CloseLedgerSheet({ settlementCount, totalAmount, onConfirm, onCancel }:
   onConfirm: () => void; onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onCancel}>
+    <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" onClick={onCancel}>
       <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5">
         <h2 className="font-display font-bold text-xl text-slate-900 mb-2">Close ledger?</h2>
         <p className="text-sm text-slate-600 mb-4 leading-snug">
@@ -407,8 +407,8 @@ function AddExpenseSheet({ tripId, participants, currentUserId, onClose, onAdd }
     && (splitMode === 'equal' || Math.abs(totalPercent - 100) < 0.5);
 
   return (
-    <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-lg rounded-3xl max-h-[92vh] overflow-y-auto barry-scroll">
         <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
           <h2 className="font-display font-bold text-lg text-slate-900">New expense</h2>
           <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">

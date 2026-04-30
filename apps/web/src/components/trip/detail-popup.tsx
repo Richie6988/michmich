@@ -29,12 +29,12 @@ export function DetailPopup({
 
   return (
     <div
-      className="fixed inset-0 z-[2000] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[2000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
       onClick={onClose}
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto"
+        className="bg-white w-full max-w-lg rounded-3xl max-h-[92vh] overflow-y-auto barry-scroll"
       >
         {/* Hero image */}
         <div

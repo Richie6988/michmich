@@ -9,6 +9,11 @@ import { BarryMap } from '@/components/map/barry-map';
 import { SetupSheet } from '@/components/trip/setup-sheet';
 import { ScrollCardList } from '@/components/trip/scroll-card-list';
 import { DetailPopup } from '@/components/trip/detail-popup';
+import { TripProgress, type TripStep } from '@/components/trip/trip-progress';
+import { TodoSection } from '@/components/trip/todo-section';
+import { MemoryGallery } from '@/components/trip/memory-gallery';
+import { ActivitiesSection, CarRentalSection } from '@/components/trip/activities-and-cars';
+import { FiltersBar, ACTIVITY_FILTERS, CAR_FILTERS, VENUE_FILTERS, HOTEL_FILTERS } from '@/components/trip/filters-bar';
 import { formatDateLong, formatDateShort, formatTimeShort } from '@/lib/utils/format-date';
 import { computeBalances } from '@/lib/utils/expenses';
 import { calculateEquity, participantsToApiFormat, isEquityEngineUp } from '@/lib/api/equity-engine';
@@ -177,140 +182,252 @@ export default function TripOverviewPage() {
     initTransportLegs(trip.id);
   };
 
+  // Compute progress steps for the KPI bar
+  const progressSteps: TripStep[] = [
+    {
+      id: 'setup',
+      label: 'Everyone setup',
+      status: constraintsReady === totalMembers ? 'done' : (constraintsReady > 0 ? 'active' : 'pending'),
+    },
+    {
+      id: 'zone',
+      label: 'Zone picked',
+      status: tripPickedZone ? 'done' : (zones.length > 0 ? 'active' : 'pending'),
+    },
+    {
+      id: 'venue',
+      label: 'Venue locked',
+      status: tripPickedVenue ? 'done' : (tripPickedZone ? 'active' : 'pending'),
+    },
+    {
+      id: 'booked',
+      label: 'Booked',
+      status: tripFunds?.status === 'complete' ? 'done' : (tripPickedVenue ? 'active' : 'pending'),
+    },
+  ];
+
   return (
-    <div className="px-4 py-4 space-y-5 pb-24">
-      {/* Guest banner — encourage signup for non-authenticated users */}
-      <GuestBanner />
+    <div className="px-4 py-4 pb-24">
+      {/* Guest banner */}
+      <div className="mb-4">
+        <GuestBanner />
+      </div>
 
-      {/* SECTION 0: TRIP RECAP - dates, length, mode */}
-      <TripRecapCard trip={trip} />
+      {/* Trip recap card */}
+      <div className="mb-4">
+        <TripRecapCard trip={trip} />
+      </div>
 
-      {/* SECTION 1: PARTICIPANTS + INVITE */}
-      <ParticipantsSection
-        trip={trip}
-        currentUser={currentUser}
-        isAdmin={isAdmin}
-        onSetup={(participantId) => setSetupForParticipantId(participantId)}
-        onRemove={(participantId) => {
-          if (confirm('Remove this person from the trip?')) removeParticipant(trip.id, participantId);
-        }}
-        showAddPerson={showAddPerson}
-        setShowAddPerson={setShowAddPerson}
-        newPersonName={newPersonName}
-        setNewPersonName={setNewPersonName}
-        handleAddPerson={handleAddPerson}
-        copied={copied}
-        onCopyInvite={handleCopyInvite}
-      />
+      {/* Top KPI: Progress bar across 4 milestones */}
+      <div className="mb-5">
+        <TripProgress steps={progressSteps} />
+      </div>
 
-      {/* SECTION 2: PLAN — Date poll + Chat side-by-side (always, even solo) */}
-      <section>
-        <SectionHeader title="Plan" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
-          {/* Date poll only when wanderlust (trip mode has dates set at creation) */}
-          {(trip.mode === 'wanderlust' || !trip.mode) ? (
-            <DatePollCard tripId={trip.id} poll={poll} totalMembers={totalMembers} isAdmin={isAdmin} currentUserId={currentUser?.id} isSolo={isSolo} tripMode={trip.mode} />
-          ) : (
-            <TripDatesLockedCard trip={trip} />
+      {/* CHRONO LINE WRAPPER — vertical line connecting sections */}
+      <div className="relative">
+        {/* Vertical line down the left margin */}
+        <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-blue-200 via-slate-200 to-slate-100" />
+
+        <div className="space-y-5">
+          {/* SECTION 1: PARTICIPANTS + INVITE */}
+          <ChronoSection step={1} color="bg-blue-500">
+            <ParticipantsSection
+              trip={trip}
+              currentUser={currentUser}
+              isAdmin={isAdmin}
+              onSetup={(participantId) => setSetupForParticipantId(participantId)}
+              onRemove={(participantId) => {
+                if (confirm('Remove this person from the trip?')) removeParticipant(trip.id, participantId);
+              }}
+              showAddPerson={showAddPerson}
+              setShowAddPerson={setShowAddPerson}
+              newPersonName={newPersonName}
+              setNewPersonName={setNewPersonName}
+              handleAddPerson={handleAddPerson}
+              copied={copied}
+              onCopyInvite={handleCopyInvite}
+            />
+          </ChronoSection>
+
+          {/* SECTION 2: PLAN — Date poll + Chat */}
+          <ChronoSection step={2} color="bg-purple-500">
+            <SectionHeader title="Plan" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
+              {(trip.mode === 'wanderlust' || !trip.mode) ? (
+                <DatePollCard tripId={trip.id} poll={poll} totalMembers={totalMembers} isAdmin={isAdmin} currentUserId={currentUser?.id} isSolo={isSolo} tripMode={trip.mode} />
+              ) : (
+                <TripDatesLockedCard trip={trip} />
+              )}
+              <ChatCard tripId={trip.id} messages={messages} currentUserId={currentUser?.id} input={chatInput} setInput={setChatInput} onSend={handleSendChat} />
+            </div>
+          </ChronoSection>
+
+          {/* SECTION 3: TODO LIST — assignable tasks */}
+          <ChronoSection step={3} color="bg-amber-500">
+            <SectionHeader title="To-do list" />
+            <TodoSection
+              tripId={trip.id}
+              participants={trip.participants}
+              currentUserId={currentUser?.id}
+            />
+          </ChronoSection>
+
+          {/* SECTION 4: BARRY'S MAP */}
+          <ChronoSection step={4} color="bg-cyan-500">
+            <SectionHeader title={allReady ? "Barry's spots" : 'Map (pending setup)'} />
+            <MapEmbed
+              trip={trip}
+              zones={zones}
+              allReady={allReady}
+              loading={zoneLoading}
+              usingDemo={usingDemo}
+              constraintsReady={constraintsReady}
+              totalMembers={totalMembers}
+            />
+          </ChronoSection>
+
+          {/* SECTION 5: PIN VOTE — when zones ready and not locked */}
+          {allReady && zones.length > 0 && !tripPickedZone && (
+            <ChronoSection step={5} color="bg-orange-500">
+              <SectionHeader title={isSolo ? "Pick your zone" : "Vote for the zone"} />
+              <PinVoteCard
+                trip={trip}
+                zones={zones}
+                tripPinVotes={tripPinVotes}
+                myPinVote={myPinVote}
+                currentUserId={currentUser?.id}
+                isAdmin={isAdmin}
+                isSolo={isSolo}
+                allPinVoted={allPinVoted}
+                totalPinVoted={totalPinVoted}
+                totalMembers={totalMembers}
+                winningZoneId={winningZoneId}
+                onVote={(zoneId) => voteForPin(trip.id, zoneId)}
+                onLock={handleLockZone}
+              />
+            </ChronoSection>
           )}
-          <ChatCard tripId={trip.id} messages={messages} currentUserId={currentUser?.id} input={chatInput} setInput={setChatInput} onSend={handleSendChat} />
+
+          {/* SECTION 6: VENUES + ACCOMMODATION (or activities for wanderlust) — wide split based on mode */}
+          {(tripPickedZone || (tripPinVotes && tripPinVotes.length > 0)) && (
+            <ChronoSection step={6} color="bg-rose-500">
+              <SectionHeader title={tripPickedZone ? "Picks for your group" : "Early picks (zone not locked yet)"} />
+              <VenuesAndStaySection
+                trip={trip}
+                zoneId={tripPickedZone || winningZoneId || zones[0]?.id || 'demo-z1'}
+              />
+            </ChronoSection>
+          )}
+
+          {/* SECTION 7: ACTIVITIES (always shown when zone picked) */}
+          {(tripPickedZone || (tripPinVotes && tripPinVotes.length > 0)) && (
+            <ChronoSection step={7} color="bg-teal-500">
+              <ActivitiesAndCarsBlock trip={trip} />
+            </ChronoSection>
+          )}
+
+          {/* SECTION 8: PRE-FUND RECAP */}
+          {tripPickedVenue && (
+            <ChronoSection step={8} color="bg-violet-500">
+              <SectionHeader title="Trip summary" />
+              <PreFundRecapCard trip={trip} transportLegs={transportLegs[trip.id] || []} accommodations={accommodations[trip.id] || []} />
+            </ChronoSection>
+          )}
+
+          {/* SECTION 9: FUND BARRY */}
+          {tripPickedVenue && (
+            <ChronoSection step={9} color="bg-pink-500">
+              <SectionHeader title="Fund Barry & he'll take care of everything" />
+              <FundsCard tripId={trip.id} fundsRequest={tripFunds} />
+            </ChronoSection>
+          )}
+
+          {/* SECTION 10: BOOKING + REPORT */}
+          {tripFunds && tripFunds.status === 'complete' && (
+            <ChronoSection step={10} color="bg-emerald-500">
+              <BookingCard tripId={trip.id} reservations={tripReservations} />
+              {tripReservations.length > 0 && (
+                <div className="mt-3">
+                  <SectionHeader title="Your Barry report" />
+                  <PostBookingReport trip={trip} reservations={tripReservations} transportLegs={transportLegs[trip.id] || []} />
+                </div>
+              )}
+            </ChronoSection>
+          )}
+
+          {/* SECTION 11: EXPENSES (Tricount) */}
+          <ChronoSection step={11} color="bg-indigo-500">
+            <SectionHeader title="Expenses (Tricount)" />
+            <ExpensesCard tripId={trip.id} expenses={tripExpenses} participants={trip.participants.map(p => p.user!).filter(Boolean)} currentUserId={currentUser?.id} />
+          </ChronoSection>
+
+          {/* SECTION 12: MEMORY GALLERY */}
+          <ChronoSection step={12} color="bg-fuchsia-500">
+            <SectionHeader title="Memories" />
+            <MemoryGallery tripId={trip.id} />
+          </ChronoSection>
         </div>
-      </section>
+      </div>
 
-      {/* SECTION 3: BARRY'S MAP — show pins only when participants ready */}
-      <section>
-        <SectionHeader title={allReady ? "Barry's spots" : 'Map (pending setup)'} />
-        <MapEmbed
-          trip={trip}
-          zones={zones}
-          allReady={allReady}
-          loading={zoneLoading}
-          usingDemo={usingDemo}
-          constraintsReady={constraintsReady}
-          totalMembers={totalMembers}
-        />
-      </section>
-
-      {/* SECTION 4: PIN VOTE — only when zones ready and not yet locked */}
-      {allReady && zones.length > 0 && !tripPickedZone && (
-        <section>
-          <SectionHeader title={isSolo ? "Pick your zone" : "Vote for the zone"} />
-          <PinVoteCard
-            trip={trip}
-            zones={zones}
-            tripPinVotes={tripPinVotes}
-            myPinVote={myPinVote}
-            currentUserId={currentUser?.id}
-            isAdmin={isAdmin}
-            isSolo={isSolo}
-            allPinVoted={allPinVoted}
-            totalPinVoted={totalPinVoted}
-            totalMembers={totalMembers}
-            winningZoneId={winningZoneId}
-            onVote={(zoneId) => voteForPin(trip.id, zoneId)}
-            onLock={handleLockZone}
-          />
-        </section>
-      )}
-
-      {/* SECTION 5: VENUES + ACCOMMODATION — show as soon as ANY pin vote OR zone is locked */}
-      {(tripPickedZone || (tripPinVotes && tripPinVotes.length > 0)) && (
-        <section>
-          <SectionHeader title={tripPickedZone ? "Where you'll go" : "Early picks (zone not locked yet)"} />
-          <VenuesAndStaySection
-            trip={trip}
-            zoneId={tripPickedZone || winningZoneId || zones[0]?.id || 'demo-z1'}
-          />
-        </section>
-      )}
-
-      {/* SECTION 6 PRE: PRE-FUND RECAP — Barcelona trip from x to y, 5 participants, who takes what */}
-      {tripPickedVenue && (
-        <section>
-          <SectionHeader title="Trip summary" />
-          <PreFundRecapCard trip={trip} transportLegs={transportLegs[trip.id] || []} accommodations={accommodations[trip.id] || []} />
-        </section>
-      )}
-
-      {/* SECTION 6: FUND BARRY — once venue or transport configured */}
-      {tripPickedVenue && (
-        <section>
-          <SectionHeader title="Fund Barry & he'll take care of everything" />
-          <FundsCard tripId={trip.id} fundsRequest={tripFunds} />
-        </section>
-      )}
-
-      {/* SECTION 7: BOOKING STATUS — once everything paid */}
-      {tripFunds && tripFunds.status === 'complete' && (
-        <section>
-          <BookingCard tripId={trip.id} reservations={tripReservations} />
-        </section>
-      )}
-
-      {/* SECTION 7B: REPORT — once all booked, show a per-participant report */}
-      {tripFunds && tripFunds.status === 'complete' && tripReservations.length > 0 && (
-        <section>
-          <SectionHeader title="Your Barry report" />
-          <PostBookingReport trip={trip} reservations={tripReservations} transportLegs={transportLegs[trip.id] || []} />
-        </section>
-      )}
-
-      {/* SECTION 8: EXPENSES + MEDIA — anytime, but emphasized after trip */}
-      <section>
-        <SectionHeader title="Expenses & memories" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <ExpensesCard tripId={trip.id} expenses={tripExpenses} participants={trip.participants.map(p => p.user!).filter(Boolean)} currentUserId={currentUser?.id} />
-          <MediaCard tripId={trip.id} />
-        </div>
-      </section>
-
-      {/* Setup sheet (per-participant) */}
+      {/* Setup sheet */}
       {setupForParticipantId && (
         <SetupSheet
           tripId={trip.id}
           participantId={setupForParticipantId}
           onClose={() => setSetupForParticipantId(null)}
         />
+      )}
+    </div>
+  );
+}
+
+/**
+ * ChronoSection — wraps each section with a numbered dot on the vertical timeline.
+ */
+function ChronoSection({ step, color, children }: { step: number; color: string; children: React.ReactNode }) {
+  return (
+    <section className="relative pl-10">
+      <div className={`absolute left-0 top-1 w-6 h-6 rounded-full ${color} text-white font-extrabold text-[11px] flex items-center justify-center shadow-md z-10 border-2 border-white`}>
+        {step}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * ActivitiesAndCarsBlock — renders activity scroll cards for both modes,
+ * plus car rental for trip mode.
+ */
+function ActivitiesAndCarsBlock({ trip }: { trip: any }) {
+  const isTrip = trip.mode === 'trip';
+  const [activityFilters, setActivityFilters] = useState<Record<string, string[]>>({});
+  const [carFilters, setCarFilters] = useState<Record<string, string[]>>({});
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-sm font-semibold text-slate-700 mb-2 px-1">Activities</p>
+        <FiltersBar
+          filterGroups={ACTIVITY_FILTERS}
+          selectedFilters={activityFilters}
+          onChange={setActivityFilters}
+          title="Filter activities"
+        />
+        <ActivitiesSection tripId={trip.id} mode={trip.mode || 'wanderlust'} />
+      </div>
+
+      {isTrip && (
+        <div>
+          <p className="text-sm font-semibold text-slate-700 mb-2 px-1">Car rental</p>
+          <FiltersBar
+            filterGroups={CAR_FILTERS}
+            selectedFilters={carFilters}
+            onChange={setCarFilters}
+            title="Filter cars"
+          />
+          <CarRentalSection tripId={trip.id} />
+        </div>
       )}
     </div>
   );
@@ -380,10 +497,18 @@ function TripRecapCard({ trip }: { trip: any }) {
         : 'bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100'
     }`}>
       <div className="flex items-start gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
-          isWanderlust ? 'bg-blue-100' : 'bg-violet-100'
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+          isWanderlust ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'
         }`}>
-          {isWanderlust ? '🍷' : '🏨'}
+          {isWanderlust ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" />
+            </svg>
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
@@ -814,7 +939,7 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
         </button>
       </div>
 
-      <div ref={scrollRef} className="space-y-2 mb-2 flex-1 min-h-[180px] max-h-[400px] overflow-y-auto pr-1">
+      <div ref={scrollRef} className="space-y-2 mb-2 h-[280px] overflow-y-auto pr-1 barry-scroll">
         {lastFew.length === 0 ? (
           <p className="text-xs text-slate-400 text-center py-6">No messages yet</p>
         ) : (
@@ -1126,8 +1251,11 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
   const lockedVenueId = pickedVenue[trip.id];
   const isAdmin = trip.organizerId === currentUser?.id;
   const isSolo = trip.participants.length === 1;
+  const isTrip = trip.mode === 'trip';
   const [openVenueId, setOpenVenueId] = useState<string | null>(null);
   const [openAccId, setOpenAccId] = useState<string | null>(null);
+  const [venueFilters, setVenueFilters] = useState<Record<string, string[]>>({});
+  const [hotelFilters, setHotelFilters] = useState<Record<string, string[]>>({});
 
   // Seed accommodations once if none exist
   useEffect(() => {
@@ -1198,7 +1326,7 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
       <div>
         <div className="flex items-center justify-between mb-2 px-1">
           <p className="text-sm font-semibold text-slate-700">
-            {lockedVenueId ? '✓ Venue locked' : 'Venues nearby'}
+            {lockedVenueId ? 'Venue locked' : 'Bars & restaurants'}
           </p>
           {!lockedVenueId && isAdmin && topVenue && topVenue.score > 0 && (
             <button
@@ -1209,6 +1337,12 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
             </button>
           )}
         </div>
+        <FiltersBar
+          filterGroups={VENUE_FILTERS}
+          selectedFilters={venueFilters}
+          onChange={setVenueFilters}
+          title="Filter venues"
+        />
         <ScrollCardList
           items={venues.map(v => ({
             id: v.id,
@@ -1226,27 +1360,35 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
         />
       </div>
 
-      {/* ACCOMMODATIONS — horizontal scroll like Booking */}
-      <div>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <p className="text-sm font-semibold text-slate-700">Where to stay</p>
-          <span className="text-[11px] text-slate-500">{DEMO_ACCOMMODATIONS.length} options · skip if same-day</span>
+      {/* ACCOMMODATIONS — horizontal scroll like Booking. Trip mode only. */}
+      {isTrip && (
+        <div>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <p className="text-sm font-semibold text-slate-700">Where to stay</p>
+            <span className="text-[11px] text-slate-500">{DEMO_ACCOMMODATIONS.length} options</span>
+          </div>
+          <FiltersBar
+            filterGroups={HOTEL_FILTERS}
+            selectedFilters={hotelFilters}
+            onChange={setHotelFilters}
+            title="Filter stays"
+          />
+          <ScrollCardList
+            items={DEMO_ACCOMMODATIONS.map(a => ({
+              id: a.id,
+              imageUrl: a.imageUrl,
+              title: a.name,
+              subtitle: `${a.type === 'hotel' ? 'Hotel' : a.type === 'bnb' ? 'BnB' : 'Airbnb'} · ${a.pricePerNight} EUR/night · ${a.rating}`,
+              badge: isAccPicked(a.id) ? 'Picked' : undefined,
+              badgeColor: '#8B5CF6',
+            }))}
+            onCardClick={setOpenAccId}
+            onLoveCount={(id) => accTally(id).love}
+            onMyVote={(id) => myAccVote(id) as any}
+            cardWidth={220}
+          />
         </div>
-        <ScrollCardList
-          items={DEMO_ACCOMMODATIONS.map(a => ({
-            id: a.id,
-            imageUrl: a.imageUrl,
-            title: a.name,
-            subtitle: `${a.type === 'hotel' ? 'Hotel' : a.type === 'bnb' ? 'BnB' : 'Airbnb'} · ${a.pricePerNight} EUR/night · ${a.rating}`,
-            badge: isAccPicked(a.id) ? 'Picked' : undefined,
-            badgeColor: '#8B5CF6',
-          }))}
-          onCardClick={setOpenAccId}
-          onLoveCount={(id) => accTally(id).love}
-          onMyVote={(id) => myAccVote(id) as any}
-          cardWidth={220}
-        />
-      </div>
+      )}
 
       {/* Venue popup */}
       {openedVenue && (
@@ -1446,7 +1588,7 @@ function PostBookingReport({ trip, reservations, transportLegs }: any) {
                 </div>
                 {!p.email && (
                   <div className="flex items-start gap-1.5">
-                    <span className="text-amber-500 mt-0.5">⚠</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" className="flex-shrink-0 mt-1"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                     <p className="text-amber-700">No email — set one in their setup to send the report</p>
                   </div>
                 )}
