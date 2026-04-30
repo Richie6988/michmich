@@ -49,7 +49,7 @@ export default function TripOverviewPage() {
     pinVotes, voteForPin, closePinVote, voteDatePoll,
     addParticipantByName, removeParticipant,
     updateTripStatus, setEquityZones, initTransportLegs,
-    transportLegs,
+    transportLegs, accommodations,
   } = useAppStore();
 
   const [setupForParticipantId, setSetupForParticipantId] = useState<string | null>(null);
@@ -242,6 +242,14 @@ export default function TripOverviewPage() {
         </section>
       )}
 
+      {/* SECTION 6 PRE: PRE-FUND RECAP — Barcelona trip from x to y, 5 participants, who takes what */}
+      {tripPickedVenue && (
+        <section>
+          <SectionHeader title="Trip summary" />
+          <PreFundRecapCard trip={trip} transportLegs={transportLegs[trip.id] || []} accommodations={accommodations[trip.id] || []} />
+        </section>
+      )}
+
       {/* SECTION 6: FUND BARRY — once venue or transport configured */}
       {tripPickedVenue && (
         <section>
@@ -254,6 +262,14 @@ export default function TripOverviewPage() {
       {tripFunds && tripFunds.status === 'complete' && (
         <section>
           <BookingCard tripId={trip.id} reservations={tripReservations} />
+        </section>
+      )}
+
+      {/* SECTION 7B: REPORT — once all booked, show a per-participant report */}
+      {tripFunds && tripFunds.status === 'complete' && tripReservations.length > 0 && (
+        <section>
+          <SectionHeader title="Your Barry report" />
+          <PostBookingReport trip={trip} reservations={tripReservations} transportLegs={transportLegs[trip.id] || []} />
         </section>
       )}
 
@@ -1156,6 +1172,174 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
     </div>
   );
 }
+
+function PreFundRecapCard({ trip, transportLegs, accommodations }: any) {
+  const isWanderlust = trip.mode === 'wanderlust' || !trip.mode;
+  const pickedAcc = accommodations.find((a: any) => a.selected);
+
+  // Compute per-participant transport row
+  const TRANSPORT_LABEL: Record<string, string> = {
+    walk: 'on foot', bike: 'by bike', transit: 'by transit',
+    car: 'by car', train: 'by train', flight: 'by plane',
+  };
+
+  const total = (() => {
+    const transportSum = transportLegs.reduce((s: number, l: any) => s + (l.cost || 0), 0);
+    const accSum = pickedAcc ? pickedAcc.totalPrice : 0;
+    const venueSum = trip.participants.length * 35; // estimated dinner
+    return transportSum + accSum + venueSum;
+  })();
+
+  return (
+    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-blue-100 p-4">
+      <div className="flex items-start gap-2 mb-3">
+        <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
+          <BarryMascot mood="happy" size={28} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-slate-900 leading-tight">{trip.name}</p>
+          <p className="text-[11px] text-slate-600">
+            {isWanderlust && trip.scheduledAt && formatDateLong(trip.scheduledAt)}
+            {!isWanderlust && trip.scheduledAt && trip.endDate &&
+              `${formatDateShort(trip.scheduledAt)} → ${formatDateShort(trip.endDate)}`
+            }
+            {' · '}{trip.participants.length} {trip.participants.length === 1 ? 'participant' : 'participants'}
+          </p>
+        </div>
+      </div>
+
+      {/* Per-participant transport */}
+      {!isWanderlust && transportLegs.length > 0 && (
+        <div className="bg-white rounded-xl p-3 mb-2 space-y-1.5">
+          {trip.participants.map((p: any, i: number) => {
+            const leg = transportLegs.find((l: any) => l.participantId === p.id);
+            if (!leg) return null;
+            const transportLabel = TRANSPORT_LABEL[leg.mode] || leg.mode;
+            return (
+              <div key={p.id} className="flex items-center gap-2 text-xs">
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[9px] flex-shrink-0"
+                  style={{ backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
+                >
+                  {p.user?.firstName?.[0]?.toUpperCase()}
+                </div>
+                <p className="flex-1 min-w-0 truncate text-slate-700">
+                  <span className="font-semibold text-slate-900">{p.user?.firstName}</span>
+                  {' '}will travel {transportLabel}
+                  {p.originLabel ? ` from ${p.originLabel.split(',')[0]}` : ''}
+                  {leg.duration ? ` (${Math.round(leg.duration / 60)}min)` : ''}
+                </p>
+                {leg.cost > 0 && (
+                  <span className="text-[11px] font-bold text-slate-700 flex-shrink-0">
+                    {Math.round(leg.cost)} EUR
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Stay */}
+      {!isWanderlust && pickedAcc && (
+        <div className="flex items-center gap-2 bg-white rounded-xl p-3 mb-2">
+          <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
+              <path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-slate-900 truncate">{pickedAcc.name}</p>
+            <p className="text-[10px] text-slate-500">{pickedAcc.nights} {pickedAcc.nights === 1 ? 'night' : 'nights'} · {pickedAcc.rooms} {pickedAcc.rooms === 1 ? 'room' : 'rooms'}</p>
+          </div>
+          <span className="text-xs font-bold text-slate-900">{pickedAcc.totalPrice} EUR</span>
+        </div>
+      )}
+
+      {/* Total */}
+      <div className="flex items-center justify-between bg-barry-blue rounded-xl px-4 py-2.5 text-white">
+        <p className="text-xs font-semibold">Total estimated cost</p>
+        <p className="text-base font-extrabold">{total.toFixed(0)} EUR</p>
+      </div>
+      <p className="text-[10px] text-slate-500 text-center mt-1.5">
+        Each participant will be asked their fair share below.
+      </p>
+    </div>
+  );
+}
+
+function PostBookingReport({ trip, reservations, transportLegs }: any) {
+  const TRANSPORT_LABEL: Record<string, string> = {
+    walk: 'Walk', bike: 'Bike', transit: 'Transit',
+    car: 'Car', train: 'Train', flight: 'Flight',
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border-2 border-emerald-200 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <div>
+          <p className="font-display font-bold text-base text-slate-900">All booked!</p>
+          <p className="text-[11px] text-slate-500">
+            Detailed reports sent to {trip.participants.filter((p: any) => p.email).length}/{trip.participants.length} participants by email
+          </p>
+        </div>
+      </div>
+
+      {/* Per-participant report cards */}
+      <div className="space-y-2">
+        {trip.participants.map((p: any, i: number) => {
+          const leg = transportLegs.find((l: any) => l.participantId === p.id);
+          return (
+            <div key={p.id} className="bg-slate-50 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs"
+                  style={{ backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
+                >
+                  {p.user?.firstName?.[0]?.toUpperCase()}
+                </div>
+                <p className="text-sm font-bold text-slate-900">{p.user?.firstName} {p.user?.lastName}</p>
+                {p.email && (
+                  <span className="text-[10px] text-emerald-700 bg-emerald-100 rounded-full px-2 py-0.5 font-bold">
+                    Sent
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1 text-xs text-slate-700">
+                {leg && (
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-slate-400 mt-0.5">→</span>
+                    <p>
+                      <strong>{TRANSPORT_LABEL[leg.mode]}</strong>
+                      {p.selfBook ? ' (self-booked)' : ' booked by Barry'}
+                      {leg.boardingTime && ` · departure ${leg.boardingTime}`}
+                    </p>
+                  </div>
+                )}
+                <div className="flex items-start gap-1.5">
+                  <span className="text-slate-400 mt-0.5">→</span>
+                  <p>Map and contact numbers in your email + this app</p>
+                </div>
+                {!p.email && (
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-amber-500 mt-0.5">⚠</span>
+                    <p className="text-amber-700">No email — set one in their setup to send the report</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 function FundsCard({ tripId, fundsRequest }: { tripId: string; fundsRequest: any }) {
   const router = useRouter();
