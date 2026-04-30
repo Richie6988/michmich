@@ -158,3 +158,63 @@
   animation: barry-shimmer 1.4s ease-in-out infinite;
   border-radius: 0.5rem;
 }
+
+/* ============================================================
+   Accessibility — focus, motion, contrast helpers
+   ============================================================ */
+
+/* Visible focus ring for keyboard users.
+   :focus-visible only triggers on keyboard nav, not mouse clicks,
+   so we don't get the ring on every button click. */
+*:focus-visible {
+  outline: 2px solid #2563EB; /* barry-blue */
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Skip-to-content link — invisible until focused */
+.barry-skip-link {
+  position: absolute;
+  left: -9999px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: #2563EB;
+  color: white;
+  font-weight: 700;
+  border-radius: 8px;
+  text-decoration: none;
+}
+.barry-skip-link:focus {
+  left: 12px;
+  top: 12px;
+}
+
+/* Respect prefers-reduced-motion — kill animations for users who asked for it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .barry-skeleton {
+    animation: none !important;
+    background: #e2e8f0 !important;
+  }
+  .barry-tamagotchi-bounce, .barry-bubble-pop {
+    animation: none !important;
+  }
+}
+
+/* Visually-hidden helper — for screen-reader-only labels */
+.sr-only-barry {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

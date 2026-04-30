@@ -936,7 +936,14 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
         </button>
       </div>
 
-      <div ref={scrollRef} className="space-y-2 mb-2 h-[280px] overflow-y-auto pr-1 barry-scroll">
+      <div
+        ref={scrollRef}
+        className="space-y-2 mb-2 h-[280px] overflow-y-auto pr-1 barry-scroll"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-label="Trip chat messages"
+      >
         {lastFew.length === 0 ? (
           <p className="text-xs text-slate-400 text-center py-6">No messages yet</p>
         ) : (
@@ -1439,6 +1446,7 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
 function PreFundRecapCard({ trip, transportLegs, accommodations }: any) {
   const isWanderlust = trip.mode === 'wanderlust' || !trip.mode;
   const pickedAcc = accommodations.find((a: any) => a.selected);
+  const isLoading = transportLegs.length === 0 && trip.participants.length > 0;
 
   // Compute per-participant transport row
   const TRANSPORT_LABEL: Record<string, string> = {
@@ -1452,6 +1460,32 @@ function PreFundRecapCard({ trip, transportLegs, accommodations }: any) {
     const venueSum = trip.participants.length * 35; // estimated dinner
     return transportSum + accSum + venueSum;
   })();
+
+  if (isLoading) {
+    return (
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-blue-100 p-4">
+        <div className="flex items-start gap-2 mb-3">
+          <Skeleton className="w-9 h-9 rounded-xl" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          {trip.participants.slice(0, 3).map((_: any, i: number) => (
+            <div key={i} className="flex items-center gap-2">
+              <Skeleton className="w-5 h-5 rounded-full" />
+              <Skeleton className="h-3 flex-1" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-slate-500 text-center mt-3 font-medium">
+          Barry's computing transport routes...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-blue-100 p-4">

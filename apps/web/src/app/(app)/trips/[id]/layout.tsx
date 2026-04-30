@@ -51,6 +51,7 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-slate-50 relative">
+      <a href="#trip-main" className="barry-skip-link">Skip to content</a>
       <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-xl border-b border-slate-100">
         <div className="px-4 py-3 max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
@@ -210,7 +211,7 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto pb-24 relative">
+      <main id="trip-main" className="max-w-2xl mx-auto pb-24 relative">
         {children}
       </main>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { SkeletonScrollCard } from '@/components/ui/skeleton';
 
 export interface ScrollCardItem {
   id: string;
@@ -18,12 +19,29 @@ export interface ScrollCardListProps {
   onMyVote?: (id: string) => 'love' | 'meh' | 'no' | null;
   selectedId?: string | null;
   cardWidth?: number; // px
+  /** Show skeleton placeholders (e.g. while data is being fetched) */
+  loading?: boolean;
+  /** Number of skeleton cards to show when loading */
+  loadingCount?: number;
 }
 
 /** Horizontal-scroll card list — reused for venues and accommodations */
 export function ScrollCardList({
   items, onCardClick, onLoveCount, onMyVote, selectedId, cardWidth = 200,
+  loading = false, loadingCount = 4,
 }: ScrollCardListProps) {
+  if (loading && items.length === 0) {
+    return (
+      <div className="-mx-4 overflow-x-auto overflow-y-hidden">
+        <div className="flex gap-3 px-4 pb-2">
+          {Array.from({ length: loadingCount }).map((_, i) => (
+            <SkeletonScrollCard key={i} width={cardWidth} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="-mx-4 overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth">
       <div className="flex gap-3 px-4 pb-2">
