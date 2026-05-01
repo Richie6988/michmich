@@ -645,6 +645,7 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 
 | Commit | Wave | Highlights |
 |---|---|---|
+| upcoming | 13-backend | Full NestJS backend: 18 TypeORM entities, 8 modules, ~50 endpoints, JWT auth, WebSocket gateway, initial migration, web client API wrapper |
 | upcoming | 12-bugfix | Hooks rule fix in FundsCard, single-line transport (6 cols), date poll re-shuffling fix, sticky TripProgress, phase-coded ChronoSection, fund visible after transport, branded PDF export, fixed map edge arrows + distance hover |
 | upcoming | 12-darkmode+a11y+toasts | Dark mode toggle, focus-visible, prefers-reduced-motion, ARIA live region on chat, in-app toasts |
 | a2ecd3d | 11-row-actions | Per-row kebab menu on home: Duplicate / Mark finished / Cancel |
@@ -673,5 +674,83 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: April 30, 2026 — Wave 12 (bugfixes + dark mode + a11y + branded PDF + chrono phase coding)*
+*Last updated: April 30, 2026 — Wave 13 (full backend: TypeORM + JWT + WebSocket + migrations)*
 *Maintained by: Claude (AI architect) + Richie (founder)*
+
+---
+
+## 16. BACKEND IMPLEMENTATION (Wave 13)
+
+**Stack**: NestJS 10 + TypeORM + PostgreSQL 15 + PostGIS + Redis (BullMQ) + Socket.IO + Argon2 + JWT.
+
+**Run locally**: `pnpm --filter @barry/api dev` from repo root, listens on port 3001. Swagger docs at `/api/docs`.
+
+### 16.1 Entities (18 total, all in `apps/api/src/*/entities/`)
+
+| Entity | Table | Purpose |
+|---|---|---|
+| User | users | accounts (email + argon2 password_hash + OAuth fields), travel preference defaults, theme, PostGIS home_location |
+| Trip | trips | core trip with mode, status, scheduledAt, endDate, inviteToken |
+| TripParticipant | trip_participants | per-trip per-user constraints + computed equity fields + originLocation (PostGIS) |
+| Task | trip_tasks | TODO list with assignee, completed, completedAt |
+| TripPhoto | trip_photos | memory gallery, uploadedBy + uploadedAt |
+| Vote | votes | polymorphic (pin/venue/accommodation/date) with targetId + response enum |
+| DatePoll, DatePollOption | date_polls + date_poll_options | date polling with score per option |
+| EquityZone | equity_zones | computed by Python engine, cached, with PostGIS center + metadata jsonb |
+| TripPin | trip_pins | locked zone per trip (one row max) |
+| Venue | venues | global catalog (PostGIS location + GiST index for fast nearest-neighbor) |
+| Accommodation | trip_accommodations | per-trip hotel/bnb/airbnb candidates |
+| FundsRequest | funds_requests | total + breakdown jsonb (venues/accommodation/transport) per trip |
+| FundsContribution | funds_contributions | per-participant amount + status (pending/paid/refunded) + paymentReference |
+| Reservation | reservations | confirmed bookings with confirmation code |
+| TransportLeg | transport_legs | per-participant route (mode, duration, distance, cost, geometry jsonb) |
+| Notification | notifications | per-user inbox (read/unread, type-tagged, optional tripId + url) |
+| PushSubscription | push_subscriptions | Web Push endpoint + p256dh + auth keys |
+
+### 16.2 Modules (8 total)
+
+- **AuthModule** — JWT strategy with Passport, JwtAuthGuard, `@CurrentUser()` param decorator. Endpoints: `POST /auth/signup`, `POST /auth/login`, `POST /auth/forgot-password`, `GET /auth/me`. Argon2 password hashing.
+- **UsersModule** — `GET/PATCH /users/me`, `POST /users/me/home-location` (lat/lng → PostGIS Point).
+- **TripsModule** — full CRUD on `/trips`, plus nested `participants`, `tasks`, `photos`, `me/constraints`, `duplicate`. Plus public `JoinController` at `/join/:token` (no auth) for invite preview.
+- **VotesModule** — generic vote endpoints (`POST /trips/:id/votes`, `GET /trips/:id/votes/:type`, `DELETE`) and date-poll endpoints (`addOption`, `vote`, `close`).
+- **EquityModule** — calls Python engine via fetch with 30s timeout, caches zones in DB. `GET /equity/health`, `GET/POST /trips/:id/zones`, `GET/POST /trips/:id/pin`.
+- **VenuesModule** — `GET /venues/near?lat&lng&radius&category` using PostGIS `ST_DWithin` + distance ordering. `GET /trips/:id/accommodations`.
+- **NotificationsModule** — inbox (`GET /notifications`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`) + push subscription endpoints. `pushToUser` helper stub for `web-push` lib (not yet wired with VAPID keys).
+- **GatewayModule** — Socket.IO at `/realtime` namespace. Clients `join_trip`/`leave_trip` to enter rooms. Service helpers: `emitVote`, `emitTask`, `emitPhoto`, `emitFund`, `emitChat`, `emitZones`.
+
+### 16.3 Migration
+
+Initial migration at `apps/api/src/migrations/1714521600000-InitialBackend.ts`. Creates all 18 tables + 14 enum types + GiST index on `venues.location` for spatial queries. Run with:
+
+```
+pnpm --filter @barry/api migration:run
+```
+
+DataSource at `apps/api/src/data-source.ts` reads `DATABASE_URL` or `PG*` env vars. Default points at portable Windows: `localhost:5433`, `barry/barry_dev/barry`.
+
+### 16.4 Web client → backend bridge
+
+`apps/web/src/lib/api/backend.ts` exposes typed wrappers for every endpoint, organized as `api.auth.*`, `api.users.*`, `api.trips.*`, `api.join.*`, `api.votes.*`, `api.equity.*`, `api.venues.*`, `api.notifications.*`. JWT stored in `localStorage` under `barry_token`. `setToken/getToken` helpers exposed.
+
+The web app **still uses the Zustand store as primary state** today; the API client is the bridge for progressively replacing store actions with real server calls. Strategy: keep optimistic local state, mirror to server in the background, reconcile on response.
+
+### 16.5 Env vars
+
+Backend reads from `apps/api/.env` (or repo root `.env`). See `apps/api/.env.example`:
+- `DATABASE_URL` — Postgres connection string (or `PG*` vars)
+- `JWT_SECRET`, `JWT_EXPIRES_IN`
+- `EQUITY_ENGINE_URL` — Python service URL (default `http://localhost:8000`)
+- `REDIS_HOST`, `REDIS_PORT` — for BullMQ jobs
+- `VAPID_PUBLIC`, `VAPID_PRIVATE`, `VAPID_SUBJECT` — Web Push (not yet active)
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — payments (not yet active)
+- `S3_*` — photo storage (not yet active)
+
+### 16.6 What's still NOT yet wired
+
+- **Web client integration**: store actions still operate on local state only. Need to add a "use backend" toggle and rewrite key actions (signup, createTrip, voteForVenue, etc.) to call `api.*` methods.
+- **Web Push** real send: `pushToUser` in NotificationsService is a stub. Needs `web-push` npm install + VAPID key generation + 410 Gone handling for stale subscriptions.
+- **Stripe Connect** for funds payments.
+- **Real partner bookings** (TheFork, Booking.com, SNCF Connect).
+- **Real OAuth** (Google, Apple) — skeleton fields exist (`googleId`, `appleId`) but no flows.
+- **WebSocket auth verification** — currently accepts any connection in dev. Production must verify JWT from `client.handshake.auth.token`.
+- **Tests** — Jest + e2e setup exists, no actual test files yet.

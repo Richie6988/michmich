@@ -5,6 +5,32 @@ Items at the top are higher priority. Items get checked off with the commit hash
 
 ## In progress
 
+### 18. Backend (NestJS + PostgreSQL + TypeORM) — **CORE DONE** (`pending wave 13`)
+
+**Built:**
+- 18 TypeORM entities: User, Trip, TripParticipant, Task, TripPhoto, FundsRequest, FundsContribution, Reservation, TransportLeg, Vote, DatePoll, DatePollOption, EquityZone, TripPin, Venue, Accommodation, Notification, PushSubscription
+- 8 modules with services + controllers + DTOs: Auth, Users, Trips, Votes, Equity, Venues, Notifications, Gateway
+- ~50 REST endpoints under `/api/v1` with class-validator DTOs
+- JWT auth with Argon2 hashing + Passport JWT strategy + JwtAuthGuard + `@CurrentUser()` decorator
+- Public join endpoint at `/join/:token` (no auth) for invite preview
+- Equity service proxies to Python engine with 30s timeout + persists zones
+- PostGIS spatial queries: `ST_DWithin` for venues near a point, GiST index on venues.location, geography(POINT,4326) for user.home_location, participant.origin_location, equity_zone.center
+- WebSocket gateway at `/realtime` namespace with `join_trip`/`leave_trip` actions and emit helpers (vote, task, photo, fund, chat, zones)
+- Initial TypeORM migration creates all 18 tables + 14 enum types + GiST index
+- DataSource for CLI migrations
+- `apps/api/.env.example` documents all env vars
+- Web client API wrapper at `apps/web/src/lib/api/backend.ts` with namespaced exports (`api.auth`, `api.users`, `api.trips`, `api.join`, `api.votes`, `api.equity`, `api.venues`, `api.notifications`)
+- JWT in localStorage under `barry_token` with `setToken`/`getToken` helpers
+
+**Still TODO (next wave):**
+- Wire the web client API actually in: store actions need to call `api.*` methods instead of local-only state. Strategy: keep optimistic Zustand state, mirror to server async, reconcile on response.
+- WebSocket auth verification in production (currently accepts any connection)
+- Web Push real send: install `web-push` lib, generate VAPID keys, call `webpush.sendNotification`, handle 410 Gone
+- Real OAuth flows (Google/Apple — fields exist on User, no flows)
+- Real Stripe Connect for FundsContribution payment
+- Real partner bookings (TheFork / Booking.com / SNCF Connect)
+- Tests (Jest unit + e2e setup exists, no test files yet)
+
 ### 1. Skeleton loaders during equity calculation — **DONE** (`5fbedea`)
 - `Skeleton`, `SkeletonScrollCard`, `SkeletonScrollCardList`, `SkeletonBlock`, `SkeletonZones` components in `components/ui/skeleton.tsx`
 - CSS shimmer (`barry-skeleton` class) in globals.css
