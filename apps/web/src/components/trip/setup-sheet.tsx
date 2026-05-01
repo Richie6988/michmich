@@ -307,7 +307,7 @@ export function SetupSheet({ tripId, participantId, onClose }: {
           {/* Transport mode */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Transport</label>
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-6 gap-1">
               {TRANSPORT_OPTIONS.map(opt => {
                 const selected = mode === opt.value;
                 return (
@@ -315,13 +315,13 @@ export function SetupSheet({ tripId, participantId, onClose }: {
                     key={opt.value}
                     onClick={() => canEdit && setMode(opt.value)}
                     disabled={!canEdit}
-                    className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 transition-all ${selected ? 'border-current' : 'border-slate-100 hover:border-slate-200'}`}
+                    className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg border-2 transition-all ${selected ? 'border-current' : 'border-slate-100 hover:border-slate-200'}`}
                     style={selected ? { borderColor: opt.color, backgroundColor: `${opt.color}10` } : {}}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selected ? opt.color : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={selected ? opt.color : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       {opt.icon}
                     </svg>
-                    <span className="text-[10px] font-medium" style={{ color: selected ? opt.color : '#64748B' }}>{opt.label}</span>
+                    <span className="text-[9px] font-medium leading-none" style={{ color: selected ? opt.color : '#64748B' }}>{opt.label}</span>
                   </button>
                 );
               })}

@@ -229,15 +229,10 @@ export default function ProfilePage() {
             </div>
           </SettingRow>
 
-          <SettingRow
-            label="Notifications"
-            value={preferences.notifications ? 'On' : 'Off'}
-          >
-            <Toggle
-              checked={preferences.notifications}
-              onChange={(v) => updatePreferences({ notifications: v })}
-            />
-          </SettingRow>
+          <NotificationsRow
+            checked={preferences.notifications}
+            onChange={(v) => updatePreferences({ notifications: v })}
+          />
 
           <SettingRow
             label="Appearance"
@@ -973,5 +968,65 @@ function ReductionCardsManager({
         </button>
       )}
     </div>
+  );
+}
+
+// ============================================================
+// NOTIFICATIONS ROW (with browser permission flow)
+// ============================================================
+function NotificationsRow({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  const [permission, setPermission] = React.useState<'default' | 'granted' | 'denied' | 'unsupported'>('default');
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!('Notification' in window)) {
+      setPermission('unsupported');
+      return;
+    }
+    setPermission(Notification.permission as any);
+  }, []);
+
+  const handleAskPermission = async () => {
+    const { requestPermission } = await import('@/lib/notifications/service');
+    const result = await requestPermission();
+    if (result === 'unsupported') {
+      setPermission('unsupported');
+      return;
+    }
+    setPermission(result as any);
+    if (result === 'granted') onChange(true);
+  };
+
+  const status = (() => {
+    if (permission === 'unsupported') return 'Not supported on this browser';
+    if (permission === 'denied') return 'Blocked in browser settings';
+    if (permission === 'granted' && checked) return 'On';
+    if (permission === 'granted') return 'Browser allowed · toggle to enable';
+    return 'Off';
+  })();
+
+  return (
+    <SettingRow
+      label="Notifications"
+      value={status}
+      open={false}
+    >
+      <div className="flex items-center gap-2">
+        {permission === 'default' && (
+          <button
+            onClick={handleAskPermission}
+            className="px-3 py-1.5 bg-barry-blue text-white text-xs font-bold rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
+          >
+            Allow
+          </button>
+        )}
+        {permission === 'denied' && (
+          <span className="text-[10px] text-rose-600 font-medium">Enable in browser site settings</span>
+        )}
+        {(permission === 'granted' || permission === 'default') && permission !== 'unsupported' && (
+          <Toggle checked={checked && permission === 'granted'} onChange={onChange} />
+        )}
+      </div>
+    </SettingRow>
   );
 }

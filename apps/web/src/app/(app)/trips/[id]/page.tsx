@@ -7,6 +7,8 @@ import { useAppStore } from '@/stores/app-store';
 import { BarryMascot } from '@/components/barry/brand';
 import { Avatar, AvatarStack } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/components/ui/toast';
+import { downloadIcs, downloadPdf } from '@/lib/utils/trip-export';
 import { BarryMap } from '@/components/map/barry-map';
 import { SetupSheet } from '@/components/trip/setup-sheet';
 import { ScrollCardList } from '@/components/trip/scroll-card-list';
@@ -220,8 +222,8 @@ export default function TripOverviewPage() {
         <TripRecapCard trip={trip} />
       </div>
 
-      {/* Top KPI: Progress bar across 4 milestones */}
-      <div className="mb-5">
+      {/* Top KPI: Progress bar across 4 milestones — STICKY so visible on scroll */}
+      <div className="sticky top-14 z-20 mb-5 -mx-4 px-4 pb-1 pt-2 bg-gradient-to-b from-white via-white to-white/95 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950/95 backdrop-blur-md">
         <TripProgress steps={progressSteps} />
       </div>
 
@@ -232,7 +234,7 @@ export default function TripOverviewPage() {
 
         <div className="space-y-5">
           {/* SECTION 1: PARTICIPANTS + INVITE */}
-          <ChronoSection step={1} color="bg-blue-500">
+          <ChronoSection phase="before" label="Setup">
             <ParticipantsSection
               trip={trip}
               currentUser={currentUser}
@@ -252,7 +254,7 @@ export default function TripOverviewPage() {
           </ChronoSection>
 
           {/* SECTION 2: PLAN — Date poll + Chat */}
-          <ChronoSection step={2} color="bg-purple-500">
+          <ChronoSection phase="before" label="Plan">
             <SectionHeader title="Plan" />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
               {(trip.mode === 'wanderlust' || !trip.mode) ? (
@@ -265,7 +267,7 @@ export default function TripOverviewPage() {
           </ChronoSection>
 
           {/* SECTION 3: TODO LIST — assignable tasks */}
-          <ChronoSection step={3} color="bg-amber-500">
+          <ChronoSection phase="before" label="Tasks">
             <SectionHeader title="To-do list" />
             <TodoSection
               tripId={trip.id}
@@ -275,7 +277,7 @@ export default function TripOverviewPage() {
           </ChronoSection>
 
           {/* SECTION 4: BARRY'S MAP */}
-          <ChronoSection step={4} color="bg-cyan-500">
+          <ChronoSection phase="before" label="Map">
             <SectionHeader title={allReady ? "Barry's spots" : 'Map (pending setup)'} />
             <MapEmbed
               trip={trip}
@@ -290,7 +292,7 @@ export default function TripOverviewPage() {
 
           {/* SECTION 5: PIN VOTE — when zones ready and not locked */}
           {allReady && zones.length > 0 && !tripPickedZone && (
-            <ChronoSection step={5} color="bg-orange-500">
+            <ChronoSection phase="before" label="Pick zone">
               <SectionHeader title={isSolo ? "Pick your zone" : "Vote for the zone"} />
               <PinVoteCard
                 trip={trip}
@@ -312,7 +314,7 @@ export default function TripOverviewPage() {
 
           {/* SECTION 6: VENUES + ACCOMMODATION (or activities for wanderlust) — wide split based on mode */}
           {(tripPickedZone || (tripPinVotes && tripPinVotes.length > 0)) && (
-            <ChronoSection step={6} color="bg-rose-500">
+            <ChronoSection phase="before" label="Picks">
               <SectionHeader title={tripPickedZone ? "Picks for your group" : "Early picks (zone not locked yet)"} />
               <VenuesAndStaySection
                 trip={trip}
@@ -323,22 +325,22 @@ export default function TripOverviewPage() {
 
           {/* SECTION 7: ACTIVITIES (always shown when zone picked) */}
           {(tripPickedZone || (tripPinVotes && tripPinVotes.length > 0)) && (
-            <ChronoSection step={7} color="bg-teal-500">
+            <ChronoSection phase="before" label="Activities">
               <ActivitiesAndCarsBlock trip={trip} />
             </ChronoSection>
           )}
 
-          {/* SECTION 8: PRE-FUND RECAP */}
-          {tripPickedVenue && (
-            <ChronoSection step={8} color="bg-violet-500">
+          {/* SECTION 8: PRE-FUND RECAP - show as soon as we have transport (any cost component) */}
+          {(transportLegs[trip.id]?.length > 0 || tripPickedVenue) && (
+            <ChronoSection phase="before" label="Recap">
               <SectionHeader title="Trip summary" />
               <PreFundRecapCard trip={trip} transportLegs={transportLegs[trip.id] || []} accommodations={accommodations[trip.id] || []} />
             </ChronoSection>
           )}
 
-          {/* SECTION 9: FUND BARRY */}
-          {tripPickedVenue && (
-            <ChronoSection step={9} color="bg-pink-500">
+          {/* SECTION 9: FUND BARRY - show as soon as we have transport */}
+          {(transportLegs[trip.id]?.length > 0 || tripPickedVenue) && (
+            <ChronoSection phase="before" label="Fund">
               <SectionHeader title="Fund Barry & he'll take care of everything" />
               <FundsCard tripId={trip.id} fundsRequest={tripFunds} />
             </ChronoSection>
@@ -346,7 +348,7 @@ export default function TripOverviewPage() {
 
           {/* SECTION 10: BOOKING + REPORT */}
           {tripFunds && tripFunds.status === 'complete' && (
-            <ChronoSection step={10} color="bg-emerald-500">
+            <ChronoSection phase="during" label="Booked">
               <BookingCard tripId={trip.id} reservations={tripReservations} />
               {tripReservations.length > 0 && (
                 <div className="mt-3">
@@ -358,13 +360,13 @@ export default function TripOverviewPage() {
           )}
 
           {/* SECTION 11: EXPENSES (Tricount) */}
-          <ChronoSection step={11} color="bg-indigo-500">
+          <ChronoSection phase="during" label="Expenses">
             <SectionHeader title="Expenses (Tricount)" />
             <ExpensesCard tripId={trip.id} expenses={tripExpenses} participants={trip.participants.map(p => p.user!).filter(Boolean)} currentUserId={currentUser?.id} />
           </ChronoSection>
 
           {/* SECTION 12: MEMORY GALLERY */}
-          <ChronoSection step={12} color="bg-fuchsia-500">
+          <ChronoSection phase="after" label="Memories">
             <SectionHeader title="Memories" />
             <MemoryGallery tripId={trip.id} />
           </ChronoSection>
@@ -384,13 +386,38 @@ export default function TripOverviewPage() {
 }
 
 /**
- * ChronoSection — wraps each section with a numbered dot on the vertical timeline.
+ * ChronoSection — wraps each section with a phase-coded marker on the vertical timeline.
+ * Phases:
+ *  - 'before'  blue  : setup, planning, picks
+ *  - 'during'  amber : day-of activities, expenses, photos
+ *  - 'after'   slate : memories, recap (final wrap-up)
  */
-function ChronoSection({ step, color, children }: { step: number; color: string; children: React.ReactNode }) {
+function ChronoSection({
+  phase = 'before',
+  label,
+  children,
+}: {
+  phase?: 'before' | 'during' | 'after';
+  label: string;
+  children: React.ReactNode;
+}) {
+  const styles: Record<string, { dot: string; ring: string; pill: string }> = {
+    before: { dot: 'bg-blue-500', ring: 'ring-blue-100 dark:ring-blue-900/40', pill: 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
+    during: { dot: 'bg-amber-500', ring: 'ring-amber-100 dark:ring-amber-900/40', pill: 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
+    after: { dot: 'bg-slate-500', ring: 'ring-slate-200 dark:ring-slate-700', pill: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+  };
+  const s = styles[phase];
   return (
     <section className="relative pl-10">
-      <div className={`absolute left-0 top-1 w-6 h-6 rounded-full ${color} text-white font-extrabold text-[11px] flex items-center justify-center shadow-md z-10 border-2 border-white`}>
-        {step}
+      {/* Phase dot on the line */}
+      <div className={`absolute left-0 top-1 w-6 h-6 rounded-full ${s.dot} text-white flex items-center justify-center shadow-md z-10 border-2 border-white dark:border-slate-950 ring-4 ${s.ring}`}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+          <circle cx="12" cy="12" r="4" />
+        </svg>
+      </div>
+      {/* Phase pill above the section title */}
+      <div className={`inline-block text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mb-2 ${s.pill}`}>
+        {phase} · {label}
       </div>
       {children}
     </section>
@@ -773,8 +800,14 @@ function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId, isSo
   };
 
   const sortedOptions = poll
-    ? [...poll.options].sort((a: any, b: any) => b.score - a.score)
+    ? [...poll.options].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
     : [];
+  const topOptionId = poll && poll.options.length > 0
+    ? [...poll.options].sort((a: any, b: any) => b.score - a.score)[0].id
+    : null;
+  const topScore = poll && poll.options.length > 0
+    ? Math.max(...poll.options.map((o: any) => o.score))
+    : 0;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col h-full">
@@ -828,10 +861,10 @@ function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId, isSo
       ) : (
         <>
           <div className="space-y-2 mb-2">
-            {sortedOptions.slice(0, 4).map((opt: any, i: number) => {
+            {sortedOptions.slice(0, 4).map((opt: any) => {
               const t = tally(opt);
               const myVote = myVoteFor(opt.id);
-              const isTop = i === 0 && opt.score > 0;
+              const isTop = opt.id === topOptionId && topScore > 0;
               return (
                 <div
                   key={opt.id}
@@ -1119,6 +1152,18 @@ function ParticipantEdgeArrows({ participants, viewport }: { participants: any[]
   if (!viewport?.bounds) return null;
   const { bounds, center } = viewport;
 
+  // Helper: compute great-circle distance in km
+  const distanceKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371; // km
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  };
+
   // Find off-screen participants
   const offscreen = participants
     .filter(p => p.originLocation)
@@ -1126,57 +1171,87 @@ function ParticipantEdgeArrows({ participants, viewport }: { participants: any[]
       const { lat, lng } = p.originLocation;
       const isOut = lat > bounds.north || lat < bounds.south || lng > bounds.east || lng < bounds.west;
       if (!isOut) return null;
-      // Compute angle from viewport center to participant
-      const dy = lat - center.lat; // north positive
-      const dx = lng - center.lng; // east positive
-      const angle = Math.atan2(-dy, dx); // CSS rotate angle, 0 = right
-      return { participant: p, index: i, angle, dx, dy };
+      // dx > 0 = participant east of center; dy > 0 = participant north of center
+      const dy = lat - center.lat;
+      const dx = lng - center.lng;
+      // Distance from VIEWPORT CENTER to participant (informative for hover)
+      const dist = distanceKm(center.lat, center.lng, lat, lng);
+      return { participant: p, index: i, dx, dy, dist };
     })
-    .filter(Boolean) as { participant: any; index: number; angle: number; dx: number; dy: number }[];
+    .filter(Boolean) as { participant: any; index: number; dx: number; dy: number; dist: number }[];
 
   if (offscreen.length === 0) return null;
 
-  // Place each arrow at the edge of the map container, in the direction of the participant
   return (
     <div className="absolute inset-0 pointer-events-none z-[1400]">
-      {offscreen.map(({ participant, index, angle, dx, dy }) => {
-        // Project onto the viewport edge: clamp to a circle inscribed in the rectangle
-        // The map container is treated as 100% so we use percentages from center
-        // Use the larger of |dx|,|dy| to determine which edge to clamp to
+      {offscreen.map(({ participant, index, dx, dy, dist }) => {
+        // Screen-space direction: ax east-positive, ay south-positive (CSS y is flipped)
         const ax = dx;
-        const ay = -dy; // CSS y axis is flipped
+        const ay = -dy;
         const m = Math.max(Math.abs(ax), Math.abs(ay));
         if (m === 0) return null;
         const nx = ax / m; // -1..1
         const ny = ay / m;
-        // Position from center +/- 45% so arrow stays inside container with margin
+        // Position from center +/- 42% so badge stays inside container with margin
         const left = `${50 + nx * 42}%`;
         const top = `${50 + ny * 42}%`;
         const color = AVATAR_COLORS[index % AVATAR_COLORS.length];
-        const rotateDeg = (angle * 180) / Math.PI;
-
+        // Arrow rotation: atan2(ny, nx) gives screen-space angle in radians.
+        // 0deg = pointing right (east). Triangle is drawn pointing right naturally.
+        const arrowRotateDeg = (Math.atan2(ny, nx) * 180) / Math.PI;
+        // The participant is OFF-SCREEN in direction (nx, ny). The triangle must point
+        // OUTWARD (toward the participant). We render it as a single block positioned
+        // at the edge, rotated to face outward. The avatar sits "behind" the triangle
+        // (toward the center).
+        // Layout strategy: a wrapper rotated by arrowRotateDeg, with the avatar at translateX(-distance)
+        // and the triangle at translateX(0). This way the avatar+triangle pair always points outward.
         return (
           <div
             key={participant.id}
-            className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-1"
+            className="absolute -translate-x-1/2 -translate-y-1/2 group/arrow pointer-events-auto"
             style={{ left, top }}
           >
-            {/* Avatar disc */}
+            {/* Outer wrapper rotated to face outward */}
             <div
-              className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white font-bold text-[10px] shadow-lg"
-              style={{ backgroundColor: color }}
+              className="relative"
+              style={{ transform: `rotate(${arrowRotateDeg}deg)`, width: 0, height: 0 }}
             >
-              {participant.user?.firstName?.[0]?.toUpperCase() || '?'}
+              {/* Triangle at outer edge (pointing right in unrotated frame) */}
+              <div
+                className="absolute w-0 h-0"
+                style={{
+                  top: -6,
+                  left: 14,
+                  borderTop: '6px solid transparent',
+                  borderBottom: '6px solid transparent',
+                  borderLeft: `8px solid ${color}`,
+                }}
+              />
+              {/* Avatar disc — counter-rotate so the initial reads upright */}
+              <div
+                className="absolute w-7 h-7 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-[10px]"
+                style={{
+                  top: -14,
+                  left: -14,
+                  backgroundColor: color,
+                  transform: `rotate(${-arrowRotateDeg}deg)`,
+                }}
+              >
+                {participant.user?.firstName?.[0]?.toUpperCase() || '?'}
+              </div>
             </div>
-            {/* Triangle arrow pointing toward participant */}
+            {/* Hover tooltip — shows participant name + distance */}
             <div
-              className="w-3 h-3"
+              className="absolute opacity-0 group-hover/arrow:opacity-100 transition-opacity pointer-events-none bg-slate-900 text-white text-[10px] font-semibold px-2 py-1 rounded-lg whitespace-nowrap shadow-xl"
               style={{
-                transform: `rotate(${rotateDeg}deg)`,
-                background: color,
-                clipPath: 'polygon(0 50%, 100% 0, 100% 100%)',
+                top: 18,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 10,
               }}
-            />
+            >
+              {participant.user?.firstName || 'Guest'} · {dist < 10 ? dist.toFixed(1) : Math.round(dist)} km
+            </div>
           </div>
         );
       })}
@@ -1629,42 +1704,82 @@ function PostBookingReport({ trip, reservations, transportLegs }: any) {
 
 
 function FundsCard({ tripId, fundsRequest }: { tripId: string; fundsRequest: any }) {
-  const { createFundsRequest, payFundsContribution, currentUser, inAppBalance, performBookings } = useAppStore();
+  const { createFundsRequest, payFundsContribution, currentUser, inAppBalance, performBookings, trips } = useAppStore();
+  const { push: pushToast } = useToast();
   const [confirmPayId, setConfirmPayId] = useState<string | null>(null);
+  const lastMilestoneRef = React.useRef<number>(0);
+  const lastBookedRef = React.useRef<boolean>(false);
 
+  // Compute these every render (used by hooks below)
+  const contribs = fundsRequest?.contributions || [];
+  const paidContribs = contribs.filter((c: any) => c.status === 'paid');
+  const paidCount = paidContribs.length;
+  const totalCount = contribs.length;
+  const paidAmount = paidContribs.reduce((s: number, c: any) => s + c.amount, 0);
+  const totalAmount = fundsRequest?.totalAmount || 0;
+  const pct = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
+  const allDone = paidCount === totalCount && totalCount > 0;
+
+  // ALL hooks must be declared before any conditional return (rules of hooks)
   useEffect(() => {
     if (!fundsRequest || fundsRequest.totalAmount === 0) {
       createFundsRequest(tripId);
     }
   }, [tripId]);
 
+  // Auto-trigger booking when complete + fire booking confirmed toast
+  useEffect(() => {
+    if (allDone && fundsRequest && fundsRequest.status !== 'complete' && !lastBookedRef.current) {
+      lastBookedRef.current = true;
+      performBookings(tripId);
+      const trip = trips.find(t => t.id === tripId);
+      if (trip) {
+        pushToast({
+          id: `book-${Date.now()}`,
+          type: 'booking_confirmed',
+          title: `Booked! ${trip.name}`,
+          body: 'Reservations confirmed. Check your report.',
+          tripId,
+          url: `/trips/${tripId}`,
+          timestamp: Date.now(),
+        });
+      }
+    }
+  }, [allDone, fundsRequest?.status, tripId]);
+
+  // Fire milestone toast when crossing 25/50/100%
+  useEffect(() => {
+    if (totalCount === 0) return;
+    const milestones = [25, 50, 100];
+    const last = lastMilestoneRef.current;
+    const crossed = milestones.find(m => pct >= m && last < m);
+    if (crossed) {
+      lastMilestoneRef.current = crossed;
+      const trip = trips.find(t => t.id === tripId);
+      if (trip && crossed < 100) {
+        pushToast({
+          id: `fund-${Date.now()}`,
+          type: 'funding_milestone',
+          title: `${trip.name} ${crossed}% funded`,
+          body: `${crossed}% of the funds are in.`,
+          tripId,
+          url: `/trips/${tripId}`,
+          timestamp: Date.now(),
+        });
+      }
+    }
+  }, [pct, totalCount, tripId]);
+
   if (!fundsRequest || fundsRequest.totalAmount === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-4 text-center">
-        <p className="text-sm text-slate-500">Configure transport to see the funds breakdown.</p>
-        <Link href={`/trips/${tripId}/transport` as any} className="inline-block mt-2 px-4 py-2 bg-barry-blue text-white text-xs font-bold rounded-xl">
-          Configure transport
-        </Link>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 text-center">
+        <p className="text-sm text-slate-500 dark:text-slate-400">Set up everyone's transport in their profile to see the funds breakdown.</p>
+        <p className="text-[11px] text-slate-400 mt-1">Hotels and venues add up automatically once picked.</p>
       </div>
     );
   }
 
-  const contribs = fundsRequest.contributions || [];
-  const paidContribs = contribs.filter((c: any) => c.status === 'paid');
   const myContrib = contribs.find((c: any) => c.userId === currentUser?.id);
-  const paidCount = paidContribs.length;
-  const totalCount = contribs.length;
-  const paidAmount = paidContribs.reduce((s: number, c: any) => s + c.amount, 0);
-  const totalAmount = fundsRequest.totalAmount;
-  const pct = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
-  const allDone = paidCount === totalCount && totalCount > 0;
-
-  // Auto-trigger booking when complete
-  useEffect(() => {
-    if (allDone && fundsRequest.status !== 'complete') {
-      performBookings(tripId);
-    }
-  }, [allDone, fundsRequest.status, tripId]);
 
   return (
     <div className="space-y-3">
@@ -1820,6 +1935,10 @@ function FundsCard({ tripId, fundsRequest }: { tripId: string; fundsRequest: any
 
 function BookingCard({ tripId, reservations }: { tripId: string; reservations: any[] }) {
   const router = useRouter();
+  const { trips } = useAppStore();
+  const trip = trips.find(t => t.id === tripId);
+  const { transportLegs } = useAppStore();
+
   if (reservations.length === 0) {
     return (
       <Link href={`/trips/${tripId}/booking` as any} className="block bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-4 text-white shadow-lg shadow-emerald-500/15 active:scale-[0.99] transition-all">
@@ -1830,17 +1949,62 @@ function BookingCard({ tripId, reservations }: { tripId: string; reservations: a
     );
   }
   return (
-    <Link href={`/trips/${tripId}/booking` as any} className="block bg-white rounded-2xl border border-emerald-200 p-4 active:scale-[0.99] transition-all">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+    <div className="space-y-3">
+      <Link href={`/trips/${tripId}/booking` as any} className="block bg-white dark:bg-slate-900 rounded-2xl border border-emerald-200 p-4 active:scale-[0.99] transition-all">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <p className="font-display font-bold text-slate-900 dark:text-slate-100">Trip booked</p>
         </div>
-        <p className="font-display font-bold text-slate-900">Trip booked</p>
-      </div>
-      <p className="text-xs text-slate-600">{reservations.length} confirmation{reservations.length === 1 ? '' : 's'} · tap to view codes</p>
-    </Link>
+        <p className="text-xs text-slate-600 dark:text-slate-400">{reservations.length} confirmation{reservations.length === 1 ? '' : 's'} · tap to view codes</p>
+      </Link>
+
+      {/* Inline export buttons - takes user from "booked" to "saved on phone/calendar" */}
+      {trip && (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => downloadIcs({ trip })}
+            className="flex items-center gap-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-3 hover:border-blue-300 hover:shadow-sm active:scale-[0.98] transition-all text-left"
+          >
+            <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Calendar</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Add to your calendar</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => downloadPdf({
+              trip,
+              reservations,
+              transportLegs: transportLegs[tripId] || [],
+            })}
+            className="flex items-center gap-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-3 hover:border-rose-300 hover:shadow-sm active:scale-[0.98] transition-all text-left"
+          >
+            <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E11D48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">PDF recap</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Save the full trip</p>
+            </div>
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

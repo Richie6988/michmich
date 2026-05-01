@@ -3,6 +3,7 @@ import { Inter, Manrope, JetBrains_Mono } from 'next/font/google';
 
 import '@/styles/globals.css';
 import { ThemeManager } from '@/components/theme/theme-manager';
+import { ToastProvider } from '@/components/ui/toast';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -53,7 +54,9 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased bg-white dark:bg-slate-950 dark:text-slate-100 transition-colors">
         <ThemeManager />
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

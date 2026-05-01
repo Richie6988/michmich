@@ -645,6 +645,10 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 
 | Commit | Wave | Highlights |
 |---|---|---|
+| upcoming | 12-bugfix | Hooks rule fix in FundsCard, single-line transport (6 cols), date poll re-shuffling fix, sticky TripProgress, phase-coded ChronoSection, fund visible after transport, branded PDF export, fixed map edge arrows + distance hover |
+| upcoming | 12-darkmode+a11y+toasts | Dark mode toggle, focus-visible, prefers-reduced-motion, ARIA live region on chat, in-app toasts |
+| a2ecd3d | 11-row-actions | Per-row kebab menu on home: Duplicate / Mark finished / Cancel |
+| 0c9c34d | 11-phase2 | Join modal first, fund per-participant flow, duplicate trip, skeleton, PDF/ICS, claude.md Section 15 |
 | 1f20c93 | 11-phase1 | Universal Avatar + profile pic upload + design tokens |
 | c4b684e | 10B | Emoji purge, popup polish, chat scroll fix, KPI bar, filters, chrono line, activities + cars, TODO, memory gallery, tamagotchi mascot |
 | 2b4b25a | 10A | Create-Barry crash fix, auth flow, setup polish, profile travel prefs |
@@ -669,5 +673,5 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: April 30, 2026 — Wave 11 (avatars + DNA + per-participant fund + duplicate + skeleton + PDF/ICS)*
+*Last updated: April 30, 2026 — Wave 12 (bugfixes + dark mode + a11y + branded PDF + chrono phase coding)*
 *Maintained by: Claude (AI architect) + Richie (founder)*

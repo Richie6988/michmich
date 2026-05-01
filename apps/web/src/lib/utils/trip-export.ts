@@ -1,6 +1,8 @@
 // ============================================================
 // TRIP EXPORT — PDF (browser print) + ICS calendar
-// No external deps. PDF uses browser print, ICS is hand-rolled.
+// PDF design uses Barry's graphic DNA: blue/indigo gradient header,
+// rounded cards with subtle shadows, Inter/Manrope-like typography,
+// avatar discs with deterministic colors, mode badges, etc.
 // ============================================================
 
 import type { Trip, Reservation, TransportLeg } from '@barry/shared-types';
@@ -13,29 +15,35 @@ interface ExportContext {
 }
 
 // ============================================================
+// AVATAR COLOR (matches the in-app palette)
+// ============================================================
+const AVATAR_PALETTE = ['#2563EB', '#F97316', '#10B981', '#8B5CF6', '#EF4444', '#EC4899', '#06B6D4', '#F59E0B'];
+function colorForUser(userId?: string | null, fallback?: string | null): string {
+  const seed = userId || fallback || 'unknown';
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+}
+
+// ============================================================
 // ICS CALENDAR — RFC 5545
 // ============================================================
 
 function pad2(n: number) { return n < 10 ? `0${n}` : `${n}`; }
 
-/** Format a Date as YYYYMMDDTHHmmssZ (UTC). */
 function toIcsDateTime(d: Date): string {
   return `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}${pad2(d.getUTCSeconds())}Z`;
 }
 
-/** Format a Date as YYYYMMDD (date only). */
 function toIcsDate(d: Date): string {
   return `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}`;
 }
 
-/** Escape a value for ICS (commas, semicolons, newlines). */
 function escIcs(s: string): string {
-  return (s || '')
-    .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '');
+  return (s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n').replace(/\r/g, '');
 }
 
 export function buildIcs(ctx: ExportContext): string {
@@ -59,14 +67,11 @@ export function buildIcs(ctx: ExportContext): string {
     lines.push(`DTSTAMP:${now}`);
 
     if (isTrip && end) {
-      // Multi-day event — DATE values
       lines.push(`DTSTART;VALUE=DATE:${toIcsDate(start)}`);
-      // ICS DTEND is exclusive for all-day, so add 1 day
       const exclusiveEnd = new Date(end);
       exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
       lines.push(`DTEND;VALUE=DATE:${toIcsDate(exclusiveEnd)}`);
     } else {
-      // Single date — assume the day, full event
       lines.push(`DTSTART;VALUE=DATE:${toIcsDate(start)}`);
       lines.push(`DTEND;VALUE=DATE:${toIcsDate(start)}`);
     }
@@ -107,9 +112,7 @@ export function downloadIcs(ctx: ExportContext) {
 }
 
 // ============================================================
-// PDF EXPORT — opens print-friendly HTML in new tab
-// User clicks print -> Save as PDF
-// (Avoids adding jsPDF as a dep; native browser print is good enough for v1)
+// PDF EXPORT — Barry-branded HTML, opens print-friendly in new tab
 // ============================================================
 
 const TRANSPORT_LABEL: Record<string, string> = {
@@ -117,18 +120,32 @@ const TRANSPORT_LABEL: Record<string, string> = {
   car: 'Car', train: 'Train', flight: 'Flight',
 };
 
+function escHtml(s: string): string {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function avatarSvg(user: any, size = 28): string {
+  const firstInitial = (user?.firstName?.[0] || '?').toUpperCase();
+  const lastInitial = (user?.lastName?.[0] || '').toUpperCase();
+  const initials = (firstInitial + lastInitial).slice(0, 2);
+  const color = colorForUser(user?.id, user?.firstName);
+  const fontSize = Math.round(size * 0.36);
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;background:${color};color:white;font-weight:700;font-size:${fontSize}px;flex-shrink:0;letter-spacing:-0.5px;">${escHtml(initials)}</span>`;
+}
+
 export function buildPdfHtml(ctx: ExportContext): string {
   const { trip, reservations = [], transportLegs = [] } = ctx;
   const isTrip = trip.mode === 'trip';
+
   const dateLabel = (() => {
     if (!trip.scheduledAt) return 'Date pending';
     const start = new Date(trip.scheduledAt);
-    const dStr = start.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const dStr = start.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     if (isTrip && trip.endDate) {
       const end = new Date(trip.endDate);
-      const eStr = end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      const eStr = end.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
       const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
-      return `${dStr} → ${eStr} (${nights} night${nights === 1 ? '' : 's'})`;
+      return `${dStr} → ${eStr} <span style="color:#94A3B8;font-weight:500;">· ${nights} night${nights === 1 ? '' : 's'}</span>`;
     }
     return dStr;
   })();
@@ -138,120 +155,392 @@ export function buildPdfHtml(ctx: ExportContext): string {
     + transportLegs.reduce((s, l) => s + (l.cost || 0), 0)
   );
 
+  const transportTotal = transportLegs.reduce((s, l) => s + (l.cost || 0), 0);
+  const reservationTotal = reservations.reduce((s, r) => s + r.amount, 0);
+
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Barry recap: ${trip.name}</title>
+  <title>Barry recap: ${escHtml(trip.name)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { size: A4; margin: 0; }
     body {
-      font-family: 'Helvetica Neue', system-ui, sans-serif;
-      color: #1E293B;
-      background: white;
-      padding: 40px 32px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Manrope', system-ui, sans-serif;
+      color: #0F172A;
+      background: #F8FAFC;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .page {
       max-width: 720px;
       margin: 0 auto;
-      line-height: 1.45;
+      background: white;
+      min-height: 100vh;
+      padding: 0;
     }
-    h1 { font-size: 28px; margin-bottom: 4px; letter-spacing: -0.5px; }
-    h2 { font-size: 16px; margin-top: 24px; margin-bottom: 8px; color: #475569; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; font-size: 11px; }
-    .header { border-bottom: 3px solid #2563EB; padding-bottom: 16px; margin-bottom: 16px; }
-    .meta { color: #64748B; font-size: 13px; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .badge-blue { background: #DBEAFE; color: #1D4ED8; }
-    .badge-violet { background: #EDE9FE; color: #6D28D9; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    table th { text-align: left; padding: 6px 4px; color: #64748B; font-weight: 600; font-size: 11px; text-transform: uppercase; }
-    table td { padding: 6px 4px; border-top: 1px solid #E2E8F0; }
-    .total { font-size: 18px; font-weight: 800; color: #2563EB; }
-    .row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid #F1F5F9; }
-    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #E2E8F0; font-size: 10px; color: #94A3B8; text-align: center; }
-    @media print { body { padding: 20px; } }
+
+    /* HERO — Barry blue gradient */
+    .hero {
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #4F46E5 100%);
+      color: white;
+      padding: 32px 32px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 200px; height: 200px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 50%;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: -40px;
+      width: 140px; height: 140px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+    .hero-row { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; margin-bottom: 18px; }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .brand-mark {
+      width: 32px; height: 32px;
+      background: white;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #2563EB;
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: -1px;
+    }
+    .brand-name { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+    .mode-pill {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .hero-title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 6px;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-meta {
+      font-size: 14px;
+      color: rgba(255,255,255,0.85);
+      position: relative;
+      z-index: 1;
+    }
+    .hero-stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 20px;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-stat {
+      flex: 1;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 10px 14px;
+      border-radius: 12px;
+    }
+    .hero-stat-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.7); }
+    .hero-stat-value { font-size: 18px; font-weight: 800; margin-top: 2px; letter-spacing: -0.3px; }
+
+    /* CONTENT */
+    .content { padding: 28px 32px 40px; }
+    .section { margin-bottom: 24px; }
+    .section-title {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #64748B;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 14px;
+      background: #2563EB;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    /* PARTICIPANT CARDS */
+    .participants {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+    }
+    .participant-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .participant-info { flex: 1; min-width: 0; }
+    .participant-name { font-size: 13px; font-weight: 700; color: #0F172A; }
+    .participant-meta { font-size: 11px; color: #64748B; margin-top: 1px; }
+
+    /* TRANSPORT TABLE */
+    .transport-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #F1F5F9;
+    }
+    .transport-row:last-child { border-bottom: none; }
+    .transport-mode-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      background: #EEF2FF;
+      color: #4338CA;
+    }
+    .transport-cost {
+      font-weight: 700;
+      color: #0F172A;
+      font-size: 13px;
+    }
+
+    /* RESERVATION CARDS */
+    .reservation {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .reservation-icon {
+      width: 36px; height: 36px;
+      background: #10B981;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: white;
+      flex-shrink: 0;
+    }
+    .reservation-content { flex: 1; min-width: 0; }
+    .reservation-type {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #047857;
+      font-weight: 700;
+    }
+    .reservation-desc { font-size: 13px; font-weight: 600; color: #0F172A; }
+    .reservation-code {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 11px;
+      background: white;
+      border: 1px solid #BBF7D0;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #065F46;
+      margin-top: 2px;
+      display: inline-block;
+    }
+    .reservation-amount {
+      font-size: 14px;
+      font-weight: 800;
+      color: #047857;
+      flex-shrink: 0;
+    }
+
+    /* TOTAL */
+    .total-card {
+      background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%);
+      color: white;
+      padding: 20px 24px;
+      border-radius: 16px;
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      box-shadow: 0 10px 25px -5px rgba(37,99,235,0.25);
+    }
+    .total-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 700;
+      opacity: 0.85;
+    }
+    .total-value {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    /* FOOTER */
+    .footer {
+      padding: 20px 32px;
+      border-top: 1px solid #E2E8F0;
+      background: #F8FAFC;
+      text-align: center;
+    }
+    .footer-tagline {
+      font-size: 11px;
+      color: #94A3B8;
+    }
+    .footer-tagline strong { color: #2563EB; font-weight: 800; }
+
+    /* PRINT */
+    @media print {
+      body { background: white; }
+      .page { box-shadow: none; }
+      .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .total-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .reservation-icon { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <span class="badge ${isTrip ? 'badge-violet' : 'badge-blue'}">${isTrip ? 'Trip' : 'Wanderlust'}</span>
-    <h1>${escapeHtml(trip.name)}</h1>
-    <p class="meta">${escapeHtml(dateLabel)} · ${trip.participants.length} participant${trip.participants.length === 1 ? '' : 's'}</p>
-  </div>
+  <div class="page">
+    <!-- HERO with Barry brand -->
+    <div class="hero">
+      <div class="hero-row">
+        <div class="brand">
+          <div class="brand-mark">B</div>
+          <div class="brand-name">Barry</div>
+        </div>
+        <div class="mode-pill">${isTrip ? 'Trip' : 'Wanderlust'}</div>
+      </div>
+      <h1 class="hero-title">${escHtml(trip.name)}</h1>
+      <p class="hero-meta">${dateLabel}</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-label">Crew</div>
+          <div class="hero-stat-value">${trip.participants.length}</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Transport</div>
+          <div class="hero-stat-value">${transportTotal.toFixed(0)} EUR</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Bookings</div>
+          <div class="hero-stat-value">${reservationTotal.toFixed(0)} EUR</div>
+        </div>
+      </div>
+    </div>
 
-  <h2>Participants</h2>
-  <table>
-    <thead><tr><th>Name</th><th>Origin</th><th>Transport</th><th style="text-align:right">Budget</th></tr></thead>
-    <tbody>
-      ${trip.participants.map(p => `
-        <tr>
-          <td>${escapeHtml(`${p.user?.firstName || ''} ${p.user?.lastName || ''}`.trim()) || 'Guest'}</td>
-          <td>${escapeHtml(p.originLabel || 'Not set')}</td>
-          <td>${escapeHtml(TRANSPORT_LABEL[p.transportMode] || p.transportMode)}</td>
-          <td style="text-align:right">${p.maxMoney ? p.maxMoney.toFixed(0) + ' EUR' : '—'}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  </table>
+    <!-- BODY -->
+    <div class="content">
 
-  ${transportLegs.length > 0 ? `
-  <h2>Transport plan</h2>
-  <table>
-    <thead><tr><th>Person</th><th>Mode</th><th>From</th><th style="text-align:right">Cost</th></tr></thead>
-    <tbody>
-      ${transportLegs.map(leg => {
-        const p = trip.participants.find(pp => pp.userId === leg.userId);
-        return `
-          <tr>
-            <td>${escapeHtml(p?.user?.firstName || 'Guest')}</td>
-            <td>${escapeHtml(TRANSPORT_LABEL[leg.mode] || leg.mode)}</td>
-            <td>${escapeHtml(p?.originLabel?.split(',')[0] || '')}</td>
-            <td style="text-align:right">${leg.cost ? leg.cost.toFixed(2) + ' EUR' : '—'}</td>
-          </tr>
-        `;
-      }).join('')}
-    </tbody>
-  </table>
-  ` : ''}
+      <!-- Crew -->
+      <section class="section">
+        <h2 class="section-title">The crew</h2>
+        <div class="participants">
+          ${trip.participants.map(p => `
+            <div class="participant-card">
+              ${avatarSvg(p.user || { firstName: 'Guest' }, 32)}
+              <div class="participant-info">
+                <div class="participant-name">${escHtml(`${p.user?.firstName || ''} ${p.user?.lastName || ''}`.trim()) || 'Guest'}</div>
+                <div class="participant-meta">${escHtml(TRANSPORT_LABEL[p.transportMode] || p.transportMode)}${p.maxMoney ? ' · max ' + p.maxMoney + ' EUR' : ''}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </section>
 
-  ${reservations.length > 0 ? `
-  <h2>Reservations</h2>
-  <table>
-    <thead><tr><th>Type</th><th>Description</th><th>Reference</th><th style="text-align:right">Amount</th></tr></thead>
-    <tbody>
-      ${reservations.map(r => `
-        <tr>
-          <td style="text-transform:capitalize">${escapeHtml(r.type)}</td>
-          <td>${escapeHtml(r.description)}</td>
-          <td><code style="font-size:11px;background:#F1F5F9;padding:1px 4px;border-radius:3px">${escapeHtml(r.confirmationCode || r.reference)}</code></td>
-          <td style="text-align:right">${r.amount.toFixed(2)} EUR</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  </table>
-  ` : ''}
+      ${transportLegs.length > 0 ? `
+      <!-- Transport -->
+      <section class="section">
+        <h2 class="section-title">Transport plan</h2>
+        <div style="background:white;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;">
+          ${transportLegs.map(leg => {
+            const p = trip.participants.find(pp => pp.userId === leg.userId);
+            return `
+              <div class="transport-row">
+                ${avatarSvg(p?.user || { firstName: 'G' }, 24)}
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13px;font-weight:700;">${escHtml(p?.user?.firstName || 'Guest')}</div>
+                  <div style="font-size:11px;color:#64748B;margin-top:1px;">
+                    ${escHtml(p?.originLabel?.split(',')[0] || 'Origin TBD')}
+                    ${leg.duration ? ` · ${Math.round(leg.duration / 60)} min` : ''}
+                  </div>
+                </div>
+                <span class="transport-mode-pill">${escHtml(TRANSPORT_LABEL[leg.mode] || leg.mode)}</span>
+                ${leg.cost ? `<span class="transport-cost">${leg.cost.toFixed(0)} EUR</span>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </section>
+      ` : ''}
 
-  <div style="margin-top:24px; padding:12px 0; border-top:2px solid #1E293B; display:flex; justify-content:space-between;">
-    <span style="font-weight:700">Total</span>
-    <span class="total">${totalCost.toFixed(2)} EUR</span>
-  </div>
+      ${reservations.length > 0 ? `
+      <!-- Reservations -->
+      <section class="section">
+        <h2 class="section-title">Confirmed bookings</h2>
+        ${reservations.map(r => {
+          const icon = r.type === 'venue' ?
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' :
+            r.type === 'accommodation' ?
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M3 21V8l9-4 9 4v13"/><path d="M9 21v-8h6v8"/></svg>' :
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>';
+          return `
+            <div class="reservation">
+              <div class="reservation-icon">${icon}</div>
+              <div class="reservation-content">
+                <div class="reservation-type">${escHtml(r.type)}</div>
+                <div class="reservation-desc">${escHtml(r.description)}</div>
+                <div class="reservation-code">${escHtml(r.confirmationCode || r.reference)}</div>
+              </div>
+              <div class="reservation-amount">${r.amount.toFixed(0)} EUR</div>
+            </div>
+          `;
+        }).join('')}
+      </section>
+      ` : ''}
 
-  <div class="footer">
-    Generated by Barry on ${new Date().toLocaleDateString('en-GB')} · barry.app
+      <!-- Total -->
+      <div class="total-card">
+        <span class="total-label">Total trip cost</span>
+        <span class="total-value">${totalCost.toFixed(0)} EUR</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p class="footer-tagline">
+        Made with care by <strong>Barry</strong> · Where the smart group meets · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+      </p>
+    </div>
   </div>
 
   <script>
-    window.onload = () => setTimeout(() => window.print(), 300);
+    window.onload = () => setTimeout(() => window.print(), 400);
   </script>
 </body>
 </html>`;
-}
-
-function escapeHtml(s: string): string {
-  return (s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 export function downloadPdf(ctx: ExportContext) {
