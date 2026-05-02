@@ -1235,6 +1235,7 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
         <button
           onClick={onSend}
           disabled={!input.trim()}
+          aria-label="Send message"
           className="w-8 h-8 rounded-lg bg-cyan-600 text-white flex items-center justify-center disabled:opacity-30 active:scale-95 transition"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
