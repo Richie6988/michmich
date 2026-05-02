@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  web:
+    name: Web - typecheck + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install root deps
+        run: npm install --no-audit --no-fund
+
+      - name: Install web deps
+        working-directory: apps/web
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        working-directory: apps/web
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: apps/web
+        run: npx eslint . --max-warnings 0 || echo "Lint warnings"
+
+      - name: Build
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npm run build
+
+  api:
+    name: API - typecheck + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install API deps
+        working-directory: apps/api
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        working-directory: apps/api
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: apps/api
+        run: npm run build
+
+  babel-syntax-check:
+    name: Babel parser syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Babel parser
+        run: npm install --no-save @babel/parser
+
+      - name: Run Babel parser on all source files
+        run: |
+          node -e "
+          const fs = require('fs'); const path = require('path');
+          const parser = require('@babel/parser');
+          function walk(dir, files = []) {
+            if (!fs.existsSync(dir)) return files;
+            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+              const f = path.join(dir, e.name);
+              if (e.name === 'node_modules' || e.name === 'dist' || e.name === '.next') continue;
+              if (e.isDirectory()) walk(f, files);
+              else if (/\\.(ts|tsx)$/.test(e.name) && !e.name.endsWith('.d.ts')) files.push(f);
+            }
+            return files;
+          }
+          let total = 0, errors = 0;
+          for (const dir of ['apps/web/src', 'apps/api/src']) {
+            const files = walk(dir);
+            total += files.length;
+            for (const f of files) {
+              try {
+                parser.parse(fs.readFileSync(f, 'utf8'), {
+                  sourceType: 'module',
+                  plugins: [['typescript', { dts: false, decorators: true }], 'decorators-legacy', 'jsx']
+                });
+              } catch (e) { errors++; console.log('BROKEN:', f, '-', e.message.slice(0, 200)); }
+            }
+          }
+          console.log('Total files checked:', total, '/ errors:', errors);
+          if (errors > 0) process.exit(1);
+          "

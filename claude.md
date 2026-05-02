@@ -677,7 +677,7 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: May 2, 2026 - Wave 22 (mascot opt-out + auto-PDF + archive vs delete + demo flag + chat lazy-load + Next-step CTA)*
+*Last updated: May 2, 2026 - Wave 23 (i18n hook + honest language UI + CI workflow + Playwright smoke tests)*
 *Maintained by: Claude (AI architect) + Richie (founder)*
 
 ---
