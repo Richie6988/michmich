@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
+import { useDialog } from '@/components/ui/dialog';
 import { BarryMascot, BarryMark } from '@/components/barry/brand';
 
 const AVATAR_COLORS = ['#2563EB', '#F97316', '#10B981', '#8B5CF6', '#EF4444'];
@@ -12,6 +13,7 @@ type Mode = 'wanderlust' | 'trip';
 export default function CreateTripPage() {
   const router = useRouter();
   const { createGroupTrip, isAuthenticated, currentUser, login } = useAppStore();
+  const { alert: showAlert } = useDialog();
   const [mode, setMode] = useState<Mode>('wanderlust');
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
@@ -55,11 +57,11 @@ export default function CreateTripPage() {
       if (trip && trip.id) {
         router.push(`/trips/${trip.id}` as any);
       } else {
-        alert('Could not create the trip. Please retry.');
+        showAlert({ title: 'Hmm, that did not work', body: 'Could not create the trip. Please retry.', variant: 'warning' });
       }
     } catch (err) {
       console.error('Failed to create trip:', err);
-      alert('Could not create the trip. Please retry.');
+      showAlert({ title: 'Hmm, that did not work', body: 'Could not create the trip. Please retry.', variant: 'warning' });
     }
   };
 
@@ -150,7 +152,7 @@ export default function CreateTripPage() {
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder={mode === 'wanderlust' ? 'Friday dinner, Sunday hike...' : "Weekend in Barcelona, Anna's wedding..."}
-            className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
             autoFocus
           />
         </div>
@@ -166,7 +168,7 @@ export default function CreateTripPage() {
                 type="date"
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
                 min={new Date().toISOString().slice(0, 10)}
               />
               <p className="text-[11px] text-slate-500 mt-1.5">
@@ -185,7 +187,7 @@ export default function CreateTripPage() {
                     type="date"
                     value={date}
                     onChange={e => setDate(e.target.value)}
-                    className="w-full bg-slate-50 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
                     min={new Date().toISOString().slice(0, 10)}
                   />
                 </div>
@@ -195,7 +197,7 @@ export default function CreateTripPage() {
                     type="date"
                     value={endDate}
                     onChange={e => setEndDate(e.target.value)}
-                    className="w-full bg-slate-50 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
                     min={date || new Date().toISOString().slice(0, 10)}
                   />
                 </div>
@@ -222,7 +224,7 @@ export default function CreateTripPage() {
               onChange={e => setDraftFriend(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddDraft()}
               placeholder="First name..."
-              className="flex-1 bg-slate-50 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="flex-1 bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             <button
               onClick={handleAddDraft}

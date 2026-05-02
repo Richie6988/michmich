@@ -8,6 +8,7 @@ import { BarryMascot } from '@/components/barry/brand';
 import { Avatar, AvatarStack } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
+import { useDialog } from '@/components/ui/dialog';
 import { downloadIcs, downloadPdf } from '@/lib/utils/trip-export';
 import { BarryMap } from '@/components/map/barry-map';
 import { SetupSheet } from '@/components/trip/setup-sheet';
@@ -86,6 +87,7 @@ export default function TripOverviewPage() {
   const constraintsReady = trip.participants.filter(p => p.status === 'constraints_set' || p.status === 'voted').length;
   const allReady = constraintsReady >= totalMembers;
   const isSolo = totalMembers === 1;
+  const { confirm: showConfirm } = useDialog();
 
   const messages = chats[trip.id] || [];
   const poll = datePolls[trip.id];
@@ -240,8 +242,14 @@ export default function TripOverviewPage() {
               currentUser={currentUser}
               isAdmin={isAdmin}
               onSetup={(participantId) => setSetupForParticipantId(participantId)}
-              onRemove={(participantId) => {
-                if (confirm('Remove this person from the trip?')) removeParticipant(trip.id, participantId);
+              onRemove={async (participantId) => {
+                const ok = await showConfirm({
+                  title: 'Remove this person?',
+                  body: 'They will be taken out of the trip.',
+                  variant: 'danger',
+                  confirmLabel: 'Remove',
+                });
+                if (ok) removeParticipant(trip.id, participantId);
               }}
               showAddPerson={showAddPerson}
               setShowAddPerson={setShowAddPerson}
@@ -1690,7 +1698,7 @@ function PostBookingReport({ trip, reservations, transportLegs }: any) {
                 {!p.email && (
                   <div className="flex items-start gap-1.5">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" className="flex-shrink-0 mt-1"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                    <p className="text-amber-700">No email — set one in their setup to send the report</p>
+                    <p className="text-amber-700">No email on file. Set one in their setup to send the report.</p>
                   </div>
                 )}
               </div>

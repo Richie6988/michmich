@@ -4,6 +4,7 @@ import { Inter, Manrope, JetBrains_Mono } from 'next/font/google';
 import '@/styles/globals.css';
 import { ThemeManager } from '@/components/theme/theme-manager';
 import { ToastProvider } from '@/components/ui/toast';
+import { DialogProvider } from '@/components/ui/dialog';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -24,7 +25,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Barry — Where the smart group meets.',
+  title: 'Barry. Where the smart group meets.',
   description:
     'The map app that finds the fairest meeting point for any group. No more endless debates. No more unfair commutes. Barry knows where.',
   manifest: '/manifest.json',
@@ -54,9 +55,11 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased bg-white dark:bg-slate-950 dark:text-slate-100 transition-colors">
         <ThemeManager />
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <DialogProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </DialogProvider>
       </body>
     </html>
   );

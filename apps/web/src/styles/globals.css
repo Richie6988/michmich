@@ -228,3 +228,71 @@
 .barry-toast-pop {
   animation: barry-toast-pop 0.25s ease-out;
 }
+
+/* Dialog animations */
+@keyframes barry-dialog-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes barry-dialog-pop {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.barry-dialog-fade { animation: barry-dialog-fade 0.18s ease-out; }
+.barry-dialog-pop { animation: barry-dialog-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .barry-dialog-fade, .barry-dialog-pop { animation: none !important; }
+}
+
+/* Mascot CTA wiggle on hover */
+@keyframes barry-mascot-wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  20% { transform: rotate(-6deg) scale(1.02); }
+  50% { transform: rotate(5deg) scale(1.04); }
+  80% { transform: rotate(-3deg) scale(1.02); }
+}
+.barry-mascot-wiggle { animation: barry-mascot-wiggle 0.6s ease-in-out; }
+.barry-mascot-idle { animation: barry-mascot-idle 4s ease-in-out infinite; }
+@keyframes barry-mascot-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Hellloop card animations */
+@keyframes barry-shake-msg {
+  0%, 90%, 100% { transform: translateX(0); }
+  92% { transform: translateX(-2px); }
+  94% { transform: translateX(2px); }
+  96% { transform: translateX(-1px); }
+}
+.barry-shake-msg { animation: barry-shake-msg 3s ease-in-out infinite; }
+
+@keyframes barry-tilt {
+  0%, 90%, 100% { transform: rotate(0deg); }
+  92% { transform: rotate(-8deg); }
+  96% { transform: rotate(8deg); }
+}
+.barry-tilt { animation: barry-tilt 3s ease-in-out infinite; }
+
+@keyframes barry-bounce-coin {
+  0%, 90%, 100% { transform: translateY(0); }
+  92% { transform: translateY(-3px); }
+  94% { transform: translateY(0); }
+  96% { transform: translateY(-2px); }
+}
+.barry-bounce-coin { animation: barry-bounce-coin 3s ease-in-out infinite; }
+
+/* Pulse dot */
+@keyframes barry-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+.barry-pulse { animation: barry-pulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .barry-mascot-wiggle, .barry-mascot-idle, .barry-shake-msg,
+  .barry-tilt, .barry-bounce-coin, .barry-pulse {
+    animation: none !important;
+  }
+}

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
+import { useDialog } from '@/components/ui/dialog';
 import { BarryMark, BarryMascot } from '@/components/barry/brand';
 import { Avatar, AvatarStack } from '@/components/ui/avatar';
 import { formatDateShort } from '@/lib/utils/format-date';
@@ -34,6 +35,7 @@ const STATUS_DOT: Record<string, string> = {
 function TripRow({ trip }: { trip: Trip }) {
   const router = useRouter();
   const { duplicateTrip, updateTripStatus } = useAppStore();
+  const { confirm } = useDialog();
   const [menuOpen, setMenuOpen] = useState(false);
   const date = trip.scheduledAt ? formatDateShort(trip.scheduledAt) : null;
   const href: any = `/trips/${trip.id}`;
@@ -47,22 +49,31 @@ function TripRow({ trip }: { trip: Trip }) {
     if (newTrip) router.push(`/trips/${newTrip.id}` as any);
   };
 
-  const handleFinish = (e: React.MouseEvent) => {
+  const handleFinish = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setMenuOpen(false);
-    if (confirm(`Mark "${trip.name}" as finished? It will move to Past.`)) {
-      updateTripStatus(trip.id, 'completed');
-    }
+    const ok = await confirm({
+      title: 'Mark as finished?',
+      body: `"${trip.name}" will move to your Past Barrys.`,
+      variant: 'success',
+      confirmLabel: 'Yes, finish',
+    });
+    if (ok) updateTripStatus(trip.id, 'completed');
   };
 
-  const handleCancel = (e: React.MouseEvent) => {
+  const handleCancel = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setMenuOpen(false);
-    if (confirm(`Cancel "${trip.name}"? It will move to Past.`)) {
-      updateTripStatus(trip.id, 'cancelled');
-    }
+    const ok = await confirm({
+      title: 'Cancel this Barry?',
+      body: `"${trip.name}" will be archived in Past Barrys.`,
+      variant: 'danger',
+      confirmLabel: 'Yes, cancel',
+      cancelLabel: 'Keep it',
+    });
+    if (ok) updateTripStatus(trip.id, 'cancelled');
   };
 
   return (
@@ -270,7 +281,7 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
         </h1>
         <p className="text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
           Barry is the smart way to plan with friends. He picks the fairest spot, splits the bills,
-          books your transport — and your hotel if you're going far.
+          books your transport, and your hotel if you&rsquo;re going far.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
           <Link href="/trips/new" className="inline-block">
@@ -287,36 +298,11 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
             </Link>
           )}
         </div>
-        <p className="text-[11px] text-slate-400 mt-3">No credit card · Solo or with friends · Web-based, nothing to install</p>
+        <p className="text-[11px] text-slate-400 mt-3">No credit card. Solo or with friends. Web-based, nothing to install.</p>
       </section>
 
-      {/* THE PROBLEM Barry solves */}
-      <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 mb-6">
-        <div className="text-center mb-5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600">The trip-planning hellloop</p>
-          <h2 className="font-display font-bold text-xl text-slate-900 dark:text-slate-100 mt-1">Sound familiar?</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <ProblemCard
-            iconColor="#E11D48"
-            icon={<><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></>}
-            title="Endless group chat"
-            desc='"Where should we meet?" then 47 messages then no decision.'
-          />
-          <ProblemCard
-            iconColor="#E11D48"
-            icon={<><circle cx="12" cy="10" r="3"/><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/></>}
-            title="Always the same person travels far"
-            desc="That one friend who's always stuck with the longest commute."
-          />
-          <ProblemCard
-            iconColor="#E11D48"
-            icon={<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></>}
-            title="Settling up later is awful"
-            desc='"Wait, who paid for the Airbnb? Marc still owes me 47 EUR."'
-          />
-        </div>
-      </section>
+      {/* THE TRIP-PLANNING HELLLOOP - now more visual/fun, animated cycle */}
+      <HellLoopSection />
 
       {/* WHY Barry — 3 pillars */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
@@ -340,60 +326,27 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
         />
       </section>
 
-      {/* HOW IT WORKS */}
-      <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 mb-6">
-        <h2 className="font-display font-bold text-xl text-slate-900 dark:text-slate-100 mb-1">How Barry works</h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">Four steps. No friction.</p>
-        <div className="space-y-4">
-          <BigStep n={1} color="from-blue-500 to-blue-700" title="Tell Barry what you want" desc="A Friday dinner? A weekend in Lisbon? Wanderlust or trip — pick one. Add friends." />
-          <BigStep n={2} color="from-orange-500 to-pink-600" title="Everyone's preferences" desc="Each person sets their starting point, transport mode, budget. Barry handles the math." />
-          <BigStep n={3} color="from-emerald-500 to-teal-600" title="Barry suggests, you vote" desc="Fair venue zones, hotels, restaurants, activities. You vote with thumbs. Group's pick wins." />
-          <BigStep n={4} color="from-violet-500 to-purple-700" title="Fund it, book it, enjoy it" desc="Each pays their share. Barry books it all. Tickets, maps, contacts in your inbox." />
-        </div>
-      </section>
-
-      {/* MADE FOR */}
-      <section className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-6 mb-6 relative overflow-hidden">
-        <div className="absolute -top-12 -right-12 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl" />
-        <div className="relative">
-          <h2 className="font-display font-bold text-xl mb-1">Made for…</h2>
-          <p className="text-xs text-slate-400 mb-4">Whoever's been the de facto trip organizer.</p>
-          <div className="space-y-2.5">
-            <UseCase
-              icon={<><path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z"/></>}
-              title="Friday dinners"
-              desc="Five friends, five corners of the city. Barry picks the bistro."
-            />
-            <UseCase
-              icon={<><path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8"/></>}
-              title="Weekend trips"
-              desc="Three nights in Barcelona, six people, three departure cities. Done."
-            />
-            <UseCase
-              icon={<><path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21z"/></>}
-              title="EVG / EVJF / weddings"
-              desc="The whole crew, fairly. Even Bertrand from Lille gets a fair shake."
-            />
-            <UseCase
-              icon={<><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2M16 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87"/></>}
-              title="Family reunions"
-              desc="Grandma in Brittany, brothers scattered. Meet in the middle."
-            />
-            <UseCase
-              icon={<><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></>}
-              title="Team offsites"
-              desc="Distributed teams. Barry computes the fairest hub."
-            />
-          </div>
-        </div>
-      </section>
+      {/* SUCCESS STORIES - Barry would have rocked it */}
+      <BarryRocksSection />
 
       {/* NUMBERS */}
       <section className="grid grid-cols-3 gap-3 mb-6">
         <Stat value="6 min" label="Avg setup time" />
         <Stat value="40+" label="Loyalty cards supported" />
-        <Stat value="0 €" label="To start" />
+        <Stat value="0 EUR" label="To start" />
+      </section>
+
+      {/* MOBILE/DESKTOP CTA - Barry app links */}
+      <section className="bg-gradient-to-br from-slate-100 to-blue-50 dark:from-slate-900 dark:to-slate-800 rounded-3xl p-5 mb-6 flex items-center gap-4">
+        <BarryMascot mood="default" size={56} animate={false} />
+        <div className="flex-1 min-w-0">
+          <p className="font-display font-bold text-base text-slate-900 dark:text-slate-100 leading-snug">Barry on your phone</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">Coming soon to iOS and Android.</p>
+        </div>
+        <div className="flex gap-1.5 flex-shrink-0">
+          <span className="px-2.5 py-1.5 bg-slate-200 dark:bg-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300 rounded-lg">iOS</span>
+          <span className="px-2.5 py-1.5 bg-slate-200 dark:bg-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300 rounded-lg">Android</span>
+        </div>
       </section>
 
       {/* FINAL CTA */}
@@ -421,6 +374,148 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
   );
 }
 
+/**
+ * Hellloop section — animated visual cycle of the 3 pains.
+ * Cards rotate through "step 1 -> step 2 -> step 3 -> back to start" feeling.
+ */
+function HellLoopSection() {
+  return (
+    <section className="relative bg-gradient-to-br from-rose-50 via-orange-50 to-amber-50 dark:from-rose-950/30 dark:via-orange-950/20 dark:to-amber-950/30 rounded-3xl border border-rose-100 dark:border-rose-900/40 p-6 mb-6 overflow-hidden">
+      <div className="absolute -top-8 -right-8 w-32 h-32 bg-rose-300/20 rounded-full blur-3xl" />
+      <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-orange-300/20 rounded-full blur-3xl" />
+      <div className="relative">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full shadow-sm border border-rose-200 dark:border-rose-800 mb-2">
+            <span className="w-2 h-2 bg-rose-500 rounded-full barry-pulse" />
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600">The trip-planning hellloop</p>
+          </div>
+          <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-slate-100 tracking-tight leading-tight">Sound familiar?</h2>
+        </div>
+
+        {/* Visual cycle - 3 cards with arrows between them */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2 relative">
+          <HellCard
+            n={1}
+            emoji={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E11D48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>}
+            title="47 messages"
+            quote='"Where should we meet?"'
+            anim="barry-shake-msg"
+          />
+          <HellCard
+            n={2}
+            emoji={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E11D48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="10" r="3"/><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/></svg>}
+            title="Same friend, longest commute"
+            quote='"Marc, you live closest, you pick."'
+            anim="barry-tilt"
+          />
+          <HellCard
+            n={3}
+            emoji={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E11D48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>}
+            title="Settling up sucks"
+            quote='"Marc still owes me 47 EUR."'
+            anim="barry-bounce-coin"
+          />
+        </div>
+
+        {/* The escape hatch */}
+        <div className="mt-6 flex items-center gap-3 bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-md border-2 border-emerald-200 dark:border-emerald-900/60">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0 shadow-md">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.6" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-bold text-sm text-slate-900 dark:text-slate-100">Barry breaks the loop in 6 minutes.</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Setup once, decide together, settle automatically.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HellCard({ n, emoji, title, quote, anim }: { n: number; emoji: React.ReactNode; title: string; quote: string; anim: string }) {
+  return (
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-sm border border-rose-100 dark:border-rose-900/40">
+      <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-rose-500 text-white text-[11px] font-extrabold flex items-center justify-center shadow-md">
+        {n}
+      </div>
+      <div className={`w-10 h-10 mx-auto rounded-xl bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center mb-2 ${anim}`}>
+        {emoji}
+      </div>
+      <p className="font-bold text-[13px] text-slate-900 dark:text-slate-100 text-center leading-snug">{title}</p>
+      <p className="text-[11px] text-rose-600 dark:text-rose-400 text-center italic mt-1 font-medium">{quote}</p>
+    </div>
+  );
+}
+
+/**
+ * BarryRocksSection — concrete success scenarios where Barry would crush it.
+ * Shows actual outcome ("Barry would have...") instead of a generic "Made for X" list.
+ */
+function BarryRocksSection() {
+  return (
+    <section className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 text-white rounded-3xl p-6 mb-6 relative overflow-hidden">
+      <div className="absolute -top-12 -right-12 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl" />
+      <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl" />
+      <div className="relative">
+        <div className="flex items-start gap-3 mb-5">
+          <BarryMascot mood="happy" size={56} animate={false} />
+          <div className="flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Real scenarios</p>
+            <h2 className="font-display font-extrabold text-2xl tracking-tight">Barry would have rocked it</h2>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <RockCase
+            scenario="Friday dinner, 5 friends, 5 metro lines."
+            outcome="Barry picks the bistro at the fair midpoint near Bastille. 6 minutes, 0 group chat."
+            icon={<><path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z"/></>}
+          />
+          <RockCase
+            scenario="Weekend in Barcelona, 6 friends, 3 departure cities."
+            outcome="Barry finds the cheapest combined trains, splits the Airbnb evenly, books everything in 12 minutes."
+            icon={<><path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8"/></>}
+          />
+          <RockCase
+            scenario="Cousin's bachelorette, 12 girls, scattered across France."
+            outcome="Barry handles the polling, picks the venue with the lowest average commute, splits the dinner. No spreadsheet."
+            icon={<><path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21z"/></>}
+          />
+          <RockCase
+            scenario="Family reunion, grandma in Brittany, brothers in 4 cities."
+            outcome="Barry computes the fairest hub for everyone. Train tickets booked, hotel split, grandma's place mapped."
+            icon={<><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></>}
+          />
+          <RockCase
+            scenario="Team offsite, distributed remote crew."
+            outcome="Barry computes the geographic centroid, pre-vetted hotels, books the conference room. Decision in 8 minutes."
+            icon={<><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></>}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RockCase({ scenario, outcome, icon }: { scenario: string; outcome: string; icon: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 bg-white/5 hover:bg-white/10 transition-colors rounded-xl p-3 backdrop-blur-sm border border-white/5">
+      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/40 to-indigo-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {icon}
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-sm text-white leading-snug">{scenario}</p>
+        <div className="flex items-start gap-1.5 mt-1.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2.5" strokeLinecap="round" className="mt-0.5 flex-shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
+          <p className="text-[12px] text-emerald-300 leading-snug">{outcome}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PillarCard({ color, icon, title, subtitle }: { color: string; icon: React.ReactNode; title: string; subtitle: string }) {
   const bg: any = { blue: 'bg-blue-50 dark:bg-blue-950', orange: 'bg-orange-50', emerald: 'bg-emerald-50' };
   const fg: any = { blue: '#2563EB', orange: '#F97316', emerald: '#10B981' };
@@ -433,50 +528,6 @@ function PillarCard({ color, icon, title, subtitle }: { color: string; icon: Rea
       </div>
       <h3 className="font-display font-bold text-sm text-slate-900 dark:text-slate-100 mb-1">{title}</h3>
       <p className="text-xs text-slate-600 dark:text-slate-400 leading-snug">{subtitle}</p>
-    </div>
-  );
-}
-
-function ProblemCard({ iconColor, icon, title, desc }: { iconColor: string; icon: React.ReactNode; title: string; desc: string }) {
-  return (
-    <div className="bg-rose-50 rounded-2xl p-3 text-center">
-      <div className="w-10 h-10 mx-auto rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center mb-2 shadow-sm">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          {icon}
-        </svg>
-      </div>
-      <p className="font-bold text-[13px] text-slate-900 dark:text-slate-100 mb-1">{title}</p>
-      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">{desc}</p>
-    </div>
-  );
-}
-
-function BigStep({ n, color, title, desc }: { n: number; color: string; title: string; desc: string }) {
-  return (
-    <div className="flex gap-3">
-      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${color} text-white font-extrabold text-sm flex items-center justify-center flex-shrink-0 shadow-md`}>
-        {n}
-      </div>
-      <div className="flex-1 pt-0.5">
-        <p className="font-bold text-sm text-slate-900 dark:text-slate-100 mb-0.5">{title}</p>
-        <p className="text-xs text-slate-600 dark:text-slate-400 leading-snug">{desc}</p>
-      </div>
-    </div>
-  );
-}
-
-function UseCase({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
-  return (
-    <div className="flex items-start gap-3 bg-white dark:bg-slate-900/5 rounded-xl px-3 py-2.5 backdrop-blur-sm">
-      <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900/10 flex items-center justify-center flex-shrink-0">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          {icon}
-        </svg>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-bold text-sm">{title}</p>
-        <p className="text-xs text-slate-300 leading-snug">{desc}</p>
-      </div>
     </div>
   );
 }
@@ -510,28 +561,7 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
         </div>
       </div>
 
-      <Link href="/trips/new" className="block group mb-6">
-        <div className="relative overflow-hidden bg-gradient-to-br from-barry-blue to-blue-700 text-white rounded-3xl p-5 shadow-xl shadow-blue-500/20 hover:shadow-2xl active:scale-[0.99] transition-all">
-          <div className="absolute -top-12 -right-12 w-40 h-40 bg-white dark:bg-slate-900/10 rounded-full blur-2xl" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white dark:bg-slate-900/5 rounded-full blur-2xl" />
-          <div className="relative flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-display font-extrabold text-xl tracking-tight">New Barry</p>
-                <p className="text-xs text-white/80 mt-0.5">Wanderlust or trip — your call</p>
-              </div>
-            </div>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" className="opacity-80 group-hover:translate-x-1 transition-transform">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </div>
-        </div>
-      </Link>
+      <MascotCTA />
 
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-3">
         <button
@@ -578,5 +608,50 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * MascotCTA — replaces the big "+ New Barry" tile with a friendly mascot
+ * floating in a speech bubble asking if you need help. Click anywhere on it
+ * to start a new Barry. The mascot wiggles to draw attention.
+ */
+function MascotCTA() {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Link href="/trips/new" className="block group mb-6">
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className="relative bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 rounded-3xl p-5 border border-blue-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl active:scale-[0.99] transition-all overflow-hidden"
+      >
+        {/* Decorative blur circles */}
+        <div className="absolute -top-8 -right-8 w-32 h-32 bg-blue-200 dark:bg-blue-900/40 rounded-full blur-3xl opacity-60" />
+        <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-indigo-200 dark:bg-indigo-900/40 rounded-full blur-3xl opacity-50" />
+
+        <div className="relative flex items-center gap-4">
+          <div className={hovered ? 'barry-mascot-wiggle' : 'barry-mascot-idle'}>
+            <BarryMascot mood="happy" size={68} animate={false} />
+          </div>
+          <div className="flex-1 min-w-0">
+            {/* Speech bubble effect */}
+            <div className="relative inline-block">
+              <p className="font-display font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100 leading-tight">
+                Need help planning something?
+              </p>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-snug">
+                Tap me, I&rsquo;ll set up your next Barry.
+              </p>
+            </div>
+            <div className="flex items-center gap-1 mt-2 text-barry-blue text-xs font-bold">
+              <span>Let&rsquo;s go</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="group-hover:translate-x-1 transition-transform">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }

@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
+import { useDialog } from '@/components/ui/dialog';
 import { BarryMark } from '@/components/barry/brand';
 import { Avatar } from '@/components/ui/avatar';
 import { CARD_PROVIDERS } from '@/lib/data/reduction-cards';
@@ -37,15 +38,16 @@ export default function ProfilePage() {
   const [showHistory, setShowHistory] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const { updateCurrentUser } = useAppStore();
+  const { alert: showAlert, confirm: showConfirm } = useDialog();
 
   const handleAvatarUpload = (file: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('Please choose an image file.');
+      showAlert({ title: 'Wrong file type', body: 'Please choose an image file.', variant: 'warning' });
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image too large. Pick something under 5 MB.');
+      showAlert({ title: 'Too big', body: 'Image too large. Pick something under 5 MB.', variant: 'warning' });
       return;
     }
     const reader = new FileReader();
@@ -218,7 +220,7 @@ export default function ProfilePage() {
                         updatePreferences({ homeLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
                         setOpenSection(null);
                       },
-                      () => alert('Location permission denied')
+                      () => showAlert({ title: 'Location denied', body: 'Allow location access in your browser to autofill your home address.', variant: 'warning' })
                     );
                   }
                 }}
@@ -405,7 +407,15 @@ export default function ProfilePage() {
                       </button>
                     )}
                     <button
-                      onClick={() => { if (confirm('Remove this payment method?')) removePaymentMethod(pm.id); }}
+                      onClick={async () => {
+                        const ok = await showConfirm({
+                          title: 'Remove payment method?',
+                          body: 'You can add it back any time.',
+                          variant: 'danger',
+                          confirmLabel: 'Remove',
+                        });
+                        if (ok) removePaymentMethod(pm.id);
+                      }}
                       className="w-7 h-7 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-colors"
                       aria-label="Remove"
                     >
@@ -456,33 +466,6 @@ export default function ProfilePage() {
         <p className="text-center text-[10px] text-slate-400 mt-6">
           Barry v0.1 · Prototype · Made in Paris
         </p>
-
-        {/* Dev tools */}
-        <div className="mt-4">
-          <details className="bg-slate-50 dark:bg-slate-900 rounded-xl">
-            <summary className="px-3 py-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-700 dark:text-slate-300">
-              Developer options
-            </summary>
-            <div className="p-3 space-y-2">
-              <button
-                onClick={() => {
-                  if (confirm('Reset all balance and payment data? This will reload the page.')) {
-                    if (typeof window !== 'undefined') {
-                      window.localStorage.removeItem('barry-app-state');
-                      window.location.reload();
-                    }
-                  }
-                }}
-                className="w-full text-xs font-medium text-rose-600 py-2 rounded-lg hover:bg-rose-50 transition-colors"
-              >
-                Reset balance + payment data
-              </button>
-              <p className="text-[10px] text-slate-400 leading-snug px-1">
-                Clears persisted data only. Trip data resets on every reload anyway.
-              </p>
-            </div>
-          </details>
-        </div>
       </main>
 
       {showAddCard && (

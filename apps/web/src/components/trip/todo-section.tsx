@@ -114,7 +114,7 @@ export function TodoSection({ tripId, participants, currentUserId }: TodoSection
 
       {/* Tasks list */}
       {tripTasks.length === 0 ? (
-        <p className="text-xs text-slate-400 text-center py-4">No tasks yet. The group can add anything that needs doing — bring pillows, buy food, book a table…</p>
+        <p className="text-xs text-slate-400 text-center py-4">No tasks yet. The group can add anything that needs doing: bring pillows, buy food, book a table.</p>
       ) : (
         <div className="space-y-1">
           {tripTasks
