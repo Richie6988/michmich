@@ -307,7 +307,7 @@ export function SetupSheet({ tripId, participantId, onClose }: {
           {/* Transport mode */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Transport</label>
-            <div className="grid grid-cols-6 gap-1">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-1">
               {TRANSPORT_OPTIONS.map(opt => {
                 const selected = mode === opt.value;
                 return (

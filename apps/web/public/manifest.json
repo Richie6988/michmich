@@ -1,16 +1,36 @@
 {
-  "name": "Barry",
+  "name": "Barry. Where the smart group meets.",
   "short_name": "Barry",
-  "description": "Find the fairest meeting point for your group",
+  "description": "Plan with friends. Barry picks the fairest spot, splits the bills, books transport.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#FAFAFA",
   "theme_color": "#2563EB",
+  "categories": ["lifestyle", "social", "travel"],
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Barry",
+      "short_name": "New",
+      "description": "Create a new trip plan",
+      "url": "/trips/new",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "My trips",
+      "short_name": "Trips",
+      "description": "See ongoing and past Barrys",
+      "url": "/",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
     }
   ]
 }

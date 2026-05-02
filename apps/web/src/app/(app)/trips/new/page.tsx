@@ -12,7 +12,7 @@ type Mode = 'wanderlust' | 'trip';
 
 export default function CreateTripPage() {
   const router = useRouter();
-  const { createGroupTrip, isAuthenticated, currentUser, login } = useAppStore();
+  const { createGroupTrip, isAuthenticated, currentUser } = useAppStore();
   const { alert: showAlert } = useDialog();
   const [mode, setMode] = useState<Mode>('wanderlust');
   const [name, setName] = useState('');
@@ -21,10 +21,12 @@ export default function CreateTripPage() {
   const [invites, setInvites] = useState<string[]>([]);
   const [draftFriend, setDraftFriend] = useState('');
 
-  // Defensive: if no current user, fall back to demo user (prevents crash)
+  // Auth guard: redirect to login if not authenticated
   useEffect(() => {
-    if (!currentUser) login('chloe@example.com');
-  }, [currentUser, login]);
+    if (!isAuthenticated || !currentUser) {
+      router.replace('/login?redirect=/trips/new' as any);
+    }
+  }, [isAuthenticated, currentUser, router]);
 
   const canCreate = name.trim().length >= 2 && (mode === 'wanderlust' ? true : (date && endDate)) && !!currentUser;
   const friendCount = invites.filter(n => n.trim()).length;

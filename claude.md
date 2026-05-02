@@ -645,7 +645,8 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 
 | Commit | Wave | Highlights |
 |---|---|---|
-| upcoming | 15 | Wanderlust UX dropped (renamed One day / Multi-day, internal value preserved); owner-toggled trip components (hotel/restaurant/activities/car) gating picks sections; chat search + relative timestamps; right-click prevented in trips/new; animated mascot |
+| upcoming | 16 | Real auth (email validation, password strength meter, show/hide password, OAuth UI for Google/Apple, email verify step, no more auto-Chloé login), responsive overhaul (PWA manifest with shortcuts, viewport pinch-zoom restored, transport grid 3-cols mobile, safe-area insets, mobile app strategy abandoned in favor of PWA), TripProgress redesign (circular percent + active step) |
+| 84e23d1 | 15 | Wanderlust UX dropped (renamed One day / Multi-day, internal value preserved); owner-toggled trip components (hotel/restaurant/activities/car) gating picks sections; chat search + relative timestamps; right-click prevented in trips/new; animated mascot |
 | cf5b115 | 14 | Branded modals + homepage redesign (HellLoop animations + BarryRocks scenarios) + MascotCTA + em-dash purge + dev-options removed + grey-on-grey input fix in trips/new |
 | upcoming | 13-backend | Full NestJS backend: 18 TypeORM entities, 8 modules, ~50 endpoints, JWT auth, WebSocket gateway, initial migration, web client API wrapper |
 | upcoming | 12-bugfix | Hooks rule fix in FundsCard, single-line transport (6 cols), date poll re-shuffling fix, sticky TripProgress, phase-coded ChronoSection, fund visible after transport, branded PDF export, fixed map edge arrows + distance hover |
@@ -676,7 +677,7 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: May 1, 2026 - Wave 15 (Wanderlust UX retired, owner activates trip components, chat search + timestamps)*
+*Last updated: May 1, 2026 - Wave 16 (real auth + responsive overhaul + PWA + mobile app strategy abandoned)*
 *Maintained by: Claude (AI architect) + Richie (founder)*
 
 ---
@@ -818,3 +819,109 @@ Default values when not yet toggled:
 `onContextMenu={(e) => e.preventDefault()}` on `<main>` to keep the create
 flow distraction-free. Mascot wrapped in `barry-mascot-idle` class for the
 gentle bob animation.
+
+---
+
+## 18. STRATEGY UPDATE: Web-only, PWA-first (Wave 16)
+
+**Decision** (founder, May 2026): Drop the React Native mobile app entirely
+for cost reasons. Strategy is now web-only, with strong PWA support so users
+can "Add to Home Screen" on iOS/Android and get an app-like experience without
+the maintenance and App Store / Play Store costs.
+
+### What changed
+- All mobile-app teaser copy removed from landing page
+- Replaced "Barry on your phone (coming soon iOS/Android)" with
+  "Works on every screen — phone, tablet, laptop. Add to your home screen."
+- Tagline updated to emphasize web-everywhere
+- `apps/mobile/` Expo project remains in repo but is no longer maintained;
+  do not invest more time there. Web responsive parity is the priority.
+
+### PWA improvements
+- `apps/web/public/manifest.json` upgraded:
+  * Full description with marketing tagline
+  * `categories: ['lifestyle', 'social', 'travel']`
+  * `orientation: portrait-primary`
+  * Maskable icon support
+  * App shortcuts (right-click on installed PWA): "New Barry" + "My trips"
+- Viewport meta now allows pinch-zoom (was `maximumScale: 1` — accessibility
+  violation per WCAG 2.1 SC 1.4.4). Now `maximumScale: 5, userScalable: true`.
+
+### Responsive overhaul
+New `apps/web/src/styles/globals.css` block:
+- `html, body { overflow-x: hidden }` to prevent horizontal scroll on phones
+- iOS form input zoom-in fix: `font-size: max(16px, 1rem)` on inputs at < 640px
+  (Safari zooms to inputs with smaller font)
+- `barry-safe-bottom` class: `padding-bottom: max(16px, env(safe-area-inset-bottom))`
+  for notched phones (iPhone X+, modern Android)
+- `barry-safe-top` for status bar
+- `barry-tablet-grid-2` for 2-column tablet layouts
+- `barry-desktop-side` for `xl: 1280px+` side-by-side trip layouts (1fr 360px)
+- `barry-no-scrollbar` clean horizontal scroll lists
+
+Layout fixes:
+- Transport grid in setup-sheet: `grid-cols-3 sm:grid-cols-6` (was 6 cols
+  on phone, too tight at ~52px per cell)
+- Constraints page transport: `grid-cols-3 sm:grid-cols-5`
+- Trip layout main: `max-w-2xl xl:max-w-3xl` (wider on desktop) +
+  `barry-safe-bottom` for safe-area
+
+### TripProgress redesign (req 22)
+Visual upgrade: circular SVG percent indicator on the left, active step name
+on the right, segmented bar at the bottom. The segmented bar uses
+`bg-emerald-500` for done, `bg-amber-400 barry-pulse` for active,
+`bg-slate-200` for pending.
+
+## 19. AUTH IMPLEMENTATION (Wave 16)
+
+### What works now
+- **Email validation**: regex check `[^\s@]+@[^\s@]+\.[^\s@]+`. Border turns
+  red on bad email, emerald on valid email. Inline error messages.
+- **Password strength meter** (signup only): 4-segment bar, scores 0-4 based
+  on length, case mix, numbers, symbols. Labels: Too short / Weak / Fair /
+  Good / Strong. Helper text suggests what to add.
+- **Show/hide password**: eye-icon toggle inside the password input
+- **Real verification** against `barry-credentials` localStorage map:
+  `verifyPassword(email, password)` returns true on match. Demo accounts
+  (`chloe@example.com`, `tom@example.com`, `marc@example.com`) accept any
+  password >= 6 chars. Real signups have a base64-encoded password+salt.
+- **Forgot password**: `sendPasswordReset(email)` always returns true
+  (anti-enumeration), tracks last 10 requests in `barry-reset-requests`.
+- **Email verify step**: after signup, user enters a 6-digit code. In dev,
+  any 6-digit code works. Real flow would call `POST /auth/verify-email`.
+- **OAuth buttons**: Google + Apple buttons with proper logos. Currently
+  show an info dialog "OAuth coming soon"; in production they redirect to
+  `/api/v1/auth/google` and `/auth/apple` routes (backend has the
+  `googleId`/`appleId` columns ready on User entity).
+- **Loading state**: spinner + "Working..." text on submit button while
+  pending. Button disabled during submit.
+- **Field-level error display**: each input shows its own error in rose-600
+  text underneath. Errors clear on input change.
+
+### Default-Chloe bug fixed
+- Was: `currentUser: MOCK_USERS[0], isAuthenticated: true` in initial state
+- Now: `currentUser: null, isAuthenticated: false` — login flow is reachable
+- Migration v4 -> v5: existing chloe@example.com sessions are cleared so
+  users land on the login page once
+- `apps/web/src/app/(app)/trips/new/page.tsx` now redirects to
+  `/login?redirect=/trips/new` if not authenticated (was: silent fallback
+  to chloe@example.com)
+
+### What's still in place from backend (Wave 13)
+- Real `/api/v1/auth/signup` and `/auth/login` endpoints exist with Argon2
+- JWT strategy with Passport
+- `googleId` / `appleId` columns on User entity
+- `JwtAuthGuard` + `@CurrentUser()` decorator
+- The frontend auth currently uses local Zustand state + base64 mock hashing.
+  Switching to real backend auth means: replace `verifyPassword` with
+  `api.auth.login()`, replace `signup` with `api.auth.signup()`. The wrapper
+  already exists at `apps/web/src/lib/api/backend.ts`.
+
+### What's still NOT done
+- Real OAuth flows wired (UI buttons show coming-soon dialog)
+- Real email verification (any 6-digit code works in dev)
+- Rate limiting on /auth/login (NestJS `@nestjs/throttler` not installed yet)
+- Password reset email actually sent (mock only — no SMTP wired)
+- 2FA / MFA
+- Magic link sign-in
+- Biometric on PWA (WebAuthn) — explore later

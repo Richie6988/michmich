@@ -298,7 +298,7 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
             </Link>
           )}
         </div>
-        <p className="text-[11px] text-slate-400 mt-3">No credit card. Solo or with friends. Web-based, nothing to install.</p>
+        <p className="text-[11px] text-slate-400 mt-3">No credit card. Solo or with friends. Works on phone, tablet, laptop.</p>
       </section>
 
       {/* THE TRIP-PLANNING HELLLOOP - now more visual/fun, animated cycle */}
@@ -336,16 +336,24 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
         <Stat value="0 EUR" label="To start" />
       </section>
 
-      {/* MOBILE/DESKTOP CTA - Barry app links */}
+      {/* WORKS EVERYWHERE — phone, tablet, laptop */}
       <section className="bg-gradient-to-br from-slate-100 to-blue-50 dark:from-slate-900 dark:to-slate-800 rounded-3xl p-5 mb-6 flex items-center gap-4">
         <BarryMascot mood="default" size={56} animate={false} />
         <div className="flex-1 min-w-0">
-          <p className="font-display font-bold text-base text-slate-900 dark:text-slate-100 leading-snug">Barry on your phone</p>
-          <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">Coming soon to iOS and Android.</p>
+          <p className="font-display font-bold text-base text-slate-900 dark:text-slate-100 leading-snug">Works on every screen</p>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">Phone, tablet, laptop. No download. Add to your home screen for one-tap access.</p>
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
-          <span className="px-2.5 py-1.5 bg-slate-200 dark:bg-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300 rounded-lg">iOS</span>
-          <span className="px-2.5 py-1.5 bg-slate-200 dark:bg-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-300 rounded-lg">Android</span>
+          <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center shadow-sm">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center shadow-sm">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
+            </svg>
+          </div>
         </div>
       </section>
 

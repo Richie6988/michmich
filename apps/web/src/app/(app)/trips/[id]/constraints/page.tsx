@@ -111,7 +111,7 @@ export default function ConstraintsPage() {
       {/* Transport */}
       <Card>
         <Label icon="route">How will you travel</Label>
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
           {MODES.map(m => {
             const selected = mode === m.value;
             return (

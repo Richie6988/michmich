@@ -118,7 +118,7 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
 
-      <main id="trip-main" className="max-w-2xl mx-auto pb-24 relative">
+      <main id="trip-main" className="max-w-2xl xl:max-w-3xl mx-auto pb-24 barry-safe-bottom relative">
         {children}
       </main>
 

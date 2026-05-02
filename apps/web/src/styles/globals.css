@@ -296,3 +296,67 @@
     animation: none !important;
   }
 }
+
+/* ============================================================
+   Responsive helpers — phones, tablets, desktops
+   Targets: 360px+ (small phone), 768px+ (tablet), 1024px+ (desktop)
+   ============================================================ */
+
+/* Prevent horizontal overflow on small viewports */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Touch-friendly tap targets — WCAG min 44px */
+button, [role="button"], a {
+  min-height: 36px;
+}
+button[class*="w-6"], button[class*="w-7"], button[class*="w-8"] {
+  /* Override for small icon buttons but ensure padding hit-area */
+  min-height: auto;
+}
+
+/* iOS form input zoom-in fix: 16px font on inputs prevents zoom */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: max(16px, 1rem);
+  }
+}
+
+/* Safe-area insets for notched phones (iPhone X+, modern Android) */
+@supports (padding: max(0px)) {
+  .barry-safe-bottom {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .barry-safe-top {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+}
+
+/* Tablet-specific tweaks (768px to 1024px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .barry-tablet-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
+
+/* Desktop side-by-side layout for trip overview (xl: 1280px+) */
+@media (min-width: 1280px) {
+  .barry-desktop-side {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+    align-items: start;
+  }
+}
+
+/* Hide scrollbars cleanly on horizontal scroll lists */
+.barry-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.barry-no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
