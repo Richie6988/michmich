@@ -225,6 +225,34 @@ export default function TripOverviewPage() {
       {/* Top KPI: Progress bar across milestones - STICKY so visible on scroll (req 21: redundant recap section removed - title is in layout above) */}
       <div className="sticky top-14 z-20 mb-5 -mx-4 px-4 pb-1 pt-2 bg-gradient-to-b from-white via-white to-white/95 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950/95 backdrop-blur-md">
         <TripProgress steps={progressSteps} />
+        {/* "Jump to current step" CTA - clicking scrolls to the active section (CRITICAL_REVIEW UX gap 6) */}
+        {(() => {
+          const activeStep = progressSteps.find(s => s.status === 'active');
+          if (!activeStep) return null;
+          const targetId: Record<string, string> = {
+            setup: 'chrono-setup',
+            zone: 'chrono-pick-zone',
+            venue: 'chrono-picks',
+            booked: 'chrono-validate-fund',
+          };
+          const target = targetId[activeStep.id];
+          if (!target) return null;
+          return (
+            <button
+              onClick={() => {
+                const el = document.getElementById(target);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="mt-1.5 w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors group"
+            >
+              <span className="text-[9px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-300">Next</span>
+              <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 truncate flex-1">{activeStep.label}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" className="text-blue-600 dark:text-blue-300 group-hover:translate-y-0.5 transition-transform">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          );
+        })()}
       </div>
 
       {/* CHRONO LINE WRAPPER — vertical line connecting sections */}
@@ -485,10 +513,12 @@ function ChronoSection({
   phase = 'before',
   label,
   children,
+  id,
 }: {
   phase?: 'before' | 'during' | 'after';
   label: string;
   children: React.ReactNode;
+  id?: string;
 }) {
   const styles: Record<string, { dot: string; ring: string; pill: string }> = {
     before: { dot: 'bg-blue-500', ring: 'ring-blue-100 dark:ring-blue-900/40', pill: 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
@@ -496,8 +526,10 @@ function ChronoSection({
     after: { dot: 'bg-slate-500', ring: 'ring-slate-200 dark:ring-slate-700', pill: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
   };
   const s = styles[phase];
+  // Slug from label for stable scroll target if id not explicitly set
+  const sectionId = id || `chrono-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
   return (
-    <section className="relative pl-10">
+    <section id={sectionId} className="relative pl-10 scroll-mt-24">
       {/* Phase dot on the line */}
       <div className={`absolute left-0 top-1 w-6 h-6 rounded-full ${s.dot} text-white flex items-center justify-center shadow-md z-10 border-2 border-white dark:border-slate-950 ring-4 ${s.ring}`}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
@@ -506,7 +538,7 @@ function ChronoSection({
       </div>
       {/* Phase pill above the section title */}
       <div className={`inline-block text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mb-2 ${s.pill}`}>
-        {phase} · {label}
+        {phase} - {label}
       </div>
       {children}
     </section>
@@ -2179,7 +2211,7 @@ function PostBookingReport({ trip, reservations, transportLegs }: any) {
 
 
 function FundsCard({ tripId, fundsRequest }: { tripId: string; fundsRequest: any }) {
-  const { createFundsRequest, payFundsContribution, currentUser, inAppBalance, performBookings, trips } = useAppStore();
+  const { createFundsRequest, payFundsContribution, currentUser, inAppBalance, performBookings, trips, transportLegs, reservations } = useAppStore();
   const { push: pushToast } = useToast();
   const [confirmPayId, setConfirmPayId] = useState<string | null>(null);
   const lastMilestoneRef = React.useRef<number>(0);
@@ -2202,7 +2234,7 @@ function FundsCard({ tripId, fundsRequest }: { tripId: string; fundsRequest: any
     }
   }, [tripId]);
 
-  // Auto-trigger booking when complete + fire booking confirmed toast
+  // Auto-trigger booking + auto-PDF + auto-toast when funding complete (CRITICAL_REVIEW UX gap 8)
   useEffect(() => {
     if (allDone && fundsRequest && fundsRequest.status !== 'complete' && !lastBookedRef.current) {
       lastBookedRef.current = true;
@@ -2213,11 +2245,25 @@ function FundsCard({ tripId, fundsRequest }: { tripId: string; fundsRequest: any
           id: `book-${Date.now()}`,
           type: 'booking_confirmed',
           title: `Booked! ${trip.name}`,
-          body: 'Reservations confirmed. Check your report.',
+          body: 'Reservations confirmed. Your PDF receipt is downloading.',
           tripId,
           url: `/trips/${tripId}`,
           timestamp: Date.now(),
         });
+        // Auto-download PDF receipt - works offline once on disk
+        try {
+          // Wait one tick so the booking state updates first
+          setTimeout(() => {
+            const tripReservations = reservations[tripId] || [];
+            const tripLegs = transportLegs[tripId] || [];
+            downloadPdf({
+              trip,
+              reservations: tripReservations,
+              transportLegs: tripLegs,
+              totalCost: totalAmount,
+            });
+          }, 800);
+        } catch { /* ignore PDF errors - the toast still informed the user */ }
       }
     }
   }, [allDone, fundsRequest?.status, tripId]);

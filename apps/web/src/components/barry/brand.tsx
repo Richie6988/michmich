@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useAppStore } from '@/stores/app-store';
 
 /* ================================================================
    Barry Brand System
@@ -17,6 +18,10 @@ export type BarryMood = 'default' | 'happy' | 'thinking' | 'celebrating' | 'sear
 /**
  * Barry Mascot — Premium location-pin character.
  * Professional quality: layered gradients, soft shadows, refined expressions.
+ *
+ * Honors the user's preferences.mascotEnabled setting (CRITICAL_REVIEW C.4).
+ * When mascotEnabled === false (B2B / professional mode), renders a small,
+ * neutral location-pin glyph instead of the full character.
  */
 export function BarryMascot({
   mood = 'default',
@@ -29,8 +34,31 @@ export function BarryMascot({
   className?: string;
   animate?: boolean;
 }) {
+  const mascotEnabled = useAppStore(s => s.preferences?.mascotEnabled !== false);
   const uid = React.useId().replace(/:/g, '');
   const anim = animate ? 'animate-barry-bounce' : '';
+
+  // Professional mode: simple location pin, no character
+  if (!mascotEnabled) {
+    return (
+      <svg
+        width={size}
+        height={size * 1.15}
+        viewBox="0 0 120 138"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+        role="img"
+        aria-label="Location"
+      >
+        <path
+          d="M60 12c-22 0-40 18-40 40 0 30 40 70 40 70s40-40 40-70c0-22-18-40-40-40z"
+          fill="#2563EB"
+        />
+        <circle cx="60" cy="52" r="14" fill="white" />
+      </svg>
+    );
+  }
 
   return (
     <svg

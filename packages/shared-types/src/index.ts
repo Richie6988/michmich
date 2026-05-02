@@ -121,6 +121,8 @@ export interface Trip {
   participants: Participant[];
   equityZones?: EquityZone[];
   selectedVenueId: string | null;
+  /** ISO timestamp when archived (hidden from main list). Different from delete - data preserved. */
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

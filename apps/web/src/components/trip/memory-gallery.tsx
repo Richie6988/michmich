@@ -80,7 +80,7 @@ export function MemoryGallery({ tripId }: MemoryGalleryProps) {
       {/* Pending preview before upload */}
       {pendingImage && (
         <div className="mb-3 bg-slate-50 rounded-xl overflow-hidden">
-          <img src={pendingImage} alt="Preview" className="w-full h-48 object-cover" />
+          <img src={pendingImage} alt="Preview" loading="lazy" decoding="async" className="w-full h-48 object-cover" />
           <div className="p-3 space-y-2">
             <input
               type="text"
@@ -134,7 +134,7 @@ export function MemoryGallery({ tripId }: MemoryGalleryProps) {
                 onClick={() => setZoomedPhotoId(photo.id)}
                 className="relative aspect-square rounded-lg overflow-hidden bg-slate-100 hover:opacity-90 active:scale-95 transition-all group"
               >
-                <img src={photo.imageUrl} alt={photo.caption || 'memory'} className="w-full h-full object-cover" />
+                <img src={photo.imageUrl} alt={photo.caption || 'memory'} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 {photo.caption && (
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
                     <p className="text-[9px] text-white font-medium line-clamp-1">{photo.caption}</p>
@@ -185,7 +185,7 @@ export function MemoryGallery({ tripId }: MemoryGalleryProps) {
             </button>
           )}
           <div className="max-w-3xl w-full" onClick={e => e.stopPropagation()}>
-            <img src={zoomedPhoto.imageUrl} alt={zoomedPhoto.caption || 'memory'} className="w-full max-h-[70vh] object-contain rounded-xl" />
+            <img src={zoomedPhoto.imageUrl} alt={zoomedPhoto.caption || 'memory'} loading="eager" decoding="async" className="w-full max-h-[70vh] object-contain rounded-xl" />
             {zoomedPhoto.caption && (
               <p className="text-white text-center mt-3 font-medium">{zoomedPhoto.caption}</p>
             )}

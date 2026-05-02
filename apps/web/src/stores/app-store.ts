@@ -259,6 +259,12 @@ interface AppState {
     endDate?: string,
   ) => Trip;
   updateTripStatus: (tripId: string, status: Trip['status']) => void;
+  /** Hide trip from main list. Different from delete: preserves data. */
+  archiveTrip: (tripId: string) => void;
+  /** Restore an archived trip back to active list. */
+  unarchiveTrip: (tripId: string) => void;
+  /** Permanently delete a trip and all associated data. Irreversible. */
+  deleteTrip: (tripId: string) => void;
   addParticipantByName: (tripId: string, name: string) => void;
   removeParticipant: (tripId: string, participantId: string) => void;
   updateParticipantConstraints: (tripId: string, userId: string, patch: {
@@ -380,6 +386,20 @@ interface AppState {
 // Re-import for use in actions
 type Settlement = ReturnType<typeof computeSettlements>[number];
 
+/**
+ * Demo mode: when NEXT_PUBLIC_DEMO_MODE=true (or unset for backward-compat
+ * during the demo phase), pre-populate the store with MOCK_USERS, MOCK_TRIPS,
+ * MOCK_CHATS so the app is browseable without a backend.
+ *
+ * In production with a real backend, set NEXT_PUBLIC_DEMO_MODE=false to ship
+ * an empty store - users see only their own real trips.
+ */
+const DEMO_MODE = (() => {
+  if (typeof process === 'undefined') return true;
+  // Default ON for now (pre-launch demo phase). Set to 'false' explicitly to disable.
+  return process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
+})();
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -387,20 +407,20 @@ export const useAppStore = create<AppState>()(
   isAuthenticated: false,
   isGuest: false,
   userLocation: null,
-  trips: MOCK_TRIPS,
+  trips: DEMO_MODE ? MOCK_TRIPS : [],
   activeTrip: null,
   equityZones: [],
   isCalculating: false,
-  chats: MOCK_CHATS,
-  cagnottes: MOCK_CAGNOTTES,
-  datePolls: MOCK_POLLS,
-  expenses: MOCK_EXPENSES,
+  chats: DEMO_MODE ? MOCK_CHATS : {},
+  cagnottes: DEMO_MODE ? MOCK_CAGNOTTES : {},
+  datePolls: DEMO_MODE ? MOCK_POLLS : {},
+  expenses: DEMO_MODE ? MOCK_EXPENSES : {},
 
   preferences: {
     defaultTransportMode: 'transit',
     language: 'en',
     notifications: true,
-    homeLocation: MOCK_USERS[0].homeLocation,
+    homeLocation: DEMO_MODE ? MOCK_USERS[0].homeLocation : null,
     homeLabel: 'Home',
     theme: 'auto',
     mascotEnabled: true,
@@ -802,6 +822,52 @@ export const useAppStore = create<AppState>()(
       trips: s.trips.map(t => t.id === tripId ? { ...t, status } : t),
       activeTrip: s.activeTrip?.id === tripId ? { ...s.activeTrip, status } : s.activeTrip,
     }));
+  },
+
+  archiveTrip: (tripId) => {
+    set(s => ({
+      trips: s.trips.map(t => t.id === tripId ? { ...t, archivedAt: new Date().toISOString() } : t),
+      activeTrip: s.activeTrip?.id === tripId ? { ...s.activeTrip, archivedAt: new Date().toISOString() } : s.activeTrip,
+    }));
+  },
+
+  unarchiveTrip: (tripId) => {
+    set(s => ({
+      trips: s.trips.map(t => {
+        if (t.id !== tripId) return t;
+        const { archivedAt, ...rest } = t as any;
+        return rest;
+      }),
+    }));
+  },
+
+  deleteTrip: (tripId) => {
+    set(s => {
+      // Cascade: also clean up per-trip state in other slices
+      const cleanMap = <T,>(m: Record<string, T>): Record<string, T> => {
+        const next = { ...m };
+        delete next[tripId];
+        return next;
+      };
+      return {
+        trips: s.trips.filter(t => t.id !== tripId),
+        activeTrip: s.activeTrip?.id === tripId ? null : s.activeTrip,
+        chats: cleanMap(s.chats || {}),
+        datePolls: cleanMap(s.datePolls || {}),
+        cagnottes: cleanMap(s.cagnottes || {}),
+        expenses: cleanMap(s.expenses || {}),
+        pickedZone: cleanMap(s.pickedZone || {}),
+        pickedVenue: cleanMap(s.pickedVenue || {}),
+        pinVotes: cleanMap(s.pinVotes || {}),
+        venueVotes: cleanMap(s.venueVotes || {}),
+        accommodations: cleanMap(s.accommodations || {}),
+        transportLegs: cleanMap(s.transportLegs || {}),
+        reservations: cleanMap(s.reservations || {}),
+        fundsRequests: cleanMap(s.fundsRequests || {}),
+        tasks: cleanMap(s.tasks || {}),
+        photos: cleanMap(s.photos || {}),
+      };
+    });
   },
 
   setEquityZones: (zones) => set({ equityZones: zones }),

@@ -34,7 +34,7 @@ const STATUS_DOT: Record<string, string> = {
 
 function TripRow({ trip }: { trip: Trip }) {
   const router = useRouter();
-  const { duplicateTrip, updateTripStatus } = useAppStore();
+  const { duplicateTrip, updateTripStatus, archiveTrip, deleteTrip } = useAppStore();
   const { confirm } = useDialog();
   const [menuOpen, setMenuOpen] = useState(false);
   const date = trip.scheduledAt ? formatDateShort(trip.scheduledAt) : null;
@@ -47,6 +47,33 @@ function TripRow({ trip }: { trip: Trip }) {
     setMenuOpen(false);
     const newTrip = duplicateTrip(trip.id);
     if (newTrip) router.push(`/trips/${newTrip.id}` as any);
+  };
+
+  const handleArchive = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuOpen(false);
+    const ok = await confirm({
+      title: 'Archive this Barry?',
+      body: `"${trip.name}" will be hidden from your main list. You can find it again under "Archived Barrys" and restore it any time.`,
+      variant: 'info',
+      confirmLabel: 'Archive',
+    });
+    if (ok) archiveTrip(trip.id);
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuOpen(false);
+    const ok = await confirm({
+      title: 'Delete forever?',
+      body: `"${trip.name}" and all its data (chat, votes, expenses, photos) will be permanently deleted. This cannot be undone.`,
+      variant: 'danger',
+      confirmLabel: 'Yes, delete forever',
+      cancelLabel: 'Keep it',
+    });
+    if (ok) deleteTrip(trip.id);
   };
 
   const handleFinish = async (e: React.MouseEvent) => {
@@ -162,6 +189,26 @@ function TripRow({ trip }: { trip: Trip }) {
                 </button>
               </>
             )}
+            {/* Archive separator */}
+            <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+            <button
+              onClick={handleArchive}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-left"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="21 8 21 21 3 21 3 8" /><rect x="1" y="3" width="22" height="5" /><line x1="10" y1="12" x2="14" y2="12" />
+              </svg>
+              Archive
+            </button>
+            <button
+              onClick={handleDelete}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-left"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4a2 2 0 012-2h0a2 2 0 012 2v2" />
+              </svg>
+              Delete forever
+            </button>
           </div>
         </>
       )}
@@ -170,13 +217,16 @@ function TripRow({ trip }: { trip: Trip }) {
 }
 
 export default function HomePage() {
-  const { trips, currentUser, isAuthenticated, isGuest, logout } = useAppStore();
-  const [tab, setTab] = useState<'active' | 'past'>('active');
+  const { trips, currentUser, isAuthenticated, isGuest, logout, unarchiveTrip } = useAppStore();
+  const [tab, setTab] = useState<'active' | 'past' | 'archived'>('active');
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const activeTrips = trips.filter(t => !['completed', 'cancelled'].includes(t.status));
-  const pastTrips = trips.filter(t => ['completed', 'cancelled'].includes(t.status));
-  const visible = tab === 'active' ? activeTrips : pastTrips;
+  // Archived trips are excluded from active+past lists, shown only in 'archived' tab
+  const archivedTrips = trips.filter(t => (t as any).archivedAt);
+  const nonArchived = trips.filter(t => !(t as any).archivedAt);
+  const activeTrips = nonArchived.filter(t => !['completed', 'cancelled'].includes(t.status));
+  const pastTrips = nonArchived.filter(t => ['completed', 'cancelled'].includes(t.status));
+  const visible = tab === 'active' ? activeTrips : tab === 'past' ? pastTrips : archivedTrips;
   const hasTrips = trips.length > 0;
   const showAuthedExperience = isAuthenticated && !isGuest && hasTrips;
 
@@ -248,6 +298,7 @@ export default function HomePage() {
             setTab={setTab}
             activeTrips={activeTrips}
             pastTrips={pastTrips}
+            archivedTrips={archivedTrips}
             visible={visible}
           />
         ) : (
@@ -563,7 +614,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 // ============================================================
 // RETURNING USER VIEW (has trips)
 // ============================================================
-function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastTrips, visible }: any) {
+function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastTrips, archivedTrips, visible }: any) {
   return (
     <>
       <div className="flex items-center gap-3 mb-6">
@@ -609,6 +660,19 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
             </span>
           )}
         </button>
+        {archivedTrips && archivedTrips.length > 0 && (
+          <button
+            onClick={() => setTab('archived')}
+            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+              tab === 'archived' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            Archived
+            <span className="ml-1.5 text-[10px] font-bold bg-slate-300 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full">
+              {archivedTrips.length}
+            </span>
+          </button>
+        )}
       </div>
 
       {visible.length > 0 ? (
@@ -622,7 +686,8 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-8 text-center">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {tab === 'active' ? 'No ongoing trips right now.' : 'No past trips yet.'}
+            {tab === 'active' ? 'No ongoing trips right now.' :
+             tab === 'archived' ? 'No archived trips.' : 'No past trips yet.'}
           </p>
         </div>
       )}

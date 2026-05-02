@@ -7,7 +7,12 @@ import { useAppStore } from '@/stores/app-store';
 import { BarryMascot } from '@/components/barry/brand';
 import { InteractiveMascot } from '@/components/barry/interactive-mascot';
 import { AvatarStack, Avatar } from '@/components/ui/avatar';
-import { TripChatSidebar } from '@/components/trip/trip-chat-sidebar';
+import dynamic from 'next/dynamic';
+const TripChatSidebar = dynamic(() => import('@/components/trip/trip-chat-sidebar').then(m => m.TripChatSidebar), {
+  ssr: false,
+  // Empty loading state - sidebar materializes when JS loads, no skeleton needed
+  loading: () => null,
+});
 import { formatDateLong, formatDateShort } from '@/lib/utils/format-date';
 
 export default function TripLayout({ children }: { children: React.ReactNode }) {
