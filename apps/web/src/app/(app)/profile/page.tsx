@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/stores/app-store';
 import { useDialog } from '@/components/ui/dialog';
+import { geocode, type NominatimResult } from '@/lib/api/nominatim';
+import type { GeoPoint } from '@barry/shared-types';
 import { BarryMark } from '@/components/barry/brand';
 import { Avatar } from '@/components/ui/avatar';
 import { CARD_PROVIDERS } from '@/lib/data/reduction-cards';
@@ -22,7 +24,24 @@ const LANGUAGE_OPTIONS = [
   { value: 'en' as const, label: 'English' },
   { value: 'fr' as const, label: 'Francais' },
   { value: 'es' as const, label: 'Espanol' },
-];
+  { value: 'de' as const, label: 'Deutsch' },
+  { value: 'it' as const, label: 'Italiano' },
+  { value: 'pt' as const, label: 'Portugues' },
+  { value: 'nl' as const, label: 'Nederlands' },
+  { value: 'pl' as const, label: 'Polski' },
+  { value: 'ro' as const, label: 'Romana' },
+  { value: 'sv' as const, label: 'Svenska' },
+  { value: 'da' as const, label: 'Dansk' },
+  { value: 'no' as const, label: 'Norsk' },
+  { value: 'fi' as const, label: 'Suomi' },
+  { value: 'cs' as const, label: 'Cestina' },
+  { value: 'el' as const, label: 'Ellinika' },
+  { value: 'tr' as const, label: 'Turkce' },
+  { value: 'ru' as const, label: 'Russkiy' },
+  { value: 'ja' as const, label: 'Nihongo' },
+  { value: 'zh' as const, label: 'Zhongwen' },
+  { value: 'ar' as const, label: 'al-Arabiyya' },
+] as const;
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -204,31 +223,15 @@ export default function ProfilePage() {
             open={openSection === 'home'}
             onToggle={() => setOpenSection(openSection === 'home' ? null : 'home')}
           >
-            <div className="pt-2">
-              <input
-                type="text"
-                value={preferences.homeLabel}
-                onChange={e => updatePreferences({ homeLabel: e.target.value })}
-                placeholder="Home, Office, Mom's place..."
-                className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
-              <button
-                onClick={() => {
-                  if (typeof navigator !== 'undefined' && navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                      pos => {
-                        updatePreferences({ homeLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
-                        setOpenSection(null);
-                      },
-                      () => showAlert({ title: 'Location denied', body: 'Allow location access in your browser to autofill your home address.', variant: 'warning' })
-                    );
-                  }
-                }}
-                className="w-full mt-2 py-2 rounded-xl bg-barry-blue text-white text-sm font-semibold active:scale-95 transition-all"
-              >
-                Use current location
-              </button>
-            </div>
+            <HomeAddressEditor
+              currentLabel={preferences.homeLabel}
+              currentLocation={preferences.homeLocation}
+              onSave={(label, loc) => {
+                updatePreferences({ homeLabel: label, homeLocation: loc });
+                setOpenSection(null);
+              }}
+              onLocationDenied={() => showAlert({ title: 'Location denied', body: 'Allow location access in your browser to autofill your home address.', variant: 'warning' })}
+            />
           </SettingRow>
 
           <NotificationsRow
@@ -283,68 +286,31 @@ export default function ProfilePage() {
             open={openSection === 'travel-email'}
             onToggle={() => setOpenSection(openSection === 'travel-email' ? null : 'travel-email')}
           >
-            <input
-              type="email"
-              value={preferences.defaultEmail || ''}
-              onChange={e => updatePreferences({ defaultEmail: e.target.value })}
-              placeholder="you@example.com"
-              className="w-full mt-2 bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
+            {(() => {
+              const e = preferences.defaultEmail || '';
+              const isValid = !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+              return (
+                <>
+                  <input
+                    type="email"
+                    value={e}
+                    onChange={ev => updatePreferences({ defaultEmail: ev.target.value })}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    inputMode="email"
+                    className={`w-full mt-2 bg-white dark:bg-slate-800 border text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 ${
+                      isValid ? 'border-slate-200 dark:border-slate-700' : 'border-rose-300'
+                    }`}
+                  />
+                  {!isValid && (
+                    <p className="text-[10px] text-rose-600 mt-1">Please enter a valid email address.</p>
+                  )}
+                </>
+              );
+            })()}
           </SettingRow>
 
-          <SettingRow
-            label="Default max one-way duration"
-            value={preferences.defaultMaxTime ? `${preferences.defaultMaxTime} ${preferences.defaultMaxTimeUnit || 'min'}` : 'Not set'}
-            open={openSection === 'travel-time'}
-            onToggle={() => setOpenSection(openSection === 'travel-time' ? null : 'travel-time')}
-          >
-            <div className="flex gap-2 mt-2">
-              <input
-                type="number"
-                value={preferences.defaultMaxTime || ''}
-                onChange={e => updatePreferences({ defaultMaxTime: parseInt(e.target.value) || undefined })}
-                placeholder="45"
-                min={0}
-                className="flex-1 bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
-              <select
-                value={preferences.defaultMaxTimeUnit || 'min'}
-                onChange={e => updatePreferences({ defaultMaxTimeUnit: e.target.value as 'min' | 'h' })}
-                className="bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
-                <option value="min">min</option>
-                <option value="h">hours</option>
-              </select>
-            </div>
-          </SettingRow>
-
-          <SettingRow
-            label="Total maximum budget"
-            value={preferences.defaultMaxBudget ? `${preferences.defaultMaxBudget} ${preferences.defaultMaxBudgetCurrency || 'EUR'}` : 'Not set'}
-            open={openSection === 'travel-budget'}
-            onToggle={() => setOpenSection(openSection === 'travel-budget' ? null : 'travel-budget')}
-          >
-            <div className="flex gap-2 mt-2">
-              <input
-                type="number"
-                value={preferences.defaultMaxBudget || ''}
-                onChange={e => updatePreferences({ defaultMaxBudget: parseInt(e.target.value) || undefined })}
-                placeholder="100"
-                min={0}
-                className="flex-1 bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
-              <select
-                value={preferences.defaultMaxBudgetCurrency || 'EUR'}
-                onChange={e => updatePreferences({ defaultMaxBudgetCurrency: e.target.value as any })}
-                className="bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
-                <option value="EUR">EUR</option>
-                <option value="USD">USD</option>
-                <option value="GBP">GBP</option>
-                <option value="CHF">CHF</option>
-              </select>
-            </div>
-          </SettingRow>
+          {/* req 12: Default duration + budget removed - they're per-trip choices, not profile defaults */}
 
           <SettingRow
             label="Self-book transport by default"
@@ -373,31 +339,43 @@ export default function ProfilePage() {
         <SectionHeader title="Payment methods" />
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 overflow-hidden">
           {paymentMethods.length === 0 ? (
-            <div className="px-4 py-5 text-center">
+            <div className="px-4 py-5 text-center space-y-2">
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">No payment method yet</p>
-              <button
-                onClick={() => setShowAddCard(true)}
-                className="px-4 py-2 rounded-xl bg-barry-blue text-white text-sm font-semibold active:scale-95 transition-all"
-              >
-                Add a card
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  onClick={() => setShowAddCard(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-barry-blue text-white text-sm font-semibold active:scale-95 transition-all"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="2" y="6" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
+                  Add a card
+                </button>
+                <button
+                  onClick={() => addPaymentMethod({ type: 'paypal', last4: '', brand: 'PayPal', label: currentUser?.email || 'PayPal account', isDefault: paymentMethods.length === 0 })}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#003087] text-white text-sm font-semibold active:scale-95 transition-all hover:bg-[#001f5c]"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944 1.51A.641.641 0 015.572.97H13.4c2.625 0 4.45.546 5.273 1.62.748.973 1.005 2.412.764 4.273-.013.094-.027.19-.04.29-.014.092-.029.183-.045.273-.79 4.069-3.531 5.475-7.011 5.475H10.66c-.534 0-.985.388-1.067.916l-.738 4.683-.32 2.04a.327.327 0 01-.323.262z" /></svg>
+                  Use PayPal
+                </button>
+              </div>
             </div>
           ) : (
             <>
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {paymentMethods.map(pm => (
                   <div key={pm.id} className="px-4 py-3 flex items-center gap-3">
-                    <div className="w-10 h-7 rounded bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                      {pm.brand?.toUpperCase().slice(0, 4) || pm.type.toUpperCase().slice(0, 4)}
+                    <div className={`w-10 h-7 rounded flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 ${
+                      pm.type === 'paypal' ? 'bg-[#003087]' : 'bg-gradient-to-br from-slate-700 to-slate-900'
+                    }`}>
+                      {pm.type === 'paypal' ? 'PP' : (pm.brand?.toUpperCase().slice(0, 4) || pm.type.toUpperCase().slice(0, 4))}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{pm.label}</p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {pm.last4 ? `Ends in ${pm.last4}` : pm.type}
+                        {pm.type === 'paypal' ? 'PayPal' : pm.last4 ? `Ends in ${pm.last4}` : pm.type}
                       </p>
                     </div>
                     {pm.isDefault ? (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Default</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">Default</span>
                     ) : (
                       <button
                         onClick={() => setDefaultPaymentMethod(pm.id)}
@@ -416,7 +394,7 @@ export default function ProfilePage() {
                         });
                         if (ok) removePaymentMethod(pm.id);
                       }}
-                      className="w-7 h-7 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-colors"
+                      className="w-7 h-7 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-colors"
                       aria-label="Remove"
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -426,45 +404,48 @@ export default function ProfilePage() {
                   </div>
                 ))}
               </div>
-              <button
-                onClick={() => setShowAddCard(true)}
-                className="w-full px-4 py-3 text-sm font-semibold text-barry-blue hover:bg-slate-50 dark:bg-slate-900 transition-colors border-t border-slate-100 dark:border-slate-800"
-              >
-                + Add another method
-              </button>
+              <div className="grid grid-cols-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={() => setShowAddCard(true)}
+                  className="px-4 py-3 text-sm font-semibold text-barry-blue hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+                  Card
+                </button>
+                <button
+                  onClick={() => addPaymentMethod({ type: 'paypal', last4: '', brand: 'PayPal', label: currentUser?.email || 'PayPal account', isDefault: false })}
+                  className="px-4 py-3 text-sm font-semibold text-[#003087] dark:text-blue-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-1.5 border-l border-slate-100 dark:border-slate-800"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944 1.51A.641.641 0 015.572.97H13.4c2.625 0 4.45.546 5.273 1.62.748.973 1.005 2.412.764 4.273-.013.094-.027.19-.04.29-.014.092-.029.183-.045.273-.79 4.069-3.531 5.475-7.011 5.475H10.66c-.534 0-.985.388-1.067.916l-.738 4.683-.32 2.04a.327.327 0 01-.323.262z" /></svg>
+                  PayPal
+                </button>
+              </div>
             </>
           )}
         </div>
 
-        {/* SECTION: Pro promo */}
-        <SectionHeader title="Upgrade" />
-        <div className="bg-gradient-to-br from-barry-blue to-blue-700 rounded-2xl p-4 text-white mb-4 shadow-lg shadow-blue-500/15">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-900/20 backdrop-blur-sm px-2 py-0.5 rounded-full">Coming soon</span>
-          </div>
-          <p className="font-display font-extrabold text-xl tracking-tight">Barry Pro</p>
-          <p className="text-xs text-blue-100 leading-snug mt-1">
-            Unlimited groups, premium booking integrations, group expense tracking. EUR 4.99 / month.
-          </p>
-        </div>
+        {/* req 13: Barry Pro removed - product doesn't exist yet */}
 
-        {/* SECTION: Legal & About */}
-        <SectionHeader title="Legal" />
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100">
-          <LinkRow href="/legal/terms" label="Terms and conditions" />
-          <LinkRow href="/legal/privacy" label="Privacy policy" />
-          <LinkRow href="/legal/cookies" label="Cookie policy" />
+        {/* SECTION: Legal & RGPD compliance (req 15: merged) */}
+        <SectionHeader title="Legal & privacy" />
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100 dark:divide-slate-800">
+          <LinkRow href="/legal/terms" label="Terms of use" />
+          <LinkRow href="/legal/privacy" label="Privacy policy (GDPR)" />
+          <LinkRow href="/legal/cookies" label="Cookies" />
+          <LinkRow href="/legal/data-rights" label="My data: download or delete" />
         </div>
 
         {/* SECTION: About */}
         <SectionHeader title="About" />
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100">
-          <LinkRow href="mailto:hello@barry.app" label="Contact support" />
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100 dark:divide-slate-800">
           <LinkRow href="https://barry.app" label="barry.app" external />
         </div>
 
         <p className="text-center text-[10px] text-slate-400 mt-6">
-          Barry v0.1 · Prototype · Made in Paris
+          Barry v0.1 - Prototype - Made in Paris
+        </p>
+        <p className="text-center text-[10px] text-slate-400 mt-1">
+          Need help? Open any trip and tap the (?) icon to message us in context.
         </p>
       </main>
 
@@ -620,7 +601,7 @@ function AddCardSheet({ onClose, onAdd }: {
               onChange={e => setNumber(e.target.value.replace(/[^\d ]/g, '').slice(0, 19))}
               placeholder="1234 5678 9012 3456"
               inputMode="numeric"
-              className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
               autoFocus
             />
           </div>
@@ -632,7 +613,7 @@ function AddCardSheet({ onClose, onAdd }: {
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Full name"
-              className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </div>
 
@@ -649,7 +630,7 @@ function AddCardSheet({ onClose, onAdd }: {
                 }}
                 placeholder="MM/YY"
                 inputMode="numeric"
-                className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
             </div>
             <div>
@@ -660,7 +641,7 @@ function AddCardSheet({ onClose, onAdd }: {
                 onChange={e => setCvc(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
                 placeholder="123"
                 inputMode="numeric"
-                className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
             </div>
           </div>
@@ -994,22 +975,180 @@ function NotificationsRow({ checked, onChange }: { checked: boolean; onChange: (
       value={status}
       open={false}
     >
-      <div className="flex items-center gap-2">
-        {permission === 'default' && (
-          <button
-            onClick={handleAskPermission}
-            className="px-3 py-1.5 bg-barry-blue text-white text-xs font-bold rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
-          >
-            Allow
-          </button>
-        )}
-        {permission === 'denied' && (
-          <span className="text-[10px] text-rose-600 font-medium">Enable in browser site settings</span>
-        )}
-        {(permission === 'granted' || permission === 'default') && permission !== 'unsupported' && (
-          <Toggle checked={checked && permission === 'granted'} onChange={onChange} />
-        )}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          {permission === 'default' && (
+            <button
+              onClick={handleAskPermission}
+              className="px-3 py-1.5 bg-barry-blue text-white text-xs font-bold rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              Allow
+            </button>
+          )}
+          {permission === 'denied' && (
+            <span className="text-[10px] text-rose-600 font-medium">Enable in browser site settings</span>
+          )}
+          {(permission === 'granted' || permission === 'default') && permission !== 'unsupported' && (
+            <Toggle checked={checked && permission === 'granted'} onChange={onChange} />
+          )}
+        </div>
+
+        {/* Explanation of what notifications mean (req 9) */}
+        <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">When we&rsquo;ll ping you</p>
+          <NotifTypeRow
+            color="text-cyan-600"
+            label="New chat messages"
+            desc="Someone in your group sent a message"
+          />
+          <NotifTypeRow
+            color="text-amber-600"
+            label="Setup reminder"
+            desc="You haven't set your starting point and the trip is waiting on you"
+          />
+          <NotifTypeRow
+            color="text-emerald-600"
+            label="Vote results"
+            desc="The group picked a zone, venue, or hotel"
+          />
+          <NotifTypeRow
+            color="text-violet-600"
+            label="Funds & payments"
+            desc="A funding request was created or you owe a contribution"
+          />
+          <NotifTypeRow
+            color="text-blue-600"
+            label="Booking updates"
+            desc="Your trip is booked, tickets are ready, or there's a change"
+          />
+          <p className="text-[10px] text-slate-400 pt-1">
+            We never send promotional messages.
+          </p>
+        </div>
       </div>
     </SettingRow>
+  );
+}
+
+function NotifTypeRow({ color, label, desc }: { color: string; label: string; desc: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${color.replace('text-', 'bg-')}`} />
+      <div className="flex-1">
+        <p className={`text-[11px] font-bold ${color} dark:opacity-90`}>{label}</p>
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * HomeAddressEditor - autocomplete address input via Nominatim.
+ * Shows verified address on save (req 8).
+ */
+function HomeAddressEditor({
+  currentLabel, currentLocation, onSave, onLocationDenied,
+}: {
+  currentLabel: string;
+  currentLocation: GeoPoint | null;
+  onSave: (label: string, loc: GeoPoint | null) => void;
+  onLocationDenied: () => void;
+}) {
+  const [label, setLabel] = useState(currentLabel || '');
+  const [results, setResults] = useState<NominatimResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [verified, setVerified] = useState(!!currentLocation);
+  const [coords, setCoords] = useState<GeoPoint | null>(currentLocation);
+
+  // Debounced geocode lookup
+  useEffect(() => {
+    if (!label || label.length < 3) { setResults([]); return; }
+    if (label === currentLabel && verified) return;
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const found = await geocode(label, 5);
+        setResults(found);
+        setShowSuggestions(true);
+      } catch { setResults([]); }
+      finally { setLoading(false); }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [label, currentLabel, verified]);
+
+  const handleSelect = (r: NominatimResult) => {
+    setLabel(r.display_name);
+    setCoords({ lat: parseFloat(r.lat), lng: parseFloat(r.lon) });
+    setVerified(true);
+    setShowSuggestions(false);
+    onSave(r.display_name, { lat: parseFloat(r.lat), lng: parseFloat(r.lon) });
+  };
+
+  const handleCurrentLocation = () => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setCoords(loc);
+          setVerified(true);
+          setLabel('My current location');
+          onSave('My current location', loc);
+        },
+        () => onLocationDenied(),
+      );
+    }
+  };
+
+  return (
+    <div className="pt-2">
+      <div className="relative">
+        <input
+          type="text"
+          value={label}
+          onChange={e => { setLabel(e.target.value); setVerified(false); setCoords(null); }}
+          onFocus={() => results.length > 0 && setShowSuggestions(true)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          placeholder="Start typing your address..."
+          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3 py-2.5 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+        />
+        {/* Verified badge */}
+        {verified && coords && (
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center" title="Verified address">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+          </div>
+        )}
+        {loading && !verified && (
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-slate-300 border-t-barry-blue rounded-full animate-spin" />
+        )}
+      </div>
+
+      {/* Suggestions dropdown */}
+      {showSuggestions && results.length > 0 && (
+        <div className="mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+          {results.map((r) => (
+            <button
+              key={r.place_id}
+              onClick={() => handleSelect(r)}
+              className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+            >
+              <p className="text-xs text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug">{r.display_name}</p>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={handleCurrentLocation}
+        className="w-full mt-2 py-2 rounded-xl bg-barry-blue text-white text-sm font-semibold active:scale-95 transition-all flex items-center justify-center gap-1.5"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3" /><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24" /></svg>
+        Use current location
+      </button>
+
+      {!verified && label.length >= 3 && (
+        <p className="text-[10px] text-amber-600 mt-1.5">Pick a suggestion above to verify your address.</p>
+      )}
+    </div>
   );
 }

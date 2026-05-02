@@ -33,7 +33,7 @@ export function SetupSheet({ tripId, participantId, onClose }: {
   participantId: string;
   onClose: () => void;
 }) {
-  const { trips, currentUser, preferences, userLocation, updateParticipantConstraints, updateTransportLeg, transportLegs } = useAppStore();
+  const { trips, currentUser, preferences, userLocation, updateParticipantConstraints, updateTransportLeg, transportLegs, isAuthenticated, isGuest } = useAppStore();
   const trip = trips.find(t => t.id === tripId);
   const participant = trip?.participants.find(p => p.id === participantId);
 
@@ -228,6 +228,30 @@ export function SetupSheet({ tripId, participantId, onClose }: {
         </div>
 
         <div className="p-4 space-y-4">
+          {/* Banner encouraging guests to register so their setup persists */}
+          {(isGuest || !isAuthenticated) && isMe && (
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800 rounded-xl p-3 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-barry-blue text-white flex items-center justify-center flex-shrink-0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                  <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight">Save your setup forever</p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
+                  Create a free account in 30 seconds. Barry will remember your home address, transport, and budget for every future trip.
+                </p>
+                <a
+                  href={`/login?redirect=/trips/${tripId}`}
+                  className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-barry-blue hover:underline"
+                >
+                  Create my account
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </a>
+              </div>
+            </div>
+          )}
+
           {/* Origin / starting point with Nominatim autocomplete */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Starting point</label>
@@ -239,7 +263,7 @@ export function SetupSheet({ tripId, participantId, onClose }: {
                 onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 placeholder="Type an address, city or place..."
-                className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 pr-9"
+                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 pr-9"
                 disabled={!canEdit}
               />
               {searching && (
@@ -360,7 +384,7 @@ export function SetupSheet({ tripId, participantId, onClose }: {
               onChange={e => setEmail(e.target.value)}
               disabled={!canEdit}
               placeholder="name@example.com"
-              className="w-full bg-slate-50 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
             />
             <p className="text-[11px] text-slate-500 mt-1">
               Where Barry sends your tickets, boarding times, maps and contact numbers.
@@ -491,13 +515,13 @@ export function SetupSheet({ tripId, participantId, onClose }: {
                 onChange={e => setMaxTime(Math.max(0, parseInt(e.target.value) || 0))}
                 disabled={!canEdit}
                 min={0}
-                className="flex-1 bg-slate-50 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+                className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
               />
               <select
                 value={maxTimeUnit}
                 onChange={e => setMaxTimeUnit(e.target.value as 'min' | 'h')}
                 disabled={!canEdit}
-                className="bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
               >
                 <option value="min">min</option>
                 <option value="h">hours</option>
@@ -515,13 +539,13 @@ export function SetupSheet({ tripId, participantId, onClose }: {
                 onChange={e => setMaxBudget(Math.max(0, parseInt(e.target.value) || 0))}
                 disabled={!canEdit}
                 min={0}
-                className="flex-1 bg-slate-50 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+                className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
               />
               <select
                 value={maxBudgetCurrency}
                 onChange={e => setMaxBudgetCurrency(e.target.value as 'EUR' | 'USD' | 'GBP' | 'CHF')}
                 disabled={!canEdit}
-                className="bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
               >
                 {COMMON_CURRENCIES.map(c => (
                   <option key={c.code} value={c.code}>{c.code}</option>

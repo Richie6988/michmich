@@ -677,7 +677,7 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: May 1, 2026 - Wave 16 (real auth + responsive overhaul + PWA + mobile app strategy abandoned)*
+*Last updated: May 2, 2026 - Wave 17 (22-item systematic feedback execution: WhatsApp, profile cleanup, GDPR, trip flow gates, post-funding tiles)*
 *Maintained by: Claude (AI architect) + Richie (founder)*
 
 ---

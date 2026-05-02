@@ -317,12 +317,16 @@ interface AppState {
   pickedZone: Record<string, string | null>;
   voteForPin: (tripId: string, zoneId: string) => void;
   closePinVote: (tripId: string, zoneId: string) => void;
+  /** Owner-only: unlock the picked zone so the group can re-vote (req 33) */
+  unlockPickedZone: (tripId: string) => void;
 
   // Venue votes (vote on bars/restaurants in chosen zone)
   venueVotes: Record<string, VenueVote[]>;
   pickedVenue: Record<string, string | null>;
   voteForVenue: (tripId: string, venueId: string, response: VenueVoteResponse) => void;
   closeVenueVote: (tripId: string, venueId: string) => void;
+  /** Owner-only: unlock the picked venue so the group can re-vote (req 33) */
+  unlockPickedVenue: (tripId: string) => void;
 
   // Accommodations (multi-day trips)
   accommodations: Record<string, Accommodation[]>;
@@ -959,6 +963,14 @@ export const useAppStore = create<AppState>()(
   closePinVote: (tripId, zoneId) => {
     set(s => ({ pickedZone: { ...s.pickedZone, [tripId]: zoneId } }));
   },
+  /** Owner-only: unlock the picked zone so the group can re-vote (req 33) */
+  unlockPickedZone: (tripId) => {
+    set(s => {
+      const next = { ...s.pickedZone };
+      delete next[tripId];
+      return { pickedZone: next };
+    });
+  },
 
   // VENUE VOTES
   venueVotes: {},
@@ -978,6 +990,14 @@ export const useAppStore = create<AppState>()(
   },
   closeVenueVote: (tripId, venueId) => {
     set(s => ({ pickedVenue: { ...s.pickedVenue, [tripId]: venueId } }));
+  },
+  /** Owner-only: unlock the picked venue so the group can re-vote (req 33) */
+  unlockPickedVenue: (tripId) => {
+    set(s => {
+      const next = { ...s.pickedVenue };
+      delete next[tripId];
+      return { pickedVenue: next };
+    });
   },
 
   // ACCOMMODATIONS

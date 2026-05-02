@@ -58,7 +58,7 @@ export default function TripOverviewPage() {
     activeTrip, trips, currentUser,
     chats, datePolls, expenses, sendMessage,
     pickedZone, pickedVenue, fundsRequests, reservations,
-    pinVotes, voteForPin, closePinVote, voteDatePoll,
+    pinVotes, voteForPin, closePinVote, unlockPickedZone, voteDatePoll,
     addParticipantByName, removeParticipant,
     updateTripStatus, setEquityZones, initTransportLegs,
     transportLegs, accommodations,
@@ -220,12 +220,7 @@ export default function TripOverviewPage() {
         <GuestBanner />
       </div>
 
-      {/* Trip recap card */}
-      <div className="mb-4">
-        <TripRecapCard trip={trip} />
-      </div>
-
-      {/* Top KPI: Progress bar across 4 milestones — STICKY so visible on scroll */}
+      {/* Top KPI: Progress bar across milestones - STICKY so visible on scroll (req 21: redundant recap section removed - title is in layout above) */}
       <div className="sticky top-14 z-20 mb-5 -mx-4 px-4 pb-1 pt-2 bg-gradient-to-b from-white via-white to-white/95 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950/95 backdrop-blur-md">
         <TripProgress steps={progressSteps} />
       </div>
@@ -262,9 +257,9 @@ export default function TripOverviewPage() {
             />
           </ChronoSection>
 
-          {/* SECTION 2: PLAN — Date poll + Chat */}
-          <ChronoSection phase="before" label="Plan">
-            <SectionHeader title="Plan" />
+          {/* SECTION 2: PLAN - Date poll + Chat */}
+          <ChronoSection phase="before" label="Let's find a date">
+            <SectionHeader title="Let's find a date" />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
               {(trip.mode === 'wanderlust' || !trip.mode) ? (
                 <DatePollCard tripId={trip.id} poll={poll} totalMembers={totalMembers} isAdmin={isAdmin} currentUserId={currentUser?.id} isSolo={isSolo} tripMode={trip.mode} />
@@ -275,15 +270,7 @@ export default function TripOverviewPage() {
             </div>
           </ChronoSection>
 
-          {/* SECTION 3: TODO LIST — assignable tasks */}
-          <ChronoSection phase="before" label="Tasks">
-            <SectionHeader title="To-do list" />
-            <TodoSection
-              tripId={trip.id}
-              participants={trip.participants}
-              currentUserId={currentUser?.id}
-            />
-          </ChronoSection>
+          {/* SECTION 3: TODO removed from here - now appears AFTER funding complete (req 28) */}
 
           {/* SECTION 4: BARRY'S MAP */}
           <ChronoSection phase="before" label="Map">
@@ -333,10 +320,32 @@ export default function TripOverviewPage() {
             </ChronoSection>
           )}
 
-          {/* SECTION 6: PICKS — only show categories the owner activated */}
+          {/* SECTION 6: PICKS - only show categories the owner activated */}
           {tripPickedZone && (
             <ChronoSection phase="before" label="Picks">
-              <SectionHeader title="Picks for your group" />
+              <div className="flex items-center justify-between mb-2 px-1">
+                <SectionHeader title="Picks for your group" />
+                {isAdmin && (
+                  <button
+                    onClick={async () => {
+                      const ok = await showConfirm({
+                        title: 'Unlock the location?',
+                        body: 'The group will need to vote for a new zone. Picks below will reset.',
+                        variant: 'warning',
+                        confirmLabel: 'Yes, unlock',
+                      });
+                      if (ok) unlockPickedZone(trip.id);
+                    }}
+                    className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+                    title="Unlock to let the group re-vote"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 019.9-1" />
+                    </svg>
+                    Unlock
+                  </button>
+                )}
+              </div>
               <VenuesAndStaySection
                 trip={trip}
                 zoneId={tripPickedZone || winningZoneId || zones[0]?.id || 'demo-z1'}
@@ -351,46 +360,105 @@ export default function TripOverviewPage() {
             </ChronoSection>
           )}
 
-          {/* SECTION 8: PRE-FUND RECAP - show as soon as we have transport (any cost component) */}
-          {(transportLegs[trip.id]?.length > 0 || tripPickedVenue) && (
+          {/* SECTION 8: PRE-FUND RECAP - shown alongside funding once transport is set (req 35) */}
+          {transportLegs[trip.id]?.length > 0 && (
             <ChronoSection phase="before" label="Recap">
               <SectionHeader title="Trip summary" />
               <PreFundRecapCard trip={trip} transportLegs={transportLegs[trip.id] || []} accommodations={accommodations[trip.id] || []} />
             </ChronoSection>
           )}
 
-          {/* SECTION 9: FUND BARRY - show as soon as we have transport */}
-          {(transportLegs[trip.id]?.length > 0 || tripPickedVenue) && (
+          {/* SECTION 9: FUND BARRY - req 34: works with just transport, restaurant/hotel/activities are optional */}
+          {transportLegs[trip.id]?.length > 0 && (
             <ChronoSection phase="before" label="Fund">
-              <SectionHeader title="Fund Barry & he'll take care of everything" />
+              <SectionHeader title="Fund Barry, he'll handle the rest" />
               <FundsCard tripId={trip.id} fundsRequest={tripFunds} />
             </ChronoSection>
           )}
 
-          {/* SECTION 10: BOOKING + REPORT */}
+          {/* === POST-FUNDING ZONE === Congrats + tile grid (req 36) */}
           {tripFunds && tripFunds.status === 'complete' && (
-            <ChronoSection phase="during" label="Booked">
-              <BookingCard tripId={trip.id} reservations={tripReservations} />
-              {tripReservations.length > 0 && (
-                <div className="mt-3">
-                  <SectionHeader title="Your Barry report" />
-                  <PostBookingReport trip={trip} reservations={tripReservations} transportLegs={transportLegs[trip.id] || []} />
+            <>
+              {/* Congrats banner with sunglasses Barry */}
+              <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-violet-50 dark:from-emerald-950/40 dark:via-blue-950/40 dark:to-violet-950/40 rounded-3xl border border-emerald-200 dark:border-emerald-900 p-5 my-2 relative overflow-hidden">
+                <div className="absolute -top-8 -right-8 w-32 h-32 bg-emerald-300/30 rounded-full blur-3xl" />
+                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-violet-300/30 rounded-full blur-3xl" />
+                <div className="relative flex items-center gap-3">
+                  {/* Sunglasses Barry: scaled mascot in 'celebrating' mood */}
+                  <div className="flex-shrink-0">
+                    <BarryMascot mood="celebrating" size={72} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-0.5">Barry is happy</p>
+                    <p className="font-display font-extrabold text-lg text-slate-900 dark:text-slate-100 leading-tight">
+                      Funding done. Now the fun part.
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-snug">
+                      Tasks to share, expenses to track, memories to save. Barry&rsquo;s got you covered.
+                    </p>
+                  </div>
                 </div>
-              )}
-            </ChronoSection>
+              </div>
+
+              {/* TILES GRID — booked / to-do / expenses / memories */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <PostFundingTile
+                  color="emerald"
+                  icon={<><polyline points="20 6 9 17 4 12" /></>}
+                  title="Booked"
+                  desc={tripReservations.length > 0 ? `${tripReservations.length} reservation${tripReservations.length > 1 ? 's' : ''} confirmed` : 'Booking pending'}
+                >
+                  <BookingCard tripId={trip.id} reservations={tripReservations} />
+                  {tripReservations.length > 0 && (
+                    <div className="mt-3">
+                      <PostBookingReport trip={trip} reservations={tripReservations} transportLegs={transportLegs[trip.id] || []} />
+                    </div>
+                  )}
+                </PostFundingTile>
+
+                <PostFundingTile
+                  color="amber"
+                  icon={<><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></>}
+                  title="TO-DO"
+                  desc="Things to bring or do before"
+                >
+                  <TodoSection
+                    tripId={trip.id}
+                    participants={trip.participants}
+                    currentUserId={currentUser?.id}
+                  />
+                </PostFundingTile>
+
+                <PostFundingTile
+                  color="violet"
+                  icon={<><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6" /></>}
+                  title="Expenses"
+                  desc="Track who paid what"
+                >
+                  <ExpensesCard tripId={trip.id} expenses={tripExpenses} participants={trip.participants.map(p => p.user!).filter(Boolean)} currentUserId={currentUser?.id} />
+                </PostFundingTile>
+
+                <PostFundingTile
+                  color="rose"
+                  icon={<><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></>}
+                  title="Memories"
+                  desc="Photos & moments"
+                >
+                  <MemoryGallery tripId={trip.id} />
+                </PostFundingTile>
+              </div>
+            </>
           )}
 
-          {/* SECTION 11: EXPENSES (Tricount) */}
-          <ChronoSection phase="during" label="Expenses">
-            <SectionHeader title="Expenses (Tricount)" />
-            <ExpensesCard tripId={trip.id} expenses={tripExpenses} participants={trip.participants.map(p => p.user!).filter(Boolean)} currentUserId={currentUser?.id} />
-          </ChronoSection>
-
-          {/* SECTION 12: MEMORY GALLERY */}
-          <ChronoSection phase="after" label="Memories">
-            <SectionHeader title="Memories" />
-            <MemoryGallery tripId={trip.id} />
-          </ChronoSection>
+          {/* Pre-funding fallback for the legacy sections */}
+          {!(tripFunds && tripFunds.status === 'complete') && (
+            <>
+              <ChronoSection phase="during" label="Expenses">
+                <SectionHeader title="Expenses (Tricount)" />
+                <ExpensesCard tripId={trip.id} expenses={tripExpenses} participants={trip.participants.map(p => p.user!).filter(Boolean)} currentUserId={currentUser?.id} />
+              </ChronoSection>
+            </>
+          )}
         </div>
       </div>
 
@@ -659,34 +727,46 @@ function ParticipantsSection({
   const totalMembers = trip.participants.length;
   const constraintsReady = trip.participants.filter((p: any) => p.status === 'constraints_set' || p.status === 'voted').length;
 
+  const handleWhatsAppShare = () => {
+    if (typeof window === 'undefined') return;
+    const url = `${window.location.origin}/join/${trip.inviteToken}`;
+    const text = `Hey! Join my Barry trip "${trip.name}" - we're planning together: ${url}`;
+    // Use wa.me universal link (works on web, iOS, Android, native app if installed)
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <section>
-      <div className="flex items-center justify-between mb-2 px-1">
-        <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-          Participants <span className="text-slate-400 font-normal">({totalMembers})</span>
+      <div className="flex items-baseline justify-between mb-3 px-1">
+        <h2 className="font-display font-extrabold text-xl sm:text-2xl text-slate-900 dark:text-slate-100 tracking-tight">
+          Participants <span className="text-slate-400 dark:text-slate-500 font-medium text-base">({totalMembers})</span>
         </h2>
-        <span className="text-[11px] text-slate-500">{constraintsReady}/{totalMembers} ready</span>
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{constraintsReady}/{totalMembers} ready</span>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
         {trip.participants.map((p: any) => {
           const isMe = p.userId === currentUser?.id;
           const isReady = p.status === 'constraints_set' || p.status === 'voted';
           const color = colorForUser(p.userId);
-          const canEdit = isMe || isAdmin;
+          // Only owner of the setup can edit it. Admin can pre-fill ONLY for guests
+          // who haven't accepted yet (no userId on the participant record).
+          const isUnclaimedGuest = !p.userId;
+          const canEdit = isMe || (isAdmin && isUnclaimedGuest);
           return (
             <div key={p.id} className="px-3 py-3 flex items-center gap-3">
               <Avatar user={p.user} size={40} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className="text-sm font-semibold text-slate-900 truncate">
-                    {p.user?.firstName} {p.user?.lastName}
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    {p.user?.firstName || p.guestName || '?'} {p.user?.lastName || ''}
                   </p>
                   {p.userId === trip.organizerId && (
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded">Host</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/40 px-1.5 py-0.5 rounded">Host</span>
                   )}
                   {isMe && (
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">You</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded">You</span>
                   )}
                 </div>
                 <ParticipantStatusLine participant={p} />
@@ -696,12 +776,16 @@ function ParticipantsSection({
                   onClick={() => onSetup(p.id)}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
                     isReady
-                      ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
                       : 'bg-barry-blue text-white shadow-sm hover:shadow-md'
                   }`}
                 >
                   {isReady ? 'Edit setup' : (isMe ? 'Set up' : 'Pre-fill')}
                 </button>
+              ) : !isMe ? (
+                <span className="text-[10px] font-medium text-slate-400 px-2 italic">
+                  Their setup
+                </span>
               ) : (
                 <span className="text-[10px] font-medium text-slate-400 px-2">Locked</span>
               )}
@@ -771,7 +855,10 @@ function ParticipantsSection({
             </svg>
             {copied ? 'Copied' : 'Copy invite link'}
           </button>
-          <button className="flex-1 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[#1F8B4F] transition-colors">
+          <button
+            onClick={handleWhatsAppShare}
+            className="flex-1 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[#1F8B4F] active:scale-[0.98] transition-all"
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
             </svg>
@@ -1582,21 +1669,75 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
           onChange={setVenueFilters}
           title="Filter venues"
         />
-        <ScrollCardList
-          items={venues.map(v => ({
-            id: v.id,
-            imageUrl: v.imageUrl,
-            title: v.name,
-            subtitle: `${v.category} · ${[1, 2, 3, 4].slice(0, v.price).map(() => 'EUR').join('')} · ${v.rating}`,
-            badge: v.id === lockedVenueId ? 'Picked' : v.id === topVenue?.id && topVenue.score > 0 ? 'Top' : undefined,
-            badgeColor: v.id === lockedVenueId ? '#10B981' : '#F97316',
-          }))}
-          onCardClick={setOpenVenueId}
-          onLoveCount={(id) => venueTally(id).love}
-          onMyVote={(id) => myVenueVote(id) as any}
-          selectedId={lockedVenueId}
-          cardWidth={200}
-        />
+        {(() => {
+          // req 32: Apply real filter impact on venues
+          const cuisineFilters = venueFilters.cuisine || [];
+          const vibeFilters = venueFilters.vibe || [];
+          const budgetFilter = (venueFilters.budget || [])[0];
+
+          const matchesFilters = (v: any) => {
+            const tags = (v.tags || []).map((t: string) => t.toLowerCase());
+            // Cuisine: at least one selected cuisine matches a tag
+            if (cuisineFilters.length > 0) {
+              const cuisineMatch = cuisineFilters.some((c: string) =>
+                tags.includes(c.toLowerCase()) || (v.category || '').toLowerCase().includes(c.toLowerCase())
+              );
+              if (!cuisineMatch) return false;
+            }
+            // Vibe: at least one selected vibe matches
+            if (vibeFilters.length > 0) {
+              const vibeMatch = vibeFilters.some((vibe: string) => tags.includes(vibe.toLowerCase()));
+              if (!vibeMatch) return false;
+            }
+            // Budget: low = price 1, mid = price 2-3, high = price 4
+            if (budgetFilter) {
+              if (budgetFilter === 'low' && v.price > 1) return false;
+              if (budgetFilter === 'mid' && (v.price < 2 || v.price > 3)) return false;
+              if (budgetFilter === 'high' && v.price < 4) return false;
+            }
+            return true;
+          };
+
+          const filteredVenues = venues.filter(matchesFilters);
+          const filterCount = cuisineFilters.length + vibeFilters.length + (budgetFilter ? 1 : 0);
+
+          return filteredVenues.length > 0 ? (
+            <>
+              {filterCount > 0 && (
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2 px-1">
+                  {filteredVenues.length} of {venues.length} venues match your filters.
+                </p>
+              )}
+              <ScrollCardList
+                items={filteredVenues.map(v => ({
+                  id: v.id,
+                  imageUrl: v.imageUrl,
+                  title: v.name,
+                  subtitle: `${v.category} - ${[1, 2, 3, 4].slice(0, v.price).map(() => 'EUR').join('')} - ${v.rating}`,
+                  badge: v.id === lockedVenueId ? 'Picked' : v.id === topVenue?.id && topVenue.score > 0 ? 'Top' : undefined,
+                  badgeColor: v.id === lockedVenueId ? '#10B981' : '#F97316',
+                }))}
+                onCardClick={setOpenVenueId}
+                onLoveCount={(id) => venueTally(id).love}
+                onMyVote={(id) => myVenueVote(id) as any}
+                selectedId={lockedVenueId}
+                cardWidth={200}
+              />
+            </>
+          ) : (
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 text-center">
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                No venues match your filters.
+              </p>
+              <button
+                onClick={() => setVenueFilters({})}
+                className="mt-2 text-xs text-barry-blue font-bold hover:underline"
+              >
+                Clear filters
+              </button>
+            </div>
+          );
+        })()}
       </div>
       )}
 
@@ -2218,6 +2359,59 @@ function MediaCard({ tripId }: { tripId: string }) {
       >
         Coming soon
       </button>
+    </div>
+  );
+}
+
+/**
+ * PostFundingTile - one of 4 tiles shown after funding is complete (req 36).
+ * Color-coded header with icon + title + descriptor. Body collapses/expands.
+ */
+function PostFundingTile({
+  color, icon, title, desc, children,
+}: {
+  color: 'emerald' | 'amber' | 'violet' | 'rose';
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const styles: Record<string, { bg: string; text: string; iconColor: string }> = {
+    emerald: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300', iconColor: '#10B981' },
+    amber: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300', iconColor: '#F59E0B' },
+    violet: { bg: 'bg-violet-50 dark:bg-violet-950/40', text: 'text-violet-700 dark:text-violet-300', iconColor: '#8B5CF6' },
+    rose: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300', iconColor: '#F43F5E' },
+  };
+  const s = styles[color];
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+      >
+        <div className={`w-10 h-10 rounded-xl ${s.bg} ${s.text} flex items-center justify-center flex-shrink-0`}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={s.iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            {icon}
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-display font-bold text-base text-slate-900 dark:text-slate-100 leading-tight">{title}</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{desc}</p>
+        </div>
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"
+          className={`text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800 pt-3">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
