@@ -131,6 +131,8 @@ export function LeafletMap({
   center, zoom = 13, markers = [], className = '',
   height = '100%', interactive = true, onMapClick, selectedMarkerId, onViewportChange,
 }: BarryMapProps) {
+  const [mapStyle, setMapStyle] = React.useState<'voyager' | 'satellite'>('voyager');
+
   return (
     <div className={`relative ${className}`} style={{ height }}>
       <MapContainer
@@ -141,14 +143,23 @@ export function LeafletMap({
         dragging={interactive}
         touchZoom={interactive}
         doubleClickZoom={interactive}
+        attributionControl={false}
         style={{ height: '100%', width: '100%', borderRadius: 'inherit' }}
       >
-        {/* Light, clean tile style — Carto Voyager */}
-        <TileLayer
-          attribution='&copy; OpenStreetMap, &copy; CARTO'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          maxZoom={19}
-        />
+        {/* req 29: tile layer switches between Carto Voyager (default) and ESRI satellite */}
+        {mapStyle === 'voyager' ? (
+          <TileLayer
+            attribution='&copy; OpenStreetMap, &copy; CARTO'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            maxZoom={19}
+          />
+        ) : (
+          <TileLayer
+            attribution='Tiles &copy; Esri'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+          />
+        )}
         <MapController center={center} zoom={zoom} />
         {onMapClick && <ClickHandler onMapClick={onMapClick} />}
         {onViewportChange && <ViewportListener onViewportChange={onViewportChange} />}
@@ -168,6 +179,35 @@ export function LeafletMap({
           />
         ))}
       </MapContainer>
+
+      {/* req 29: Satellite/Map toggle button - top-right of map */}
+      {interactive && (
+        <button
+          onClick={() => setMapStyle(s => s === 'voyager' ? 'satellite' : 'voyager')}
+          className="absolute top-3 right-3 z-[400] px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition-all active:scale-95"
+          title={mapStyle === 'voyager' ? 'Switch to satellite view' : 'Switch to map view'}
+          aria-label="Toggle map style"
+        >
+          {mapStyle === 'voyager' ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" />
+              </svg>
+              Satellite
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                <line x1="8" y1="2" x2="8" y2="18" />
+                <line x1="16" y1="6" x2="16" y2="22" />
+              </svg>
+              Map
+            </>
+          )}
+        </button>
+      )}
 
       {/* Custom CSS for pin animations */}
       <style jsx global>{`

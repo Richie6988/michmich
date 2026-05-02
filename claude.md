@@ -677,7 +677,7 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: May 2, 2026 - Wave 17 (22-item systematic feedback execution: WhatsApp, profile cleanup, GDPR, trip flow gates, post-funding tiles)*
+*Last updated: May 2, 2026 - Wave 18 (3-column comparison, satellite map, attribution removed)*
 *Maintained by: Claude (AI architect) + Richie (founder)*
 
 ---

@@ -18,6 +18,8 @@ import { TripProgress, type TripStep } from '@/components/trip/trip-progress';
 import { TodoSection } from '@/components/trip/todo-section';
 import { MemoryGallery } from '@/components/trip/memory-gallery';
 import { ActivitiesSection, CarRentalSection } from '@/components/trip/activities-and-cars';
+import { activitiesForMode, CAR_RENTAL_CATALOG } from '@/lib/data/activities';
+import { TopThreeComparison, type ComparisonColumn } from '@/components/trip/top-three-comparison';
 import { TripComponentsToggle } from '@/components/trip/trip-components-toggle';
 import { FiltersBar, ACTIVITY_FILTERS, CAR_FILTERS, VENUE_FILTERS, HOTEL_FILTERS } from '@/components/trip/filters-bar';
 import { formatDateLong, formatDateShort, formatTimeShort } from '@/lib/utils/format-date';
@@ -1569,6 +1571,8 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
   };
   const showRestaurants = components.restaurant;
   const showAccommodation = components.accommodation && isTrip;
+  const showActivities = components.activities;
+  const showCar = components.car && isTrip;
   const [openVenueId, setOpenVenueId] = useState<string | null>(null);
   const [openAccId, setOpenAccId] = useState<string | null>(null);
   const [venueFilters, setVenueFilters] = useState<Record<string, string[]>>({});
@@ -1647,17 +1651,111 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
         </div>
       )}
 
-      {/* VENUES — horizontal scroll like TheFork */}
+      {/* req 31: 3-COLUMN PARALLEL COMPARISON - top picks per category for quick comparison */}
+      {(showRestaurants || showAccommodation) && (() => {
+        const allActivities = activitiesForMode(trip.mode || 'wanderlust');
+
+        // Build columns based on mode
+        const columns: ComparisonColumn[] = [];
+
+        if (showRestaurants && venues.length > 0) {
+          const sortedVenues = [...venues]
+            .map(v => ({ ...v, score: venueTally(v.id).love * 2 + venueTally(v.id).meh }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+
+          columns.push({
+            title: 'Food',
+            color: 'orange',
+            icon: <><path d="M3 11h18M5 11V7a2 2 0 012-2h10a2 2 0 012 2v4M7 21V11M17 21V11M7 16h10" /></>,
+            items: sortedVenues.map(v => ({
+              id: v.id,
+              title: v.name,
+              subtitle: `${v.category} - ${[1, 2, 3, 4].slice(0, v.price).map(() => 'EUR').join('')}`,
+              metric: `~${v.price * 25} EUR/person`,
+              rating: v.rating,
+              locked: v.id === lockedVenueId,
+              topPick: !lockedVenueId && v.id === topVenue?.id && topVenue.score > 0,
+            })),
+            onItemClick: setOpenVenueId,
+          });
+        }
+
+        if (showAccommodation && isTrip) {
+          const sortedAccs = [...DEMO_ACCOMMODATIONS]
+            .sort((a, b) => {
+              const aTally = accTally(a.id);
+              const bTally = accTally(b.id);
+              return (bTally.love * 2 + bTally.meh) - (aTally.love * 2 + aTally.meh);
+            })
+            .slice(0, 3);
+
+          columns.push({
+            title: 'Hotel',
+            color: 'blue',
+            icon: <><path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" /></>,
+            items: sortedAccs.map(a => ({
+              id: a.id,
+              title: a.name,
+              subtitle: a.type || 'Hotel',
+              metric: `${a.pricePerNight} EUR/night`,
+              rating: a.rating,
+              locked: isAccPicked(a.id),
+            })),
+            onItemClick: setOpenAccId,
+          });
+        }
+
+        if (showActivities && allActivities.length > 0) {
+          columns.push({
+            title: 'Activities',
+            color: 'emerald',
+            icon: <><circle cx="12" cy="12" r="10" /><path d="M8 12l3 3 5-5" /></>,
+            items: allActivities.slice(0, 3).map(a => ({
+              id: a.id,
+              title: a.name,
+              subtitle: `${a.category} - ${a.duration}`,
+              metric: `${a.pricePerPerson} EUR/person`,
+              rating: a.rating,
+            })),
+          });
+        }
+
+        if (showCar && isTrip) {
+          columns.push({
+            title: 'Car',
+            color: 'violet',
+            icon: <><circle cx="6.5" cy="16.5" r="2.5" /><circle cx="16.5" cy="16.5" r="2.5" /><path d="M2 16.5V13l2-5h13l3 5v3.5" /></>,
+            items: CAR_RENTAL_CATALOG.slice(0, 3).map(c => ({
+              id: c.id,
+              title: `${c.brand} ${c.carModel}`,
+              subtitle: `${c.category} - ${c.transmission}`,
+              metric: `${c.pricePerDay} EUR/day`,
+              rating: c.rating,
+            })),
+          });
+        }
+
+        // Only render if 2+ columns to make comparison meaningful
+        return columns.length >= 2 ? (
+          <TopThreeComparison
+            columns={columns}
+            label="Compare side-by-side"
+          />
+        ) : null;
+      })()}
+
+      {/* VENUES - horizontal scroll like TheFork (full list with filters) */}
       {showRestaurants && (
       <div>
         <div className="flex items-center justify-between mb-2 px-1">
-          <p className="text-sm font-semibold text-slate-700">
-            {lockedVenueId ? 'Venue locked' : 'Bars & restaurants'}
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            {lockedVenueId ? 'Venue locked' : 'All bars & restaurants'}
           </p>
           {!lockedVenueId && isAdmin && topVenue && topVenue.score > 0 && (
             <button
               onClick={() => closeVenueVote(trip.id, topVenue.id)}
-              className="text-[11px] text-emerald-700 font-bold hover:underline"
+              className="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold hover:underline"
             >
               Lock {topVenue.name}
             </button>
