@@ -5,7 +5,6 @@ import '@/styles/globals.css';
 import { ThemeManager } from '@/components/theme/theme-manager';
 import { ToastProvider } from '@/components/ui/toast';
 import { DialogProvider } from '@/components/ui/dialog';
-import { PWAInstallPrompt } from '@/components/pwa/install-prompt';
 import { CookieConsentBanner } from '@/components/legal/cookie-consent-banner';
 
 const inter = Inter({
@@ -30,10 +29,8 @@ export const metadata: Metadata = {
   title: 'Barry. Where the smart group meets.',
   description:
     'The map app that finds the fairest meeting point for any group. No more endless debates. No more unfair commutes. Barry knows where.',
-  manifest: '/manifest.json',
   icons: {
     icon: '/favicon.svg',
-    apple: '/apple-touch-icon.png',
   },
 };
 
@@ -62,7 +59,6 @@ export default function RootLayout({
         <DialogProvider>
           <ToastProvider>
             {children}
-            <PWAInstallPrompt />
             <CookieConsentBanner />
           </ToastProvider>
         </DialogProvider>

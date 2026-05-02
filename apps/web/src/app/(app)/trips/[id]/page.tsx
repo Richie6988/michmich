@@ -20,6 +20,7 @@ import { MemoryGallery } from '@/components/trip/memory-gallery';
 import { ActivitiesSection, CarRentalSection } from '@/components/trip/activities-and-cars';
 import { activitiesForMode, CAR_RENTAL_CATALOG } from '@/lib/data/activities';
 import { TopThreeComparison, type ComparisonColumn } from '@/components/trip/top-three-comparison';
+import { ZoneComparisonCard } from '@/components/trip/zone-comparison-card';
 import { TripComponentsToggle } from '@/components/trip/trip-components-toggle';
 import { FiltersBar, ACTIVITY_FILTERS, CAR_FILTERS, VENUE_FILTERS, HOTEL_FILTERS } from '@/components/trip/filters-bar';
 import { formatDateLong, formatDateShort, formatTimeShort } from '@/lib/utils/format-date';
@@ -100,9 +101,9 @@ export default function TripOverviewPage() {
   const tripFunds = fundsRequests[trip.id];
   const tripReservations = reservations[trip.id] || [];
 
-  // Compute zones inline once participants are ready
+  // Compute zones as soon as at least one participant has set up - refines as more come in
   useEffect(() => {
-    if (!allReady || zones.length > 0 || zoneLoading) return;
+    if (constraintsReady < 1 || zones.length > 0 || zoneLoading) return;
     let cancelled = false;
     setZoneLoading(true);
     (async () => {
@@ -154,7 +155,7 @@ export default function TripOverviewPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [allReady, trip.id]);
+  }, [constraintsReady, trip.id]);
 
   const handleCopyInvite = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -195,23 +196,33 @@ export default function TripOverviewPage() {
   const progressSteps: TripStep[] = [
     {
       id: 'setup',
-      label: 'Everyone setup',
+      label: 'Setup',
       status: constraintsReady === totalMembers ? 'done' : (constraintsReady > 0 ? 'active' : 'pending'),
+      targetId: 'chrono-setup',
+    },
+    {
+      id: 'date',
+      label: 'Date',
+      status: tripPickedZone || (poll && poll.options.some((o: any) => o.locked)) ? 'done' : 'active',
+      targetId: 'chrono-let-s-find-a-date',
     },
     {
       id: 'zone',
-      label: 'Zone picked',
+      label: 'Zone',
       status: tripPickedZone ? 'done' : (zones.length > 0 ? 'active' : 'pending'),
+      targetId: 'chrono-pick-zone',
     },
     {
       id: 'venue',
-      label: 'Venue locked',
+      label: 'Picks',
       status: tripPickedVenue ? 'done' : (tripPickedZone ? 'active' : 'pending'),
+      targetId: 'chrono-picks',
     },
     {
       id: 'booked',
       label: 'Booked',
       status: tripFunds?.status === 'complete' ? 'done' : (tripPickedVenue ? 'active' : 'pending'),
+      targetId: 'chrono-validate-fund',
     },
   ];
 
@@ -222,37 +233,10 @@ export default function TripOverviewPage() {
         <GuestBanner />
       </div>
 
-      {/* Top KPI: Progress bar across milestones - STICKY so visible on scroll (req 21: redundant recap section removed - title is in layout above) */}
+      {/* Top KPI: Progress bar across milestones - STICKY and ALWAYS VISIBLE.
+          Each step is now a scroll-link to its section. */}
       <div className="sticky top-14 z-20 mb-5 -mx-4 px-4 pb-1 pt-2 bg-gradient-to-b from-white via-white to-white/95 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950/95 backdrop-blur-md">
         <TripProgress steps={progressSteps} />
-        {/* "Jump to current step" CTA - clicking scrolls to the active section (CRITICAL_REVIEW UX gap 6) */}
-        {(() => {
-          const activeStep = progressSteps.find(s => s.status === 'active');
-          if (!activeStep) return null;
-          const targetId: Record<string, string> = {
-            setup: 'chrono-setup',
-            zone: 'chrono-pick-zone',
-            venue: 'chrono-picks',
-            booked: 'chrono-validate-fund',
-          };
-          const target = targetId[activeStep.id];
-          if (!target) return null;
-          return (
-            <button
-              onClick={() => {
-                const el = document.getElementById(target);
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className="mt-1.5 w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors group"
-            >
-              <span className="text-[9px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-300">Next</span>
-              <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 truncate flex-1">{activeStep.label}</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" className="text-blue-600 dark:text-blue-300 group-hover:translate-y-0.5 transition-transform">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-          );
-        })()}
       </div>
 
       {/* CHRONO LINE WRAPPER — vertical line connecting sections */}
@@ -313,25 +297,67 @@ export default function TripOverviewPage() {
             />
           </ChronoSection>
 
-          {/* SECTION 5: PIN VOTE — when zones ready and not locked */}
-          {allReady && zones.length > 0 && !tripPickedZone && (
+          {/* SECTION 5: ZONE COMPARISON + VOTE - shown whenever zones exist, even if some participants haven't set up yet (Wave 24 redesign) */}
+          {zones.length > 0 && !tripPickedZone && (
             <ChronoSection phase="before" label="Pick zone">
-              <SectionHeader title={isSolo ? "Pick your zone" : "Vote for the zone"} />
-              <PinVoteCard
-                trip={trip}
+              <SectionHeader title={isSolo ? "Pick your zone" : "Compare and vote"} />
+              {!allReady && (
+                <div className="mb-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900">
+                  <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-snug">
+                    <span className="font-bold">Heads up:</span> {totalMembers - constraintsReady} {totalMembers - constraintsReady === 1 ? 'person hasn&rsquo;t' : 'people haven&rsquo;t'} set up yet. Zones will refine as more inputs come in.
+                  </p>
+                </div>
+              )}
+
+              {/* Owner skip-the-math override - lock any zone manually */}
+              {isAdmin && !isSolo && !allPinVoted && (
+                <div className="mb-3 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 flex items-center justify-between gap-2">
+                  <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-snug flex-1">
+                    <span className="font-bold">Already know where to go?</span>
+                    <br />
+                    Skip the vote and lock a zone yourself.
+                  </p>
+                  <select
+                    onChange={e => { if (e.target.value) handleLockZone(e.target.value); }}
+                    defaultValue=""
+                    className="text-[11px] font-bold text-amber-900 dark:text-amber-100 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-800 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  >
+                    <option value="" disabled>Pick zone...</option>
+                    {zones.map((z: any) => (
+                      <option key={z.id} value={z.id}>{z.label || `Zone ${z.rank}`}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* TOP 3 ZONES SIDE-BY-SIDE WITH PER-PARTICIPANT TRANSPORT COSTS */}
+              <ZoneComparisonCard
                 zones={zones}
-                tripPinVotes={tripPinVotes}
-                myPinVote={myPinVote}
+                participants={trip.participants}
                 currentUserId={currentUser?.id}
-                isAdmin={isAdmin}
-                isSolo={isSolo}
-                allPinVoted={allPinVoted}
-                totalPinVoted={totalPinVoted}
-                totalMembers={totalMembers}
-                winningZoneId={winningZoneId}
-                onVote={(zoneId) => voteForPin(trip.id, zoneId)}
-                onLock={handleLockZone}
+                votes={tripPinVotes}
+                onPickZone={(zoneId) => isSolo ? handleLockZone(zoneId) : voteForPin(trip.id, zoneId)}
+                pickedZoneId={winningZoneId && allPinVoted ? winningZoneId : undefined}
               />
+
+              {/* Lock the winning zone after all voted */}
+              {!isSolo && allPinVoted && isAdmin && winningZoneId && (
+                <div className="mt-3 flex justify-center">
+                  <button
+                    onClick={() => handleLockZone(winningZoneId)}
+                    className="px-4 py-2 rounded-full bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-600 transition-colors shadow-md"
+                  >
+                    Lock {zones.find((z: any) => z.id === winningZoneId)?.label || 'top zone'}
+                  </button>
+                </div>
+              )}
+
+              {/* Live vote tally */}
+              {!isSolo && (
+                <p className="mt-3 text-[11px] text-center text-slate-500 dark:text-slate-400">
+                  {totalPinVoted}/{totalMembers} voted
+                </p>
+              )}
             </ChronoSection>
           )}
 
@@ -1080,12 +1106,15 @@ function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId, isSo
                       >Yes {t.yes > 0 && `(${t.yes})`}</button>
                     </div>
                   )}
-                  {isAdmin && !isClosed && isTop && (
+                  {isAdmin && !isClosed && (
                     <button
                       onClick={() => closeDatePoll(tripId, opt.id)}
-                      className="w-full mt-1.5 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold"
+                      className={`w-full mt-1.5 py-1 rounded-lg text-white text-[10px] font-bold transition-colors ${
+                        isTop ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-slate-400 hover:bg-emerald-500'
+                      }`}
+                      title={isTop ? 'Lock the top-voted date' : 'Lock this date - not the top-voted, but you decide'}
                     >
-                      Lock this date
+                      {isTop ? 'Lock this date' : 'Lock anyway'}
                     </button>
                   )}
                 </div>

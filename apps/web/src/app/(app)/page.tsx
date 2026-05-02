@@ -67,10 +67,10 @@ function TripRow({ trip }: { trip: Trip }) {
     e.stopPropagation();
     setMenuOpen(false);
     const ok = await confirm({
-      title: 'Delete forever?',
+      title: 'Delete this Barry?',
       body: `"${trip.name}" and all its data (chat, votes, expenses, photos) will be permanently deleted. This cannot be undone.`,
       variant: 'danger',
-      confirmLabel: 'Yes, delete forever',
+      confirmLabel: 'Delete',
       cancelLabel: 'Keep it',
     });
     if (ok) deleteTrip(trip.id);
@@ -87,20 +87,6 @@ function TripRow({ trip }: { trip: Trip }) {
       confirmLabel: 'Yes, finish',
     });
     if (ok) updateTripStatus(trip.id, 'completed');
-  };
-
-  const handleCancel = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMenuOpen(false);
-    const ok = await confirm({
-      title: 'Cancel this Barry?',
-      body: `"${trip.name}" will be archived in Past Barrys.`,
-      variant: 'danger',
-      confirmLabel: 'Yes, cancel',
-      cancelLabel: 'Keep it',
-    });
-    if (ok) updateTripStatus(trip.id, 'cancelled');
   };
 
   return (
@@ -177,19 +163,9 @@ function TripRow({ trip }: { trip: Trip }) {
                   </svg>
                   Mark as finished
                 </button>
-                <button
-                  onClick={handleCancel}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 text-left"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                  </svg>
-                  Cancel Barry
-                </button>
               </>
             )}
-            {/* Archive separator */}
+            {/* Archive + Delete separator */}
             <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
             <button
               onClick={handleArchive}
@@ -207,7 +183,7 @@ function TripRow({ trip }: { trip: Trip }) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4a2 2 0 012-2h0a2 2 0 012 2v2" />
               </svg>
-              Delete forever
+              Delete
             </button>
           </div>
         </>
@@ -239,44 +215,30 @@ export default function HomePage() {
             <span className="font-display font-extrabold text-xl text-barry-blue tracking-tight">Barry</span>
           </div>
 
-          {/* Auth corner: avatar+menu if logged, Login button if not */}
+          {/* Auth corner: avatar -> profile direct link, separate Logout button */}
           {isAuthenticated && !isGuest && currentUser ? (
-            <div className="relative">
-              <button
-                onClick={() => setMenuOpen(o => !o)}
-                className="flex items-center gap-2 hover:bg-slate-100 dark:bg-slate-800 rounded-full pl-2 pr-1 py-1 transition-colors"
+            <div className="flex items-center gap-2">
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full pl-2 pr-1 py-1 transition-colors"
+                title="Profile & preferences"
               >
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 max-w-[90px] truncate hidden sm:inline">
-                  {currentUser.firstName}
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 max-w-[120px] truncate hidden sm:inline">
+                  {currentUser.firstName} {currentUser.lastName}
                 </span>
                 <Avatar user={currentUser} size={36} className="shadow-md" />
+              </Link>
+              <button
+                onClick={() => logout()}
+                className="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 px-3 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors flex items-center gap-1.5"
+                title="Log out"
+                aria-label="Log out"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+                </svg>
+                <span className="hidden sm:inline">Log out</span>
               </button>
-              {menuOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 py-2 w-56 z-40">
-                    <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
-                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{currentUser.firstName} {currentUser.lastName}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{currentUser.email}</p>
-                    </div>
-                    <Link href="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-900">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 1116 0" />
-                      </svg>
-                      Profile & preferences
-                    </Link>
-                    <button
-                      onClick={() => { setMenuOpen(false); logout(); }}
-                      className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-                      </svg>
-                      Log out
-                    </button>
-                  </div>
-                </>
-              )}
             </div>
           ) : (
             <Link

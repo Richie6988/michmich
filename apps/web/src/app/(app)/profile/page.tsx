@@ -282,18 +282,6 @@ export default function ProfilePage() {
             </p>
           </SettingRow>
 
-          {/* Mascot toggle for B2B / professional mode (CRITICAL_REVIEW UX gap 4) */}
-          <SettingRow
-            label="Show mascot"
-            value={preferences.mascotEnabled === false ? 'Off (professional mode)' : 'On'}
-            open={false}
-          >
-            <Toggle
-              checked={preferences.mascotEnabled !== false}
-              onChange={v => updatePreferences({ mascotEnabled: v })}
-            />
-          </SettingRow>
-
           {/* Reduce motion toggle (CRITICAL_REVIEW UX gap 9) */}
           <SettingRow
             label="Reduce motion"
@@ -460,7 +448,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* req 13: Barry Pro removed - product doesn't exist yet */}
+        {/* No subscription tiers. Barry is free. */}
 
         {/* SECTION: Legal & RGPD compliance (req 15: merged) */}
         <SectionHeader title="Legal & privacy" />

@@ -145,7 +145,7 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
 
-      <main id="trip-main" className={`max-w-2xl xl:max-w-3xl mx-auto pb-24 barry-safe-bottom relative ${isOverview ? 'xl:mr-[340px]' : ''}`}>
+      <main id="trip-main" className="max-w-2xl xl:max-w-3xl mx-auto pb-24 barry-safe-bottom relative">
         {children}
       </main>
 
@@ -175,11 +175,11 @@ function HelpButton({ tripName }: { tripName?: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors flex-shrink-0"
+        className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 flex items-center justify-center transition-colors flex-shrink-0 ring-1 ring-blue-200 dark:ring-blue-800"
         aria-label="Help"
-        title="Help"
+        title="Need help? Tap here"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="text-slate-600 dark:text-slate-300">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="text-barry-blue dark:text-blue-300">
           <circle cx="12" cy="12" r="10" />
           <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -188,12 +188,12 @@ function HelpButton({ tripName }: { tripName?: string }) {
 
       {open && (
         <div
-          className="fixed inset-0 z-[3000] bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 sm:p-4 barry-dialog-fade"
+          className="fixed inset-0 z-[3000] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 barry-dialog-fade"
           onClick={() => setOpen(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl p-5 barry-dialog-pop"
+            className="bg-white dark:bg-slate-900 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl p-5 barry-dialog-pop"
           >
             <div className="flex items-start gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-barry-blue flex items-center justify-center flex-shrink-0">

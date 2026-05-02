@@ -22,11 +22,11 @@ import { findVenueById, venueCostPerPerson } from '@/lib/data/venues';
 // ============================================================
 
 const MOCK_USERS: User[] = [
-  { id: 'u1', email: 'chloe@test.barry', firstName: 'Chloe', lastName: 'Dubois', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'transit', defaultTimeWeight: 0.6, defaultMoneyWeight: 0.4, homeLocation: { lat: 48.8867, lng: 2.3399 }, subscriptionTier: 'free', createdAt: new Date().toISOString() },
-  { id: 'u2', email: 'tom@test.barry', firstName: 'Tom', lastName: 'Petit', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'transit', defaultTimeWeight: 0.3, defaultMoneyWeight: 0.7, homeLocation: { lat: 48.8915, lng: 2.3522 }, subscriptionTier: 'free', createdAt: new Date().toISOString() },
-  { id: 'u3', email: 'marc@test.barry', firstName: 'Marc', lastName: 'Laurent', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'bike', defaultTimeWeight: 0.5, defaultMoneyWeight: 0.5, homeLocation: { lat: 48.8675, lng: 2.3633 }, subscriptionTier: 'free', createdAt: new Date().toISOString() },
-  { id: 'u4', email: 'sarah@test.barry', firstName: 'Sarah', lastName: 'Martin', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'transit', defaultTimeWeight: 0.7, defaultMoneyWeight: 0.3, homeLocation: { lat: 48.8532, lng: 2.3693 }, subscriptionTier: 'free', createdAt: new Date().toISOString() },
-  { id: 'u5', email: 'isabelle@test.barry', firstName: 'Isabelle', lastName: 'Bernard', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'car', defaultTimeWeight: 0.5, defaultMoneyWeight: 0.5, homeLocation: { lat: 48.8421, lng: 2.2945 }, subscriptionTier: 'free', createdAt: new Date().toISOString() },
+  { id: 'u1', email: 'chloe@test.barry', firstName: 'Chloe', lastName: 'Dubois', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'transit', defaultTimeWeight: 0.6, defaultMoneyWeight: 0.4, homeLocation: { lat: 48.8867, lng: 2.3399 }, createdAt: new Date().toISOString() },
+  { id: 'u2', email: 'tom@test.barry', firstName: 'Tom', lastName: 'Petit', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'transit', defaultTimeWeight: 0.3, defaultMoneyWeight: 0.7, homeLocation: { lat: 48.8915, lng: 2.3522 }, createdAt: new Date().toISOString() },
+  { id: 'u3', email: 'marc@test.barry', firstName: 'Marc', lastName: 'Laurent', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'bike', defaultTimeWeight: 0.5, defaultMoneyWeight: 0.5, homeLocation: { lat: 48.8675, lng: 2.3633 }, createdAt: new Date().toISOString() },
+  { id: 'u4', email: 'sarah@test.barry', firstName: 'Sarah', lastName: 'Martin', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'transit', defaultTimeWeight: 0.7, defaultMoneyWeight: 0.3, homeLocation: { lat: 48.8532, lng: 2.3693 }, createdAt: new Date().toISOString() },
+  { id: 'u5', email: 'isabelle@test.barry', firstName: 'Isabelle', lastName: 'Bernard', avatarUrl: null, phone: null, locale: 'fr', defaultTransportMode: 'car', defaultTimeWeight: 0.5, defaultMoneyWeight: 0.5, homeLocation: { lat: 48.8421, lng: 2.2945 }, createdAt: new Date().toISOString() },
 ];
 
 // ============================================================
@@ -257,6 +257,8 @@ interface AppState {
     friendNames?: string[],
     mode?: 'wanderlust' | 'trip',
     endDate?: string,
+    /** Owner-set max one-way travel time in minutes. Applies to all participants. */
+    maxTimeMin?: number,
   ) => Trip;
   updateTripStatus: (tripId: string, status: Trip['status']) => void;
   /** Hide trip from main list. Different from delete: preserves data. */
@@ -469,7 +471,7 @@ export const useAppStore = create<AppState>()(
         defaultTimeWeight: 0.5,
         defaultMoneyWeight: 0.5,
         homeLocation: null,
-        subscriptionTier: 'free',
+        
         createdAt: new Date().toISOString(),
       };
       const updated: Trip = {
@@ -565,7 +567,7 @@ export const useAppStore = create<AppState>()(
           defaultTimeWeight: u.defaultTimeWeight ?? 0.5,
           defaultMoneyWeight: u.defaultMoneyWeight ?? 0.5,
           homeLocation: u.homeLocation || null,
-          subscriptionTier: u.subscriptionTier || 'free',
+          
           createdAt: u.createdAt || new Date().toISOString(),
         };
         set({ currentUser: mappedUser, isAuthenticated: true, isGuest: false });
@@ -614,7 +616,7 @@ export const useAppStore = create<AppState>()(
           defaultTimeWeight: u.defaultTimeWeight ?? 0.5,
           defaultMoneyWeight: u.defaultMoneyWeight ?? 0.5,
           homeLocation: u.homeLocation || null,
-          subscriptionTier: u.subscriptionTier || 'free',
+          
           createdAt: u.createdAt || new Date().toISOString(),
         };
         set({ currentUser: mappedUser, isAuthenticated: true, isGuest: false });
@@ -638,7 +640,7 @@ export const useAppStore = create<AppState>()(
       defaultTimeWeight: 0.5,
       defaultMoneyWeight: 0.5,
       homeLocation: null,
-      subscriptionTier: 'free',
+      
       createdAt: new Date().toISOString(),
     };
     set({ currentUser: newUser, isAuthenticated: true, isGuest: false });
@@ -679,7 +681,7 @@ export const useAppStore = create<AppState>()(
       defaultTimeWeight: 0.5,
       defaultMoneyWeight: 0.5,
       homeLocation: null,
-      subscriptionTier: 'free',
+      
       createdAt: new Date().toISOString(),
     };
     set({ currentUser: guestUser, isAuthenticated: false, isGuest: true });
@@ -771,13 +773,13 @@ export const useAppStore = create<AppState>()(
     set({ activeTrip: trip });
   },
 
-  createGroupTrip: (name, type, date, friendNames, mode, endDate) => {
+  createGroupTrip: (name, type, date, friendNames, mode, endDate, maxTimeMin) => {
     const user = get().currentUser!;
     const id = `t${Date.now()}`;
     const orgPart = {
       id: `p${Date.now()}`, tripId: id, userId: user.id, user, status: 'accepted' as const,
       transportMode: user.defaultTransportMode, timeWeight: user.defaultTimeWeight, moneyWeight: user.defaultMoneyWeight,
-      maxTime: null, maxMoney: null, originLocation: user.homeLocation, originLabel: 'Home',
+      maxTime: maxTimeMin || 60, maxMoney: null, originLocation: user.homeLocation, originLabel: 'Home',
       burdenScore: null, routeDuration: null, routeDistance: null, routeCost: null, routeGeometry: null, voteVenueId: null,
     };
     const guestParts = (friendNames || [])
@@ -790,12 +792,12 @@ export const useAppStore = create<AppState>()(
         const guestUser: User = {
           id: guestId, email: '', firstName, lastName, avatarUrl: null, phone: null,
           locale: 'en', defaultTransportMode: 'transit', defaultTimeWeight: 0.5, defaultMoneyWeight: 0.5,
-          homeLocation: null, subscriptionTier: 'free', createdAt: new Date().toISOString(),
+          homeLocation: null, createdAt: new Date().toISOString(),
         };
         return {
           id: `p${Date.now()}-${i + 1}`, tripId: id, userId: guestId, user: guestUser, status: 'invited' as const,
           transportMode: 'transit' as const, timeWeight: 0.5, moneyWeight: 0.5,
-          maxTime: null, maxMoney: null, originLocation: null, originLabel: null,
+          maxTime: maxTimeMin || 60, maxMoney: null, originLocation: null, originLabel: null,
           burdenScore: null, routeDuration: null, routeDistance: null, routeCost: null, routeGeometry: null, voteVenueId: null,
         };
       });
@@ -807,7 +809,7 @@ export const useAppStore = create<AppState>()(
       status: 'inviting',
       scheduledAt: date,
       endDate: endDate || null,
-      stealthMode: false, maxTimeBudget: null, maxMoneyBudget: null,
+      stealthMode: false, maxTimeBudget: maxTimeMin || 60, maxMoneyBudget: null,
       inviteToken: Math.random().toString(36).slice(2, 10),
       selectedVenueId: null,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),

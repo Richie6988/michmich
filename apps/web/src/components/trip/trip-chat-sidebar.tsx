@@ -12,7 +12,32 @@ function colorForUser(userId: string): string {
   return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
 }
 
-const QUICK_EMOJIS = ['+1', 'OK', 'Wait', 'Tonight?', 'Friday?', 'Yes', 'No'];
+const EMOJI_CATEGORIES: { name: string; emojis: string[] }[] = [
+  {
+    name: 'Smileys',
+    emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔'],
+  },
+  {
+    name: 'Reactions',
+    emojis: ['👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '☝️', '👋', '🤚', '🖐️', '✋', '🖖', '👏', '🙌', '🤝', '🙏', '✍️', '💪', '🦾'],
+  },
+  {
+    name: 'Hearts',
+    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '💌', '🔥', '✨', '🎉', '🎊', '🥳'],
+  },
+  {
+    name: 'Travel',
+    emojis: ['✈️', '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🏍️', '🛵', '🚲', '🛴', '🛹', '🚂', '🚝', '🚄', '🚅', '🚆', '🚇', '🚈', '🚉', '🚊', '🚋', '🗺️', '🧳', '⛵', '🚤', '🛳️'],
+  },
+  {
+    name: 'Food',
+    emojis: ['🍕', '🍔', '🌮', '🌯', '🥙', '🥗', '🍜', '🍝', '🍣', '🍱', '🥟', '🍤', '🍲', '🍛', '🍙', '🍚', '🍘', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍩', '🍪', '🥐', '🥖', '🥨', '🍞', '☕', '🍵', '🍷', '🍺', '🍻', '🥂', '🍸', '🍹'],
+  },
+  {
+    name: 'Places',
+    emojis: ['🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭', '🏯', '🏰', '💒', '🗼', '🗽', '⛪', '🕌', '🛕', '🕍', '⛩️', '🕋', '⛲', '⛺', '🌁', '🌃', '🏙️', '🌄', '🌅', '🌆', '🌇', '🌉', '🌊', '🏖️', '🏝️', '🏜️', '🌋', '⛰️', '🏔️', '🗻'],
+  },
+];
 
 interface TripChatSidebarProps {
   tripId: string;
@@ -29,7 +54,7 @@ interface TripChatSidebarProps {
  * full-height bottom sheet that slides up from below.
  */
 export function TripChatSidebar({ tripId }: TripChatSidebarProps) {
-  const { chats, sendChatMessage, currentUser, trips } = useAppStore();
+  const { chats, sendMessage, currentUser, trips } = useAppStore();
   const trip = trips.find(t => t.id === tripId);
   const messages = chats[tripId] || [];
 
@@ -62,13 +87,13 @@ export function TripChatSidebar({ tripId }: TripChatSidebarProps) {
 
   const handleSend = () => {
     if (!input.trim()) return;
-    sendChatMessage(tripId, input.trim());
+    sendMessage(tripId, input.trim());
     setInput('');
     setShowEmojiPanel(false);
   };
 
   const handleQuickEmoji = (text: string) => {
-    sendChatMessage(tripId, text);
+    sendMessage(tripId, text);
     setShowEmojiPanel(false);
   };
 
@@ -271,18 +296,10 @@ export function TripChatSidebar({ tripId }: TripChatSidebarProps) {
 
   return (
     <>
-      {/* DESKTOP: Persistent right rail (xl: 1280px+) */}
-      <aside
-        className="hidden xl:flex fixed right-0 top-14 bottom-0 w-[340px] bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 shadow-xl z-30 flex-col"
-        aria-label="Group chat"
-      >
-        {chatContent}
-      </aside>
-
-      {/* MOBILE/TABLET: Floating action button */}
+      {/* Floating chat button - always visible, all screen sizes (req: chat as message icon with notification) */}
       <button
         onClick={() => setOpen(true)}
-        className="xl:hidden fixed bottom-6 right-4 z-40 w-14 h-14 rounded-full bg-cyan-600 hover:bg-cyan-700 text-white shadow-2xl shadow-cyan-500/40 flex items-center justify-center active:scale-95 transition-all"
+        className="fixed bottom-6 right-4 sm:right-6 z-40 w-14 h-14 rounded-full bg-cyan-600 hover:bg-cyan-700 text-white shadow-2xl shadow-cyan-500/40 flex items-center justify-center active:scale-95 transition-all"
         aria-label={`Open chat${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -295,19 +312,19 @@ export function TripChatSidebar({ tripId }: TripChatSidebarProps) {
         )}
       </button>
 
-      {/* MOBILE/TABLET: Bottom sheet when open */}
+      {/* Expanded chat - bottom sheet on mobile, side panel on desktop */}
       {open && (
         <div
-          className="xl:hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-end barry-dialog-fade"
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-stretch sm:justify-end barry-dialog-fade"
           onClick={() => setOpen(false)}
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="w-full max-h-[85vh] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl flex flex-col barry-sheet-up"
-            style={{ height: '85vh' }}
+            className="w-full sm:w-[400px] max-h-[85vh] sm:max-h-none sm:h-full bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-t-none sm:rounded-l-3xl shadow-2xl flex flex-col barry-sheet-up"
+            style={{ height: typeof window !== 'undefined' && window.innerWidth >= 640 ? '100%' : '85vh' }}
           >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
+            {/* Drag handle on mobile */}
+            <div className="sm:hidden flex justify-center pt-2 pb-1 flex-shrink-0">
               <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
             </div>
             {chatContent}

@@ -58,27 +58,12 @@ export function SetupSheet({ tripId, participantId, onClose }: {
     || (isMe ? preferences.defaultTransportMode : 'transit')
   );
 
-  // Time and budget — input with unit/currency selector
-  const [maxTime, setMaxTime] = useState(
-    participant?.maxTime
-    || (isMe ? preferences.defaultMaxTime : null)
-    || 45
-  );
-  const [maxTimeUnit, setMaxTimeUnit] = useState<'min' | 'h'>(
-    participant?.maxTimeUnit
-    || (isMe ? preferences.defaultMaxTimeUnit : null)
-    || 'min'
-  );
-  const [maxBudget, setMaxBudget] = useState(
-    participant?.maxMoney
-    || (isMe ? preferences.defaultMaxBudget : null)
-    || 15
-  );
-  const [maxBudgetCurrency, setMaxBudgetCurrency] = useState<'EUR' | 'USD' | 'GBP' | 'CHF'>(
-    participant?.maxMoneyCurrency
-    || (isMe ? preferences.defaultMaxBudgetCurrency : null)
-    || 'EUR'
-  );
+  // Max travel time is set by the trip OWNER at trip-creation level.
+  // Each participant inherits it - no per-participant override.
+  const maxTime = trip?.maxTimeBudget || 60;
+
+  // maxBudget per-participant removed entirely. Each participant sees their
+  // own per-location transport budget on the top 3 cards instead.
 
   // Email for booking reports
   const [email, setEmail] = useState(
@@ -167,17 +152,20 @@ export function SetupSheet({ tripId, participantId, onClose }: {
 
   const handleSave = () => {
     if (!canEdit) return;
-    // Convert maxTime to minutes for the underlying engine
-    const maxTimeMin = maxTimeUnit === 'h' ? maxTime * 60 : maxTime;
+    // Max travel time is now set by the trip owner at trip level (Trip.maxTimeBudget).
+    // We mirror it onto the participant for the underlying equity engine.
+    const maxTimeMin = maxTime || 60; // sensible fallback if trip has no max
     updateParticipantConstraints(tripId, participant.userId, {
       transportMode: mode,
       // Keep weights as 0.5/0.5 since the priority slider was removed
       timeWeight: 0.5,
       moneyWeight: 0.5,
       maxTime: maxTimeMin,
-      maxTimeUnit,
-      maxMoney: maxBudget,
-      maxMoneyCurrency: maxBudgetCurrency,
+      maxTimeUnit: 'min',
+      // Max budget per participant removed - each participant sees their own
+      // adapted transport budget on the top 3 location cards instead.
+      maxMoney: null,
+      maxMoneyCurrency: 'EUR',
       email,
       selfBook,
       reductionCards,
@@ -239,7 +227,7 @@ export function SetupSheet({ tripId, participantId, onClose }: {
               <div className="flex-1 min-w-0">
                 <p className="font-display font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight">Save your setup forever</p>
                 <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
-                  Create a free account in 30 seconds. Barry will remember your home address, transport, and budget for every future trip.
+                  Create an account in 30 seconds. Barry will remember your home address, transport preferences, and previous trips for every future Barry.
                 </p>
                 <a
                   href={`/login?redirect=/trips/${tripId}`}
@@ -504,55 +492,6 @@ export function SetupSheet({ tripId, participantId, onClose }: {
               )}
             </div>
           )}
-
-          {/* Max one-way travel duration — input field with unit */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Max one-way travel duration</label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={maxTime}
-                onChange={e => setMaxTime(Math.max(0, parseInt(e.target.value) || 0))}
-                disabled={!canEdit}
-                min={0}
-                className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
-              />
-              <select
-                value={maxTimeUnit}
-                onChange={e => setMaxTimeUnit(e.target.value as 'min' | 'h')}
-                disabled={!canEdit}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
-              >
-                <option value="min">min</option>
-                <option value="h">hours</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Max budget — input field with currency */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Total maximum budget</label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={maxBudget}
-                onChange={e => setMaxBudget(Math.max(0, parseInt(e.target.value) || 0))}
-                disabled={!canEdit}
-                min={0}
-                className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
-              />
-              <select
-                value={maxBudgetCurrency}
-                onChange={e => setMaxBudgetCurrency(e.target.value as 'EUR' | 'USD' | 'GBP' | 'CHF')}
-                disabled={!canEdit}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
-              >
-                {COMMON_CURRENCIES.map(c => (
-                  <option key={c.code} value={c.code}>{c.code}</option>
-                ))}
-              </select>
-            </div>
-          </div>
         </div>
 
         {canEdit && (

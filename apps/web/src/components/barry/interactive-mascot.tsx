@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BarryMascot } from '@/components/barry/brand';
 import type { BarryMood } from '@/components/barry/brand';
-import { useAppStore } from '@/stores/app-store';
 
 const BARRY_MESSAGES = [
   "Hey! I'm Barry.",
@@ -36,7 +35,6 @@ export function InteractiveMascot({
   interactive = true,
   className = '',
 }: InteractiveMascotProps) {
-  const mascotEnabled = useAppStore(s => s.preferences?.mascotEnabled !== false);
   const [mood, setMood] = useState<BarryMood>(defaultMood);
   const [message, setMessage] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -47,9 +45,6 @@ export function InteractiveMascot({
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
-
-  // Professional mode: hide the floating interactive mascot entirely
-  if (!mascotEnabled) return null;
 
   const handleClick = () => {
     if (!interactive) return;

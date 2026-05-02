@@ -44,7 +44,6 @@ export type NotificationType =
   | 'trip_update'
   | 'system';
 
-export type SubscriptionTier = 'free' | 'pro';
 
 // --- Geometry ---
 
@@ -76,7 +75,6 @@ export interface User {
   defaultTimeWeight: number;
   defaultMoneyWeight: number;
   homeLocation: GeoPoint | null;
-  subscriptionTier: SubscriptionTier;
   createdAt: string;
 }
 

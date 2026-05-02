@@ -20,6 +20,8 @@ export default function CreateTripPage() {
   const [endDate, setEndDate] = useState('');
   const [invites, setInvites] = useState<string[]>([]);
   const [draftFriend, setDraftFriend] = useState('');
+  // Owner-set max one-way travel time. Applies to ALL participants.
+  const [maxTimeMin, setMaxTimeMin] = useState(60);
 
   // Auth guard: redirect to login if not authenticated
   useEffect(() => {
@@ -55,6 +57,7 @@ export default function CreateTripPage() {
         friendNames.length > 0 ? friendNames : undefined,
         mode,
         endDateIso,
+        maxTimeMin,
       );
       if (trip && trip.id) {
         router.push(`/trips/${trip.id}` as any);
@@ -221,6 +224,43 @@ export default function CreateTripPage() {
               )}
             </>
           )}
+        </div>
+
+        {/* Max travel time - owner sets it for everyone (Wave 24 core flow redesign) */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 mb-3">
+          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+            Max travel time per person
+          </label>
+          <p className="text-[11px] text-slate-500 mb-3 leading-snug">
+            How long is each participant willing to travel one-way? Barry will only suggest spots reachable within this limit.
+          </p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {[30, 60, 90, 120].map(min => (
+              <button
+                key={min}
+                onClick={() => setMaxTimeMin(min)}
+                className={`py-2 rounded-xl text-sm font-bold transition-all ${
+                  maxTimeMin === min
+                    ? 'bg-barry-blue text-white shadow-md'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                {min < 60 ? `${min} min` : `${min / 60}h${min % 60 ? ` ${min % 60}m` : ''}`}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-3">
+            <input
+              type="number"
+              value={maxTimeMin}
+              onChange={e => setMaxTimeMin(Math.max(15, Math.min(480, parseInt(e.target.value) || 60)))}
+              min={15}
+              max={480}
+              step={15}
+              className="flex-1 bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            />
+            <span className="text-xs text-slate-500 font-medium">minutes</span>
+          </div>
         </div>
 
         {/* Friends */}
