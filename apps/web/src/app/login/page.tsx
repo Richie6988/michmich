@@ -14,6 +14,8 @@ const DEMO_USERS = [
   { email: 'marc@example.com', firstName: 'Marc', lastName: 'Laurent' },
 ];
 
+const MOCK_EMAILS = DEMO_USERS.map(u => u.email);
+
 type TabMode = 'login' | 'signup' | 'forgot' | 'verify';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -103,21 +105,23 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       if (mode === 'login') {
-        // Verify password
-        const ok = verifyPassword(email, password);
+        // Verify credentials against backend (falls back to demo for mock accounts)
+        const ok = await verifyPassword(email, password);
         if (!ok) {
           setErrors({ password: 'Wrong email or password.' });
           setSubmitting(false);
           return;
         }
-        login(email);
+        // login() is a no-op for backend-authed users (verifyPassword already set
+        // currentUser); only used as fallback when verifyPassword returned true via demo path
+        if (MOCK_EMAILS.includes(email)) login(email);
         router.push(redirect as any);
       } else if (mode === 'signup') {
-        // Trigger fake email verification step
-        signup(firstName.trim(), lastName.trim(), email, password);
+        // signup wires backend; on success, currentUser is set automatically
+        await signup(firstName.trim(), lastName.trim(), email, password);
         setMode('verify');
       } else if (mode === 'forgot') {
-        sendPasswordReset(email);
+        await sendPasswordReset(email);
         setForgotSent(true);
       } else if (mode === 'verify') {
         // Any 6-digit code works in dev. In prod this would call POST /auth/verify-email

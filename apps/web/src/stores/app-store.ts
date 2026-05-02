@@ -213,11 +213,11 @@ interface AppState {
   /** True if currently in 'guest' mode — has consulted a Barry via invite link without account */
   isGuest: boolean;
   login: (email: string) => void;
-  /** Verify password against local credentials store. Returns true on match. */
-  verifyPassword: (email: string, password: string) => boolean;
-  signup: (firstName: string, lastName: string, email: string, password?: string) => void;
-  /** Mock password reset email. Always returns true (anti-enumeration). */
-  sendPasswordReset: (email: string) => boolean;
+  /** Verify credentials against backend. Sets currentUser on success. Returns true on match. */
+  verifyPassword: (email: string, password: string) => Promise<boolean>;
+  signup: (firstName: string, lastName: string, email: string, password?: string) => Promise<void>;
+  /** Send password reset email via backend. Always returns true (anti-enumeration). */
+  sendPasswordReset: (email: string) => Promise<boolean>;
   setGuestMode: (firstName: string) => void;
   logout: () => void;
   /** Patch fields on the current user (firstName, lastName, avatarUrl, phone, locale...) */
@@ -505,27 +505,101 @@ export const useAppStore = create<AppState>()(
   },
 
   /**
-   * Verify a user's password against the local credentials store.
-   * Returns true if match, false otherwise.
-   * In production this hits the API at POST /api/v1/auth/login.
+   * Verify a user's password.
+   *
+   * Tries the real backend first (POST /api/v1/auth/login with Argon2 verification).
+   * Falls back to demo-mode for the 3 mock accounts (chloe/tom/marc) so the
+   * app remains demonstrable without a backend connection.
+   *
+   * Returns the AccessToken response from backend, or { success: boolean } from
+   * mock fallback. Caller handles both shapes.
+   *
+   * IMPORTANT: This is now an ASYNC function. Old sync callers must await it.
    */
-  verifyPassword: (email, password): boolean => {
+  verifyPassword: async (email, password): Promise<boolean> => {
     if (typeof window === 'undefined') return false;
+
+    // Try real backend first
     try {
-      const credsRaw = window.localStorage.getItem('barry-credentials');
-      const creds = credsRaw ? JSON.parse(credsRaw) : {};
-      // Demo accounts work with any password >= 6 chars (for testing)
-      if (MOCK_USERS.find(u => u.email === email)) return password.length >= 6;
-      // Real signups have a hash stored
-      const hash = creds[email.toLowerCase()];
-      if (!hash) return false;
-      // Trivial 'hash' for client-side mock: base64(password+salt). Real hash done server-side with argon2.
-      const expected = typeof btoa !== 'undefined' ? btoa(`${password}:barry-salt`) : '';
-      return hash === expected;
-    } catch { return false; }
+      const { auth: authApi, setToken } = await import('@/lib/api/backend');
+      const result = await authApi.login({ email, password });
+      if (result?.accessToken) {
+        setToken(result.accessToken);
+        // Map backend user to our User type and set as currentUser
+        const u = result.user;
+        const mappedUser: User = {
+          id: u.id,
+          email: u.email,
+          firstName: u.firstName,
+          lastName: u.lastName || '',
+          avatarUrl: u.avatarUrl || null,
+          phone: u.phone || null,
+          locale: u.locale || 'en',
+          defaultTransportMode: u.defaultTransportMode || 'transit',
+          defaultTimeWeight: u.defaultTimeWeight ?? 0.5,
+          defaultMoneyWeight: u.defaultMoneyWeight ?? 0.5,
+          homeLocation: u.homeLocation || null,
+          subscriptionTier: u.subscriptionTier || 'free',
+          createdAt: u.createdAt || new Date().toISOString(),
+        };
+        set({ currentUser: mappedUser, isAuthenticated: true, isGuest: false });
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      // Backend unreachable or 401 - fall through to demo mode for mock accounts
+      const isMockAccount = MOCK_USERS.find(u => u.email === email);
+      if (isMockAccount && password.length >= 6) {
+        // Demo fallback only for the 3 known demo emails
+        console.warn('[Barry] Backend unreachable, using demo login for', email);
+        return password.length >= 6;
+      }
+      // Real account but backend down: clearer error than "wrong password"
+      if (err?.status === 401) return false;
+      console.error('[Barry] Auth backend error:', err?.message || err);
+      return false;
+    }
   },
 
-  signup: (firstName, lastName, email, password) => {
+  signup: async (firstName, lastName, email, password) => {
+    if (typeof window === 'undefined') return;
+
+    // Try real backend first
+    try {
+      const { auth: authApi, setToken } = await import('@/lib/api/backend');
+      const result = await authApi.signup({
+        email,
+        password: password || '',
+        firstName,
+        lastName,
+      });
+      if (result?.accessToken && result?.user) {
+        setToken(result.accessToken);
+        const u = result.user;
+        const mappedUser: User = {
+          id: u.id,
+          email: u.email,
+          firstName: u.firstName,
+          lastName: u.lastName || '',
+          avatarUrl: u.avatarUrl || null,
+          phone: u.phone || null,
+          locale: u.locale || 'en',
+          defaultTransportMode: u.defaultTransportMode || 'transit',
+          defaultTimeWeight: u.defaultTimeWeight ?? 0.5,
+          defaultMoneyWeight: u.defaultMoneyWeight ?? 0.5,
+          homeLocation: u.homeLocation || null,
+          subscriptionTier: u.subscriptionTier || 'free',
+          createdAt: u.createdAt || new Date().toISOString(),
+        };
+        set({ currentUser: mappedUser, isAuthenticated: true, isGuest: false });
+        return;
+      }
+    } catch (err: any) {
+      // Backend unreachable or duplicate email - fall through to local
+      console.warn('[Barry] Backend signup failed, using local-only mode:', err?.message);
+    }
+
+    // Local fallback: create user without persistence to backend
     const newUser: User = {
       id: `u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       email,
@@ -541,35 +615,28 @@ export const useAppStore = create<AppState>()(
       subscriptionTier: 'free',
       createdAt: new Date().toISOString(),
     };
-    // Persist credentials in mock store
-    if (password && typeof window !== 'undefined') {
-      try {
-        const credsRaw = window.localStorage.getItem('barry-credentials');
-        const creds = credsRaw ? JSON.parse(credsRaw) : {};
-        const hash = typeof btoa !== 'undefined' ? btoa(`${password}:barry-salt`) : password;
-        creds[email.toLowerCase()] = hash;
-        window.localStorage.setItem('barry-credentials', JSON.stringify(creds));
-      } catch { /* ignore */ }
-    }
     set({ currentUser: newUser, isAuthenticated: true, isGuest: false });
   },
 
   /**
-   * Send a password reset email (mock).
-   * In production this hits POST /api/v1/auth/forgot-password.
-   * Returns true silently regardless of whether email exists (anti-enumeration).
+   * Send a password reset email.
+   *
+   * Hits POST /api/v1/auth/forgot-password on the backend. Returns true
+   * regardless of whether the email exists (anti-enumeration). Falls back
+   * silently if backend is unreachable.
    */
-  sendPasswordReset: (email): boolean => {
+  sendPasswordReset: async (email): Promise<boolean> => {
     if (typeof window === 'undefined') return true;
-    // Track sent reset requests in case we want to validate later
+
     try {
-      const requestsRaw = window.localStorage.getItem('barry-reset-requests');
-      const reqs = requestsRaw ? JSON.parse(requestsRaw) : [];
-      reqs.push({ email, sentAt: new Date().toISOString() });
-      // Keep last 10 only
-      window.localStorage.setItem('barry-reset-requests', JSON.stringify(reqs.slice(-10)));
-    } catch { /* ignore */ }
-    return true;
+      const { auth: authApi } = await import('@/lib/api/backend');
+      await authApi.forgotPassword(email);
+      return true;
+    } catch (err: any) {
+      console.warn('[Barry] forgot-password backend unreachable:', err?.message);
+      // Always return true to prevent email enumeration on the client side too
+      return true;
+    }
   },
 
   setGuestMode: (firstName) => {

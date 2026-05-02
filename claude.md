@@ -677,7 +677,7 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: May 2, 2026 - Wave 19 (chat sidebar, PWA install prompt, recap+funding side-by-side)*
+*Last updated: May 2, 2026 - Wave 20 (security hardening + backend auth wiring + DB backup script)*
 *Maintained by: Claude (AI architect) + Richie (founder)*
 
 ---

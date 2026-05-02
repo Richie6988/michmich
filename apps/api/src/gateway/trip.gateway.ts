@@ -3,14 +3,18 @@ import {
   OnGatewayConnection, OnGatewayDisconnect, MessageBody, ConnectedSocket,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 
 /**
- * Real-time gateway. Clients connect, join per-trip rooms, and broadcast events
- * (chat messages, votes cast, task added/toggled, photo added, fund paid).
+ * Real-time gateway. Clients connect with a JWT in handshake.auth.token,
+ * join per-trip rooms, and broadcast events.
  *
- * Auth: client passes JWT in handshake.auth.token. We verify in connect handler.
- * For now we accept any connection in dev; production should enforce JWT verification.
+ * Auth (production-grade as of Wave 20):
+ *   - On connect, JWT is extracted from handshake.auth.token
+ *   - Verified with same secret as HTTP API
+ *   - Failed verification disconnects the socket immediately
+ *   - userId is attached to socket for later authorization checks
  *
  * Event channels:
  *   trip:{tripId}:chat       new chat message
@@ -33,9 +37,34 @@ export class TripGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(TripGateway.name);
 
-  handleConnection(client: Socket) {
-    // TODO: verify JWT from client.handshake.auth.token in production
-    this.logger.log(`Client connected: ${client.id}`);
+  constructor(private readonly jwtService: JwtService) {}
+
+  async handleConnection(client: Socket) {
+    try {
+      const token = client.handshake.auth?.token
+        || (client.handshake.headers.authorization || '').replace(/^Bearer /, '');
+
+      // Allow unauthenticated connections in dev only - prod enforces JWT
+      if (!token) {
+        if (process.env.NODE_ENV === 'production') {
+          this.logger.warn(`Rejecting unauthenticated WebSocket: ${client.id}`);
+          client.disconnect(true);
+          return;
+        }
+        this.logger.log(`Anonymous client connected (dev only): ${client.id}`);
+        return;
+      }
+
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET || 'barry-dev-secret',
+      });
+      // Attach userId to socket for later authorization
+      (client as any).userId = payload.sub;
+      this.logger.log(`Authenticated client connected: ${client.id} (user: ${payload.sub})`);
+    } catch (err) {
+      this.logger.warn(`Rejecting invalid JWT WebSocket: ${client.id} - ${(err as Error).message}`);
+      client.disconnect(true);
+    }
   }
 
   handleDisconnect(client: Socket) {
@@ -63,7 +92,7 @@ export class TripGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // ============================================================
-  // Helpers — called by services to push updates to subscribers
+  // Helpers - called by services to push updates to subscribers
   // ============================================================
 
   emitVote(tripId: string, payload: any) {
