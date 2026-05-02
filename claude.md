@@ -683,7 +683,7 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 **Stack**: NestJS 10 + TypeORM + PostgreSQL 15 + PostGIS + Redis (BullMQ) + Socket.IO + Argon2 + JWT.
 
-**Run locally**: `pnpm --filter @barry/api dev` from repo root, listens on port 3001. Swagger docs at `/api/docs`.
+**Run locally**: `npm run dev --workspace=@barry/api` from repo root (or `cd apps/api && npm run dev`), listens on port 3001. Swagger docs at `/api/docs`.
 
 ### 16.1 Entities (18 total, all in `apps/api/src/*/entities/`)
 
@@ -723,7 +723,8 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 Initial migration at `apps/api/src/migrations/1714521600000-InitialBackend.ts`. Creates all 18 tables + 14 enum types + GiST index on `venues.location` for spatial queries. Run with:
 
 ```
-pnpm --filter @barry/api migration:run
+npm run migration:run --workspace=@barry/api
+# or: cd apps/api && npm run migration:run
 ```
 
 DataSource at `apps/api/src/data-source.ts` reads `DATABASE_URL` or `PG*` env vars. Default points at portable Windows: `localhost:5433`, `barry/barry_dev/barry`.
