@@ -336,6 +336,12 @@ interface AppState {
   createFundsRequest: (tripId: string) => FundsRequest;
   payFundsContribution: (tripId: string, contributionId: string, useBalance: boolean) => void;
 
+  // Trip components — owner-toggled categories that the trip needs.
+  // Defaults: one-day trips have ['restaurant'], multi-day have ['accommodation', 'restaurant'].
+  // Owner can activate any of: 'accommodation' | 'restaurant' | 'activities' | 'car'
+  tripComponents: Record<string, { accommodation: boolean; restaurant: boolean; activities: boolean; car: boolean }>;
+  toggleTripComponent: (tripId: string, component: 'accommodation' | 'restaurant' | 'activities' | 'car') => void;
+
   // Reservations (final bookings)
   reservations: Record<string, Reservation[]>;
   performBookings: (tripId: string) => Reservation[];
@@ -1036,6 +1042,28 @@ export const useAppStore = create<AppState>()(
     });
   },
 
+  // TRIP COMPONENTS — which sections (hotel/restaurant/activities/car) are activated for this trip
+  tripComponents: {},
+  toggleTripComponent: (tripId, component) => {
+    set(s => {
+      const trip = s.trips.find(t => t.id === tripId);
+      const isMultiDay = trip?.mode === 'trip';
+      const current = s.tripComponents[tripId] || {
+        // Sensible defaults: one-day -> restaurant; multi-day -> hotel + restaurant
+        accommodation: isMultiDay,
+        restaurant: true,
+        activities: false,
+        car: false,
+      };
+      return {
+        tripComponents: {
+          ...s.tripComponents,
+          [tripId]: { ...current, [component]: !current[component] },
+        },
+      };
+    });
+  },
+
   // FUNDS REQUEST
   fundsRequests: {},
   createFundsRequest: (tripId) => {
@@ -1312,7 +1340,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'barry-app-state',
-      version: 3, // bump when persisted shape changes
+      version: 4, // bump when persisted shape changes
       storage: createJSONStorage(() => (typeof window !== 'undefined' ? window.localStorage : undefined as any)),
       // Only persist user-controlled data, NOT mock trips/chats
       partialize: (state) => ({
@@ -1323,6 +1351,7 @@ export const useAppStore = create<AppState>()(
         paymentMethods: state.paymentMethods,
         inAppBalance: state.inAppBalance,
         balanceTransactions: state.balanceTransactions,
+        tripComponents: state.tripComponents,
       }),
       // Migrate older versions
       migrate: (persistedState: any, version: number) => {
@@ -1337,6 +1366,10 @@ export const useAppStore = create<AppState>()(
         if (version < 3) {
           persistedState.isAuthenticated = persistedState.isAuthenticated ?? true;
           persistedState.isGuest = persistedState.isGuest ?? false;
+        }
+        // v3 -> v4: trip components map added
+        if (version < 4) {
+          persistedState.tripComponents = persistedState.tripComponents || {};
         }
         return persistedState;
       },

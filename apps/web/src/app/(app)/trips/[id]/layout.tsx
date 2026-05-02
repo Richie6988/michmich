@@ -99,7 +99,7 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
                             <path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z" />
                           </svg>
                         )}
-                        {trip.mode === 'trip' ? 'Trip' : 'Wanderlust'}
+                        {trip.mode === 'trip' ? 'Multi-day' : 'One day'}
                       </span>
                     )}
                   </div>

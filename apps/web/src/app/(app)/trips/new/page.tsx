@@ -86,57 +86,67 @@ export default function CreateTripPage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6">
+      <main
+        className="max-w-3xl mx-auto px-4 py-6"
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <div className="text-center mb-6">
-          <BarryMascot mood="happy" size={88} />
-          <h1 className="font-display font-extrabold text-2xl text-slate-900 mt-3 tracking-tight">
-            What's the plan?
+          {/* Animated mascot — bobs up/down + waves on mount */}
+          <div className="inline-block barry-mascot-idle">
+            <BarryMascot mood="happy" size={88} />
+          </div>
+          <h1 className="font-display font-extrabold text-2xl text-slate-900 dark:text-slate-100 mt-3 tracking-tight">
+            What&rsquo;s the plan?
           </h1>
-          <p className="text-sm text-slate-500 mt-1">Solo or with friends. Doesn't matter.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Solo or with friends. Doesn&rsquo;t matter.</p>
         </div>
 
-        {/* Mode toggle - WIDER */}
-        <div className="bg-white rounded-2xl p-3 border border-slate-100 mb-3">
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">Type</label>
+        {/* Duration toggle — replaces the old wanderlust/trip mode */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 mb-3">
+          <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 px-1">How long?</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setMode('wanderlust')}
               className={`p-3 rounded-xl border-2 transition-all text-left ${
                 mode === 'wanderlust'
-                  ? 'border-barry-blue bg-blue-50'
-                  : 'border-slate-100 hover:border-slate-200'
+                  ? 'border-barry-blue bg-blue-50 dark:bg-blue-950/40'
+                  : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mode === 'wanderlust' ? '#2563EB' : '#475569'} strokeWidth="2">
-                  <path d="M8 21h8M12 17v4M5 3h14l-2 11a4 4 0 01-4 3h-2a4 4 0 01-4-3L5 3z" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mode === 'wanderlust' ? '#2563EB' : '#94A3B8'} strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
                 </svg>
-                <span className={`font-bold text-sm ${mode === 'wanderlust' ? 'text-barry-blue' : 'text-slate-700'}`}>
-                  Wanderlust
+                <span className={`font-bold text-sm ${mode === 'wanderlust' ? 'text-barry-blue' : 'text-slate-700 dark:text-slate-300'}`}>
+                  Just one day
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 leading-snug">
-                One-day outing. Bars, restaurants, activities.
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Lunch, dinner, a hike, an evening out.
               </p>
             </button>
             <button
               onClick={() => setMode('trip')}
               className={`p-3 rounded-xl border-2 transition-all text-left ${
                 mode === 'trip'
-                  ? 'border-barry-blue bg-blue-50'
-                  : 'border-slate-100 hover:border-slate-200'
+                  ? 'border-barry-blue bg-blue-50 dark:bg-blue-950/40'
+                  : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mode === 'trip' ? '#2563EB' : '#475569'} strokeWidth="2">
-                  <path d="M3 21V8l9-4 9 4v13M9 21v-8h6v8" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mode === 'trip' ? '#2563EB' : '#94A3B8'} strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                <span className={`font-bold text-sm ${mode === 'trip' ? 'text-barry-blue' : 'text-slate-700'}`}>
-                  Trip
+                <span className={`font-bold text-sm ${mode === 'trip' ? 'text-barry-blue' : 'text-slate-700 dark:text-slate-300'}`}>
+                  A few days
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 leading-snug">
-                Multi-day. Hotels, car rental, activities.
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                A weekend, a bachelorette, a holiday.
               </p>
             </button>
           </div>
@@ -151,7 +161,7 @@ export default function CreateTripPage() {
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder={mode === 'wanderlust' ? 'Friday dinner, Sunday hike...' : "Weekend in Barcelona, Anna's wedding..."}
+            placeholder={mode === 'wanderlust' ? 'Friday dinner, Sunday hike...' : "Weekend in Barcelona, Anna's bachelorette..."}
             className="w-full bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
             autoFocus
           />

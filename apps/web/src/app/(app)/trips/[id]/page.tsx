@@ -18,6 +18,7 @@ import { TripProgress, type TripStep } from '@/components/trip/trip-progress';
 import { TodoSection } from '@/components/trip/todo-section';
 import { MemoryGallery } from '@/components/trip/memory-gallery';
 import { ActivitiesSection, CarRentalSection } from '@/components/trip/activities-and-cars';
+import { TripComponentsToggle } from '@/components/trip/trip-components-toggle';
 import { FiltersBar, ACTIVITY_FILTERS, CAR_FILTERS, VENUE_FILTERS, HOTEL_FILTERS } from '@/components/trip/filters-bar';
 import { formatDateLong, formatDateShort, formatTimeShort } from '@/lib/utils/format-date';
 import { computeBalances } from '@/lib/utils/expenses';
@@ -320,10 +321,22 @@ export default function TripOverviewPage() {
             </ChronoSection>
           )}
 
-          {/* SECTION 6: VENUES + ACCOMMODATION (or activities for wanderlust) — wide split based on mode */}
-          {(tripPickedZone || (tripPinVotes && tripPinVotes.length > 0)) && (
+          {/* SECTION 5.5: TRIP COMPONENTS PICKER — owner toggles which categories the trip needs */}
+          {tripPickedZone && (
+            <ChronoSection phase="before" label="Categories">
+              <SectionHeader title="What does this Barry need?" />
+              <TripComponentsToggle
+                tripId={trip.id}
+                isOwner={isAdmin}
+                isMultiDay={trip.mode === 'trip'}
+              />
+            </ChronoSection>
+          )}
+
+          {/* SECTION 6: PICKS — only show categories the owner activated */}
+          {tripPickedZone && (
             <ChronoSection phase="before" label="Picks">
-              <SectionHeader title={tripPickedZone ? "Picks for your group" : "Early picks (zone not locked yet)"} />
+              <SectionHeader title="Picks for your group" />
               <VenuesAndStaySection
                 trip={trip}
                 zoneId={tripPickedZone || winningZoneId || zones[0]?.id || 'demo-z1'}
@@ -438,13 +451,36 @@ function ChronoSection({
  */
 function ActivitiesAndCarsBlock({ trip }: { trip: any }) {
   const isTrip = trip.mode === 'trip';
+  const { tripComponents } = useAppStore();
+  const components = tripComponents[trip.id] || {
+    accommodation: isTrip,
+    restaurant: true,
+    activities: false,
+    car: false,
+  };
+  const showActivities = components.activities;
+  const showCar = components.car && isTrip;
   const [activityFilters, setActivityFilters] = useState<Record<string, string[]>>({});
   const [carFilters, setCarFilters] = useState<Record<string, string[]>>({});
 
+  // If neither is enabled, render nothing (the parent ChronoSection still wraps)
+  if (!showActivities && !showCar) {
+    return (
+      <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 text-center">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Activities and car rental are off for this Barry.
+          {' '}
+          <span className="text-slate-400">The owner can turn them on above.</span>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
+      {showActivities && (
       <div>
-        <p className="text-sm font-semibold text-slate-700 mb-2 px-1">Activities</p>
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 px-1">Activities</p>
         <FiltersBar
           filterGroups={ACTIVITY_FILTERS}
           selectedFilters={activityFilters}
@@ -453,10 +489,11 @@ function ActivitiesAndCarsBlock({ trip }: { trip: any }) {
         />
         <ActivitiesSection tripId={trip.id} mode={trip.mode || 'wanderlust'} />
       </div>
+      )}
 
-      {isTrip && (
+      {showCar && (
         <div>
-          <p className="text-sm font-semibold text-slate-700 mb-2 px-1">Car rental</p>
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 px-1">Car rental</p>
           <FiltersBar
             filterGroups={CAR_FILTERS}
             selectedFilters={carFilters}
@@ -552,7 +589,7 @@ function TripRecapCard({ trip }: { trip: any }) {
             <span className={`text-[10px] font-bold uppercase tracking-wider ${
               isWanderlust ? 'text-blue-700' : 'text-violet-700'
             }`}>
-              {isWanderlust ? 'Wanderlust' : 'Trip'}
+              {isWanderlust ? 'One day' : 'Multi-day'}
             </span>
             <span className="text-[10px] text-slate-500">·</span>
             <span className="text-[10px] font-medium text-slate-600">{lengthLine}</span>
@@ -947,35 +984,119 @@ function DatePollCard({ tripId, poll, totalMembers, isAdmin, currentUserId, isSo
 function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: any) {
   const router = useRouter();
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const lastFew = messages.slice(-8);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Auto-scroll to bottom when messages change
+  // Filter messages by search (across full history) or fall back to last 8
+  const filteredMessages = searchQuery.trim()
+    ? messages.filter((m: any) => m.content.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+    : messages.slice(-8);
+
+  // Auto-scroll to bottom when messages change (only if not searching)
   React.useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && !searchQuery) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages.length, searchQuery]);
+
+  // Format relative timestamp like "2 min ago", "Yesterday", "14:32"
+  const formatTimestamp = (date: Date | string): string => {
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffMin < 1) return 'now';
+    if (diffMin < 60) return `${diffMin}m`;
+    if (diffHour < 24 && d.getDate() === now.getDate()) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    if (diffDay < 2) return `Yesterday ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    if (diffDay < 7) return `${diffDay}d`;
+    return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  };
+
+  // Highlight matching part of the search
+  const highlightMatch = (content: string, query: string) => {
+    if (!query.trim()) return content;
+    const idx = content.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return content;
+    const before = content.slice(0, idx);
+    const match = content.slice(idx, idx + query.length);
+    const after = content.slice(idx + query.length);
+    return (
+      <>
+        {before}
+        <mark className="bg-amber-200 dark:bg-amber-700 text-slate-900 dark:text-slate-100 rounded px-0.5">{match}</mark>
+        {after}
+      </>
+    );
+  };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col h-full">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
           </div>
-          <p className="font-display font-bold text-base text-slate-900">Chat</p>
+          <p className="font-display font-bold text-base text-slate-900 dark:text-slate-100">Chat</p>
           {messages.length > 0 && (
-            <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-700 bg-cyan-100 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-700 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-900/40 px-2 py-0.5 rounded-full">
               {messages.length}
             </span>
           )}
         </div>
-        <button onClick={() => router.push(`/trips/${tripId}/chat` as any)} className="text-[11px] text-cyan-700 font-semibold hover:underline">
-          Open
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => { setSearchOpen(o => !o); if (searchOpen) setSearchQuery(''); }}
+            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+              searchOpen ? 'bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500'
+            }`}
+            aria-label="Search messages"
+            title="Search messages"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
+          <button onClick={() => router.push(`/trips/${tripId}/chat` as any)} className="text-[11px] text-cyan-700 dark:text-cyan-300 font-semibold hover:underline px-1">
+            Open
+          </button>
+        </div>
       </div>
+
+      {/* Search input - shows when searchOpen */}
+      {searchOpen && (
+        <div className="mb-2 relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search messages..."
+            className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-lg px-3 py-2 pr-8 text-xs focus:outline-none focus:ring-2 focus:ring-cyan-200"
+            autoFocus
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-300 dark:bg-slate-600 text-white flex items-center justify-center hover:bg-slate-400 transition"
+              aria-label="Clear search"
+            >
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          )}
+          {searchQuery.trim() && (
+            <p className="text-[10px] text-slate-500 mt-1">
+              {filteredMessages.length} {filteredMessages.length === 1 ? 'match' : 'matches'}
+            </p>
+          )}
+        </div>
+      )}
 
       <div
         ref={scrollRef}
@@ -985,20 +1106,29 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
         aria-relevant="additions"
         aria-label="Trip chat messages"
       >
-        {lastFew.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-6">No messages yet</p>
+        {filteredMessages.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-6">
+            {searchQuery.trim() ? 'No messages match your search.' : 'No messages yet'}
+          </p>
         ) : (
-          lastFew.map((m: any) => {
+          filteredMessages.map((m: any) => {
             const isMe = m.userId === currentUserId;
             const color = colorForUser(m.userId);
             return (
               <div key={m.id} className="flex items-start gap-2">
                 <Avatar user={m.user} size={24} className="mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold leading-tight" style={{ color: isMe ? '#64748B' : color }}>
-                    {isMe ? 'You' : m.user?.firstName}
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="text-[10px] font-semibold leading-tight" style={{ color: isMe ? '#64748B' : color }}>
+                      {isMe ? 'You' : m.user?.firstName}
+                    </p>
+                    <span className="text-[9px] text-slate-400" title={new Date(m.createdAt || Date.now()).toLocaleString()}>
+                      {formatTimestamp(m.createdAt || new Date())}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug break-words">
+                    {searchQuery.trim() ? highlightMatch(m.content, searchQuery) : m.content}
                   </p>
-                  <p className="text-xs text-slate-700 leading-snug break-words">{m.content}</p>
                 </div>
               </div>
             );
@@ -1013,7 +1143,7 @@ function ChatCard({ tripId, messages, currentUserId, input, setInput, onSend }: 
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && onSend()}
           placeholder="Quick message..."
-          className="flex-1 bg-slate-50 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-cyan-200"
+          className="flex-1 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-cyan-200"
         />
         <button
           onClick={onSend}
@@ -1336,7 +1466,7 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
   const {
     pickedVenue, venueVotes, voteForVenue, closeVenueVote,
     accommodations, addAccommodation, voteForAccommodation, selectAccommodation,
-    currentUser,
+    currentUser, tripComponents,
   } = useAppStore();
 
   const venues = VENUES_BY_ZONE[zoneId] || FALLBACK_VENUES;
@@ -1344,6 +1474,14 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
   const isAdmin = trip.organizerId === currentUser?.id;
   const isSolo = trip.participants.length === 1;
   const isTrip = trip.mode === 'trip';
+  const components = tripComponents[trip.id] || {
+    accommodation: isTrip,
+    restaurant: true,
+    activities: false,
+    car: false,
+  };
+  const showRestaurants = components.restaurant;
+  const showAccommodation = components.accommodation && isTrip;
   const [openVenueId, setOpenVenueId] = useState<string | null>(null);
   const [openAccId, setOpenAccId] = useState<string | null>(null);
   const [venueFilters, setVenueFilters] = useState<Record<string, string[]>>({});
@@ -1414,7 +1552,16 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
 
   return (
     <div className="space-y-4">
+      {!showRestaurants && !showAccommodation && (
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            No categories activated yet. The owner can pick what this Barry needs above.
+          </p>
+        </div>
+      )}
+
       {/* VENUES — horizontal scroll like TheFork */}
+      {showRestaurants && (
       <div>
         <div className="flex items-center justify-between mb-2 px-1">
           <p className="text-sm font-semibold text-slate-700">
@@ -1451,9 +1598,10 @@ function VenuesAndStaySection({ trip, zoneId }: { trip: any; zoneId: string }) {
           cardWidth={200}
         />
       </div>
+      )}
 
-      {/* ACCOMMODATIONS — horizontal scroll like Booking. Trip mode only. */}
-      {isTrip && (
+      {/* ACCOMMODATIONS — horizontal scroll like Booking. Multi-day + activated only. */}
+      {showAccommodation && (
         <div>
           <div className="flex items-center justify-between mb-2 px-1">
             <p className="text-sm font-semibold text-slate-700">Where to stay</p>

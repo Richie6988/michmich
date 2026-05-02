@@ -5,6 +5,53 @@ Items at the top are higher priority. Items get checked off with the commit hash
 
 ## In progress
 
+### 19. UX overhaul (waves 14-15) — **PARTIAL** (`cf5b115` + pending wave 15)
+
+**Done in Wave 14 (`cf5b115`):**
+- Custom branded Dialog system replacing browser alert/confirm everywhere
+- Em-dash purge (4 user-visible spots fixed; comments untouched)
+- Homepage HellLoop section: animated cycle of 3 pains with shake/tilt/bounce
+- Homepage BarryRocks section: 5 concrete success scenarios with green outcome arrows
+- MascotCTA replacing big "+ New Barry" tile (mascot wiggles on hover, bobs idle)
+- "Barry on your phone" tile on landing (iOS / Android coming soon)
+- Developer options section removed from Profile
+- Grey-on-grey input fix in trips/new (5 inputs)
+
+**Done in Wave 15 (pending commit):**
+- Wanderlust UX dropped: "How long?" toggle reads "Just one day" / "A few days"; data layer mode value preserved
+- Owner-toggled trip components: tripComponents Zustand state with v4 persist migration
+- TripComponentsToggle UI component (owner: 4-button grid; participant: read-only chips)
+- Section 5.5 inserted between zone pick and picks for category activation
+- VenuesAndStaySection + ActivitiesAndCarsBlock gated on tripComponents
+- Chat search with magnifying-glass toggle, mark highlighting, match counter
+- Per-message relative timestamps (now/Nm/HH:MM/Yesterday/Nd/D MMM)
+- Right-click prevented in trips/new
+- Animated mascot in trips/new (idle bob)
+
+**Still TODO (pending future waves):**
+- Req 3: WhatsApp share button broken
+- Req 4: Real auth (login/signup/forgot password/email verify/Google OAuth/Apple OAuth) — Wave 16 priority
+- Req 6: Login icon top-right outside profile dropdown
+- Req 7-16: Profile cleanup batch (more languages, address verify, notif explain, email validation, remove default trip duration/budget, remove Barry Pro, add credit card/PayPal, merge legal+RGPD compliance, move contact support to in-trip help icon)
+- Req 17: Barry app links on homepage (partially done in 14, needs real iOS/Android URLs)
+- Req 20: Clickable profile avatar from trip header
+- Req 21: Delete redundant first recap section in trip
+- Req 22: Trip progress visual upgrade
+- Req 23: "Participants" header bigger; lambda user can only modify own setup
+- Req 24: Setup grey-on-grey input fix
+- Req 25: Encourage invitee registration when modifying setup
+- Req 26: "Let's find a date" instead of "Plan"
+- Req 27: Chat as sidebar interleaved (left/right alternating, emoji panel)
+- Req 28: TODO list moved after trip validation gate
+- Req 29: "Barry's choice" map core (calculate visualization, vote on legend, satellite toggle, remove Leaflet attribution overlay)
+- Req 30: Map distance hover for current user
+- Req 31: 3-column comparison layout in picks
+- Req 32: Working filter impacts (asian = only asian restaurants; car size/days)
+- Req 33: Owner can unlock day or location to change choice
+- Req 34: Funding gate logic (works without restaurant/hotel/activities)
+- Req 35: Trip summary in parallel with funding when validated
+- Req 36: After funding, recap/expenses/media as tiles with sunglasses Barry mascot
+
 ### 18. Backend (NestJS + PostgreSQL + TypeORM) — **CORE DONE** (`pending wave 13`)
 
 **Built:**

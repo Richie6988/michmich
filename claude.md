@@ -645,6 +645,8 @@ When working on Barry, Claude operates as a multi-disciplinary team. Each agent 
 
 | Commit | Wave | Highlights |
 |---|---|---|
+| upcoming | 15 | Wanderlust UX dropped (renamed One day / Multi-day, internal value preserved); owner-toggled trip components (hotel/restaurant/activities/car) gating picks sections; chat search + relative timestamps; right-click prevented in trips/new; animated mascot |
+| cf5b115 | 14 | Branded modals + homepage redesign (HellLoop animations + BarryRocks scenarios) + MascotCTA + em-dash purge + dev-options removed + grey-on-grey input fix in trips/new |
 | upcoming | 13-backend | Full NestJS backend: 18 TypeORM entities, 8 modules, ~50 endpoints, JWT auth, WebSocket gateway, initial migration, web client API wrapper |
 | upcoming | 12-bugfix | Hooks rule fix in FundsCard, single-line transport (6 cols), date poll re-shuffling fix, sticky TripProgress, phase-coded ChronoSection, fund visible after transport, branded PDF export, fixed map edge arrows + distance hover |
 | upcoming | 12-darkmode+a11y+toasts | Dark mode toggle, focus-visible, prefers-reduced-motion, ARIA live region on chat, in-app toasts |
@@ -674,7 +676,7 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: April 30, 2026 — Wave 13 (full backend: TypeORM + JWT + WebSocket + migrations)*
+*Last updated: May 1, 2026 - Wave 15 (Wanderlust UX retired, owner activates trip components, chat search + timestamps)*
 *Maintained by: Claude (AI architect) + Richie (founder)*
 
 ---
@@ -755,3 +757,64 @@ Backend reads from `apps/api/.env` (or repo root `.env`). See `apps/api/.env.exa
 - **Real OAuth** (Google, Apple) — skeleton fields exist (`googleId`, `appleId`) but no flows.
 - **WebSocket auth verification** — currently accepts any connection in dev. Production must verify JWT from `client.handshake.auth.token`.
 - **Tests** — Jest + e2e setup exists, no actual test files yet.
+
+---
+
+## 17. TRIP COMPONENTS & UX FLOW (Wave 15)
+
+### Wanderlust mode dropped from UX (data layer unchanged)
+
+The internal `mode: 'wanderlust' | 'trip'` field is preserved on Trip for data
+compatibility, but the user-facing UX no longer mentions "Wanderlust". The
+"How long?" toggle in trips/new now reads:
+- **Just one day** (internal value: `'wanderlust'`)
+- **A few days** (internal value: `'trip'`)
+
+All user-visible labels have been replaced:
+- Trip header pill: `One day` / `Multi-day`
+- PDF export mode pill: `One day` / `Multi-day`
+- Trip layout chip: `Multi-day` / `One day`
+
+### Owner-toggled trip components
+
+New `tripComponents: Record<string, { accommodation, restaurant, activities, car }>`
+in the Zustand store. Persisted in localStorage with v3 -> v4 migration.
+
+Default values when not yet toggled:
+- One-day: `{ restaurant: true, accommodation: false, activities: false, car: false }`
+- Multi-day: `{ accommodation: true, restaurant: true, activities: false, car: false }`
+
+`<TripComponentsToggle>` component:
+- Two display modes: owner (4-button toggle grid with check badges) and
+  participant (read-only chips showing what's active)
+- Color-coded per category: orange (restaurant), blue (hotel), emerald
+  (activities), violet (car)
+- Persists toggle action via `toggleTripComponent(tripId, component)`
+- Inserted in trip page as Section 5.5 between Pin Vote and Picks
+
+### Section gating
+
+`VenuesAndStaySection` and `ActivitiesAndCarsBlock` now read tripComponents:
+- Restaurants section renders only when `components.restaurant === true`
+- Accommodation section renders only when `components.accommodation === true && isMultiDay`
+- Activities section renders only when `components.activities === true`
+- Car rental section renders only when `components.car === true && isMultiDay`
+- Empty state when no category active: friendly message pointing to the toggle above
+
+### Chat enhancements
+
+- Search button (magnifying glass) in ChatCard header next to Open
+- Search filters across full message history (vs default last 8 view)
+- `<mark>` highlighting on matches with amber background
+- Live match counter ("3 matches")
+- Auto-scroll suspended during search to keep results visible
+- Per-message timestamps using relative format:
+  `now`, `Nm`, `HH:MM` (today), `Yesterday HH:MM`, `Nd`, `D MMM`
+- Title attribute on timestamp shows full ISO datetime on hover
+- All dark mode aware
+
+### Right-click prevention in trips/new
+
+`onContextMenu={(e) => e.preventDefault()}` on `<main>` to keep the create
+flow distraction-free. Mascot wrapped in `barry-mascot-idle` class for the
+gentle bob animation.
