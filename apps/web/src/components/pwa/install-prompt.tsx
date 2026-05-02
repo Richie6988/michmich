@@ -10,11 +10,13 @@ interface BeforeInstallPromptEvent extends Event {
 const DISMISSED_KEY = 'barry-pwa-install-dismissed';
 
 /**
- * PWA install prompt banner (req 17).
+ * PWA install prompt banner (req 17 + Firefox CRITICAL_REVIEW UX gap 7).
  *
  * Detects when the browser fires the `beforeinstallprompt` event and shows
- * a small banner offering to install Barry as a PWA. Falls back to iOS-specific
- * instructions on Safari (which doesn't fire the event but supports A2HS).
+ * a small banner offering to install Barry as a PWA. Three browser paths:
+ *  - Chrome/Edge/Samsung: programmatic prompt via beforeinstallprompt event
+ *  - iOS Safari: manual instructions (Share -> Add to Home Screen)
+ *  - Firefox: manual instructions (URL bar PWA install icon, Firefox 100+)
  *
  * The banner is dismissible and remembers the dismissal in localStorage so we
  * don't pester users.
@@ -22,7 +24,7 @@ const DISMISSED_KEY = 'barry-pwa-install-dismissed';
 export function PWAInstallPrompt() {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(true);
-  const [isIOS, setIsIOS] = useState(false);
+  const [browser, setBrowser] = useState<'chrome' | 'ios' | 'firefox' | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
@@ -45,19 +47,28 @@ export function PWAInstallPrompt() {
       }
     } catch { /* ignore */ }
 
-    // iOS detection (Safari doesn't fire beforeinstallprompt)
     const ua = window.navigator.userAgent;
+
+    // iOS detection (Safari doesn't fire beforeinstallprompt)
     const iosRegex = /iPad|iPhone|iPod/;
     if (iosRegex.test(ua) && !(window.navigator as any).MSStream) {
-      setIsIOS(true);
+      setBrowser('ios');
       setDismissed(false);
       return;
     }
 
-    // Standard PWA install prompt event
+    // Firefox detection (doesn't fire beforeinstallprompt either)
+    if (/Firefox\//.test(ua)) {
+      setBrowser('firefox');
+      setDismissed(false);
+      return;
+    }
+
+    // Standard PWA install prompt event for Chrome/Edge/Samsung
     const handler = (e: Event) => {
       e.preventDefault();
       setInstallEvent(e as BeforeInstallPromptEvent);
+      setBrowser('chrome');
       setDismissed(false);
     };
     window.addEventListener('beforeinstallprompt', handler);
@@ -83,7 +94,13 @@ export function PWAInstallPrompt() {
   };
 
   if (isStandalone || dismissed) return null;
-  if (!installEvent && !isIOS) return null;
+  if (!installEvent && !browser) return null;
+
+  const copy = (() => {
+    if (browser === 'ios') return <>Tap <span className="font-bold">Share</span> then <span className="font-bold">Add to Home Screen</span> for one-tap access.</>;
+    if (browser === 'firefox') return <>Click the <span className="font-bold">install icon</span> in the URL bar (right side) to add Barry to your apps.</>;
+    return 'Get one-tap access from your home screen.';
+  })();
 
   return (
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-40 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-4 barry-sheet-up">
@@ -96,11 +113,9 @@ export function PWAInstallPrompt() {
         <div className="flex-1 min-w-0">
           <p className="font-display font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight">Install Barry</p>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-            {isIOS
-              ? <>Tap <span className="font-bold">Share</span> then <span className="font-bold">Add to Home Screen</span> for one-tap access.</>
-              : 'Get one-tap access from your home screen.'}
+            {copy}
           </p>
-          {!isIOS && installEvent && (
+          {browser === 'chrome' && installEvent && (
             <button
               onClick={handleInstall}
               className="mt-2 px-3 py-1.5 bg-barry-blue text-white text-xs font-bold rounded-lg hover:bg-blue-700 active:scale-95 transition-all"

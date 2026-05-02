@@ -272,6 +272,33 @@ export default function ProfilePage() {
               Auto follows your operating system's appearance setting.
             </p>
           </SettingRow>
+
+          {/* Mascot toggle for B2B / professional mode (CRITICAL_REVIEW UX gap 4) */}
+          <SettingRow
+            label="Show mascot"
+            value={preferences.mascotEnabled === false ? 'Off (professional mode)' : 'On'}
+            open={false}
+          >
+            <Toggle
+              checked={preferences.mascotEnabled !== false}
+              onChange={v => updatePreferences({ mascotEnabled: v })}
+            />
+          </SettingRow>
+
+          {/* Reduce motion toggle (CRITICAL_REVIEW UX gap 9) */}
+          <SettingRow
+            label="Reduce motion"
+            value={preferences.reduceMotion ? 'On' : 'Off (use system setting)'}
+            open={false}
+          >
+            <Toggle
+              checked={!!preferences.reduceMotion}
+              onChange={v => updatePreferences({ reduceMotion: v })}
+            />
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 leading-snug">
+              Disables most animations site-wide. By default we follow your OS preference.
+            </p>
+          </SettingRow>
         </div>
 
         {/* SECTION: Travel preferences (defaults reused on every Barry setup) */}

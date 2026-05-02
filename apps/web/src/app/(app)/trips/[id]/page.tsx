@@ -783,9 +783,31 @@ function ParticipantsSection({
                   {isReady ? 'Edit setup' : (isMe ? 'Set up' : 'Pre-fill')}
                 </button>
               ) : !isMe ? (
-                <span className="text-[10px] font-medium text-slate-400 px-2 italic">
-                  Their setup
-                </span>
+                <>
+                  <span className="text-[10px] font-medium text-slate-400 px-2 italic">
+                    Their setup
+                  </span>
+                  {/* Nudge unread participant via WhatsApp (CRITICAL_REVIEW UX gap 3) */}
+                  {isAdmin && !isReady && (p.user?.phone || p.guestPhone) && (
+                    <button
+                      onClick={() => {
+                        const phone = (p.user?.phone || p.guestPhone || '').replace(/[^\d+]/g, '');
+                        const name = p.user?.firstName || p.guestName || '';
+                        const msg = encodeURIComponent(
+                          `Hey ${name}! The gang is waiting on you for "${trip.name}". Take 2 min to set up here: ${typeof window !== 'undefined' ? window.location.origin : 'https://barry.app'}/trips/${trip.id}`
+                        );
+                        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+                      }}
+                      className="w-7 h-7 rounded-full bg-green-50 dark:bg-green-900/40 hover:bg-green-100 dark:hover:bg-green-900/60 text-green-700 dark:text-green-400 flex items-center justify-center transition-colors flex-shrink-0"
+                      title="Nudge via WhatsApp"
+                      aria-label={`Nudge ${name} via WhatsApp`}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                      </svg>
+                    </button>
+                  )}
+                </>
               ) : (
                 <span className="text-[10px] font-medium text-slate-400 px-2">Locked</span>
               )}
@@ -1487,9 +1509,9 @@ function ParticipantEdgeArrows({ participants, viewport }: { participants: any[]
 
 function PinVoteCard({ trip, zones, tripPinVotes, myPinVote, currentUserId, isAdmin, isSolo, allPinVoted, totalPinVoted, totalMembers, winningZoneId, onVote, onLock }: any) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs text-slate-500">{isSolo ? 'Pick one to continue' : `${totalPinVoted}/${totalMembers} voted`}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{isSolo ? 'Pick one to continue' : `${totalPinVoted}/${totalMembers} voted`}</p>
         {!isSolo && allPinVoted && isAdmin && winningZoneId && (
           <button
             onClick={() => onLock(winningZoneId)}
@@ -1499,6 +1521,26 @@ function PinVoteCard({ trip, zones, tripPinVotes, myPinVote, currentUserId, isAd
           </button>
         )}
       </div>
+
+      {/* Organizer skip-the-math override (CRITICAL_REVIEW UX gap 1) */}
+      {isAdmin && !isSolo && !allPinVoted && (
+        <div className="mb-3 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 flex items-center justify-between gap-2">
+          <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-snug flex-1">
+            <span className="font-bold">Already know where to go?</span><br />
+            Skip the vote and lock a zone yourself.
+          </p>
+          <select
+            onChange={e => { if (e.target.value) onLock(e.target.value); }}
+            defaultValue=""
+            className="text-[11px] font-bold text-amber-900 dark:text-amber-100 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-800 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+          >
+            <option value="" disabled>Pick zone...</option>
+            {zones.map((z: any) => (
+              <option key={z.id} value={z.id}>{z.label || `Zone ${z.rank}`}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="space-y-2">
         {zones.map((z: any, i: number) => {
           const myVoteHere = myPinVote?.zoneId === z.id;
@@ -2022,6 +2064,45 @@ function PreFundRecapCard({ trip, transportLegs, accommodations }: any) {
         <p className="text-xs font-semibold">Total estimated cost</p>
         <p className="text-base font-extrabold">{total.toFixed(0)} EUR</p>
       </div>
+
+      {/* Per-participant budget conflict warnings (CRITICAL_REVIEW UX gap 2) */}
+      {(() => {
+        const fairShare = total / Math.max(1, trip.participants.length);
+        const conflicts = trip.participants
+          .filter((p: any) => p.maxBudget && p.maxBudget > 0 && p.maxBudget < fairShare)
+          .map((p: any) => ({
+            user: p.user,
+            maxBudget: p.maxBudget,
+            shortfall: fairShare - p.maxBudget,
+          }));
+        if (conflicts.length === 0) return null;
+        return (
+          <div className="mt-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl p-3">
+            <p className="text-[11px] font-bold text-amber-900 dark:text-amber-200 mb-1.5 flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              Budget alert
+            </p>
+            <div className="space-y-1">
+              {conflicts.slice(0, 3).map((c: any, i: number) => (
+                <p key={i} className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
+                  <span className="font-bold">{c.user?.firstName || 'Someone'}</span> set their budget at {c.maxBudget} EUR but their share is ~{fairShare.toFixed(0)} EUR{' '}
+                  <span className="text-amber-700 dark:text-amber-400">({Math.round(c.shortfall)} EUR over)</span>
+                </p>
+              ))}
+              {conflicts.length > 3 && (
+                <p className="text-[10px] text-amber-700 dark:text-amber-400 italic">+ {conflicts.length - 3} more participant{conflicts.length - 3 > 1 ? 's' : ''}</p>
+              )}
+            </div>
+            <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1.5 italic">
+              Consider downgrading the hotel or splitting unequally so everyone can join.
+            </p>
+          </div>
+        );
+      })()}
+
       <p className="text-[10px] text-slate-500 text-center mt-1.5">
         Each participant will be asked their fair share below.
       </p>

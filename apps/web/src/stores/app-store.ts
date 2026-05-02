@@ -195,6 +195,10 @@ interface UserPreferences {
   notifications: boolean;
   homeLocation: GeoPoint | null;
   homeLabel: string;
+  /** Show the Barry mascot in headers, mascots, and CTAs. False = B2B/professional mode. */
+  mascotEnabled?: boolean;
+  /** Force-disable animations regardless of OS prefers-reduced-motion setting. */
+  reduceMotion?: boolean;
 }
 
 interface PaymentMethod {
@@ -399,6 +403,8 @@ export const useAppStore = create<AppState>()(
     homeLocation: MOCK_USERS[0].homeLocation,
     homeLabel: 'Home',
     theme: 'auto',
+    mascotEnabled: true,
+    reduceMotion: false,
   },
   paymentMethods: [],
   inAppBalance: 0,

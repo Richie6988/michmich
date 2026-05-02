@@ -6,6 +6,7 @@ import { ThemeManager } from '@/components/theme/theme-manager';
 import { ToastProvider } from '@/components/ui/toast';
 import { DialogProvider } from '@/components/ui/dialog';
 import { PWAInstallPrompt } from '@/components/pwa/install-prompt';
+import { CookieConsentBanner } from '@/components/legal/cookie-consent-banner';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -62,6 +63,7 @@ export default function RootLayout({
           <ToastProvider>
             {children}
             <PWAInstallPrompt />
+            <CookieConsentBanner />
           </ToastProvider>
         </DialogProvider>
       </body>

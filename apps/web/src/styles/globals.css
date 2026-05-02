@@ -372,3 +372,13 @@ button[class*="w-6"], button[class*="w-7"], button[class*="w-8"] {
 @media (min-width: 1280px) {
   .barry-trip-with-chat { padding-right: 340px; }
 }
+
+/* Force-disable animations when user opts in via profile (reduceMotion preference) */
+.barry-reduce-motion *,
+.barry-reduce-motion *::before,
+.barry-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

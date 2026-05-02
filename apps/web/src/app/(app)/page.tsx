@@ -292,6 +292,17 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
               </svg>
             </div>
           </Link>
+          {/* Try a sample trip button (CRITICAL_REVIEW UX gap 5) - lets prospects browse without signup */}
+          {showAuthCTA && (
+            <Link href="/trips/tr1?demo=1" className="inline-block">
+              <div className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold px-6 py-4 rounded-2xl hover:border-barry-blue hover:text-barry-blue active:scale-[0.98] transition-all flex items-center gap-2 justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span className="text-sm">Try a sample trip</span>
+              </div>
+            </Link>
+          )}
           {showAuthCTA && (
             <Link href="/login" className="text-barry-blue font-semibold hover:underline self-center">
               Already have an account? Sign in
