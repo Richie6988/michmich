@@ -360,3 +360,15 @@ button[class*="w-6"], button[class*="w-7"], button[class*="w-8"] {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Bottom sheet slide-up animation */
+@keyframes barry-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.barry-sheet-up { animation: barry-sheet-up 0.28s cubic-bezier(0.34, 1.4, 0.64, 1); }
+
+/* Right padding for trip main content to clear chat sidebar at xl+ */
+@media (min-width: 1280px) {
+  .barry-trip-with-chat { padding-right: 340px; }
+}

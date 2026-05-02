@@ -259,17 +259,14 @@ export default function TripOverviewPage() {
             />
           </ChronoSection>
 
-          {/* SECTION 2: PLAN - Date poll + Chat */}
+          {/* SECTION 2: PLAN - Date poll only. Chat moved to persistent sidebar (req 27) */}
           <ChronoSection phase="before" label="Let's find a date">
             <SectionHeader title="Let's find a date" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
-              {(trip.mode === 'wanderlust' || !trip.mode) ? (
-                <DatePollCard tripId={trip.id} poll={poll} totalMembers={totalMembers} isAdmin={isAdmin} currentUserId={currentUser?.id} isSolo={isSolo} tripMode={trip.mode} />
-              ) : (
-                <TripDatesLockedCard trip={trip} />
-              )}
-              <ChatCard tripId={trip.id} messages={messages} currentUserId={currentUser?.id} input={chatInput} setInput={setChatInput} onSend={handleSendChat} />
-            </div>
+            {(trip.mode === 'wanderlust' || !trip.mode) ? (
+              <DatePollCard tripId={trip.id} poll={poll} totalMembers={totalMembers} isAdmin={isAdmin} currentUserId={currentUser?.id} isSolo={isSolo} tripMode={trip.mode} />
+            ) : (
+              <TripDatesLockedCard trip={trip} />
+            )}
           </ChronoSection>
 
           {/* SECTION 3: TODO removed from here - now appears AFTER funding complete (req 28) */}
@@ -362,19 +359,20 @@ export default function TripOverviewPage() {
             </ChronoSection>
           )}
 
-          {/* SECTION 8: PRE-FUND RECAP - shown alongside funding once transport is set (req 35) */}
+          {/* SECTION 8+9: TRIP SUMMARY + FUND BARRY - shown side-by-side when validated (req 35) */}
           {transportLegs[trip.id]?.length > 0 && (
-            <ChronoSection phase="before" label="Recap">
-              <SectionHeader title="Trip summary" />
-              <PreFundRecapCard trip={trip} transportLegs={transportLegs[trip.id] || []} accommodations={accommodations[trip.id] || []} />
-            </ChronoSection>
-          )}
-
-          {/* SECTION 9: FUND BARRY - req 34: works with just transport, restaurant/hotel/activities are optional */}
-          {transportLegs[trip.id]?.length > 0 && (
-            <ChronoSection phase="before" label="Fund">
-              <SectionHeader title="Fund Barry, he'll handle the rest" />
-              <FundsCard tripId={trip.id} fundsRequest={tripFunds} />
+            <ChronoSection phase="before" label="Validate & fund">
+              <SectionHeader title="Recap & funding" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">Trip summary</p>
+                  <PreFundRecapCard trip={trip} transportLegs={transportLegs[trip.id] || []} accommodations={accommodations[trip.id] || []} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">Fund Barry</p>
+                  <FundsCard tripId={trip.id} fundsRequest={tripFunds} />
+                </div>
+              </div>
             </ChronoSection>
           )}
 

@@ -677,7 +677,7 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: May 2, 2026 - Wave 18 (3-column comparison, satellite map, attribution removed)*
+*Last updated: May 2, 2026 - Wave 19 (chat sidebar, PWA install prompt, recap+funding side-by-side)*
 *Maintained by: Claude (AI architect) + Richie (founder)*
 
 ---

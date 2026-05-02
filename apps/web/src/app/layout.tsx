@@ -5,6 +5,7 @@ import '@/styles/globals.css';
 import { ThemeManager } from '@/components/theme/theme-manager';
 import { ToastProvider } from '@/components/ui/toast';
 import { DialogProvider } from '@/components/ui/dialog';
+import { PWAInstallPrompt } from '@/components/pwa/install-prompt';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -60,6 +61,7 @@ export default function RootLayout({
         <DialogProvider>
           <ToastProvider>
             {children}
+            <PWAInstallPrompt />
           </ToastProvider>
         </DialogProvider>
       </body>

@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/app-store';
 import { BarryMascot } from '@/components/barry/brand';
 import { InteractiveMascot } from '@/components/barry/interactive-mascot';
 import { AvatarStack, Avatar } from '@/components/ui/avatar';
+import { TripChatSidebar } from '@/components/trip/trip-chat-sidebar';
 import { formatDateLong, formatDateShort } from '@/lib/utils/format-date';
 
 export default function TripLayout({ children }: { children: React.ReactNode }) {
@@ -139,14 +140,21 @@ export default function TripLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
 
-      <main id="trip-main" className="max-w-2xl xl:max-w-3xl mx-auto pb-24 barry-safe-bottom relative">
+      <main id="trip-main" className={`max-w-2xl xl:max-w-3xl mx-auto pb-24 barry-safe-bottom relative ${isOverview ? 'xl:mr-[340px]' : ''}`}>
         {children}
       </main>
 
-      {/* Floating side mascot - visible on wide screens (xl: 1280px+) */}
-      <div className="hidden xl:block fixed left-8 bottom-8 z-20">
-        <InteractiveMascot defaultMood="happy" size={120} />
-      </div>
+      {/* req 27: Persistent chat sidebar (desktop) / floating bottom-sheet (mobile) */}
+      {trip && isOverview && (
+        <TripChatSidebar tripId={trip.id} />
+      )}
+
+      {/* Floating side mascot - visible on wide screens (xl: 1280px+), only on subpages where chat sidebar is hidden */}
+      {!isOverview && (
+        <div className="hidden xl:block fixed left-8 bottom-8 z-20">
+          <InteractiveMascot defaultMood="happy" size={120} />
+        </div>
+      )}
     </div>
   );
 }
