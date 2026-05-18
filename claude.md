@@ -677,7 +677,7 @@ Single source of truth: `apps/web/src/lib/design/tokens.ts`
 
 ---
 
-*Last updated: May 2, 2026 - Wave 24 (chat crash fix + core flow redesign: owner sets max time, per-zone transport budget, lock-any-date, no PWA install, help button visible)*
+*Last updated: May 2, 2026 - Wave 25 (home redesign, profile cleanup, consolidated legal, Stripe + PayPal payments wired)*
 *Maintained by: Claude (AI architect) + Richie (founder)*
 
 ---

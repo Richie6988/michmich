@@ -192,13 +192,12 @@ const MOCK_EXPENSES: Record<string, Expense[]> = {
 interface UserPreferences {
   defaultTransportMode: 'walk' | 'bike' | 'transit' | 'car' | 'train';
   language: 'en' | 'fr' | 'es';
+  /** Whether to receive notifications at all. */
   notifications: boolean;
+  /** Where to deliver them: 'webapp' (in-app + browser push) or 'email'. */
+  notificationChannel?: 'webapp' | 'email';
   homeLocation: GeoPoint | null;
   homeLabel: string;
-  /** Show the Barry mascot in headers, mascots, and CTAs. False = B2B/professional mode. */
-  mascotEnabled?: boolean;
-  /** Force-disable animations regardless of OS prefers-reduced-motion setting. */
-  reduceMotion?: boolean;
 }
 
 interface PaymentMethod {
@@ -208,6 +207,10 @@ interface PaymentMethod {
   brand?: string;
   label: string;
   isDefault: boolean;
+  /** Stripe payment_method id (pm_...) for cards processed via Stripe */
+  stripePaymentMethodId?: string;
+  /** PayPal billing agreement id for PayPal-funded payments */
+  paypalBillingAgreementId?: string;
 }
 
 interface AppState {
@@ -422,11 +425,10 @@ export const useAppStore = create<AppState>()(
     defaultTransportMode: 'transit',
     language: 'en',
     notifications: true,
+    notificationChannel: 'webapp',
     homeLocation: DEMO_MODE ? MOCK_USERS[0].homeLocation : null,
     homeLabel: 'Home',
     theme: 'auto',
-    mascotEnabled: true,
-    reduceMotion: false,
   },
   paymentMethods: [],
   inAppBalance: 0,

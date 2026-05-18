@@ -34,12 +34,12 @@ const STATUS_DOT: Record<string, string> = {
 
 function TripRow({ trip }: { trip: Trip }) {
   const router = useRouter();
-  const { duplicateTrip, updateTripStatus, archiveTrip, deleteTrip } = useAppStore();
+  const { duplicateTrip, archiveTrip, deleteTrip } = useAppStore();
   const { confirm } = useDialog();
   const [menuOpen, setMenuOpen] = useState(false);
   const date = trip.scheduledAt ? formatDateShort(trip.scheduledAt) : null;
   const href: any = `/trips/${trip.id}`;
-  const isOngoing = !['completed', 'cancelled'].includes(trip.status);
+  // Archive does double duty: 'mark as finished' + 'hide from list'
 
   const handleDuplicate = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -76,18 +76,8 @@ function TripRow({ trip }: { trip: Trip }) {
     if (ok) deleteTrip(trip.id);
   };
 
-  const handleFinish = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMenuOpen(false);
-    const ok = await confirm({
-      title: 'Mark as finished?',
-      body: `"${trip.name}" will move to your Past Barrys.`,
-      variant: 'success',
-      confirmLabel: 'Yes, finish',
-    });
-    if (ok) updateTripStatus(trip.id, 'completed');
-  };
+  // Note: 'Mark as finished' was merged into Archive in Wave 25 per user request.
+  // A finished trip IS an archived trip - same outcome, less menu noise.
 
   return (
     <div className="relative group">
@@ -151,20 +141,6 @@ function TripRow({ trip }: { trip: Trip }) {
               </svg>
               Duplicate Barry
             </button>
-            {isOngoing && (
-              <>
-                <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
-                <button
-                  onClick={handleFinish}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50 text-left"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  Mark as finished
-                </button>
-              </>
-            )}
             {/* Archive + Delete separator */}
             <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
             <button
@@ -393,13 +369,9 @@ function LandingView({ currentUser, isAuthenticated, isGuest }: any) {
       </section>
 
       <footer className="border-t border-slate-200 dark:border-slate-700 pt-6 mt-6 text-center">
-        <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
-          <Link href="/legal/terms" className="hover:text-slate-700 dark:text-slate-300">Terms</Link>
-          <span>·</span>
-          <Link href="/legal/privacy" className="hover:text-slate-700 dark:text-slate-300">Privacy</Link>
-          <span>·</span>
-          <Link href="/legal/cookies" className="hover:text-slate-700 dark:text-slate-300">Cookies</Link>
-        </div>
+        <Link href="/legal" className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300">
+          Legal & privacy
+        </Link>
         <p className="text-[10px] text-slate-400 mt-2">Made with care for everyone tired of group chats.</p>
       </footer>
     </>
@@ -579,21 +551,8 @@ function Stat({ value, label }: { value: string; label: string }) {
 function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastTrips, archivedTrips, visible }: any) {
   return (
     <>
-      <div className="flex items-center gap-3 mb-6">
-        <BarryMascot mood="default" size={64} animate={false} />
-        <div className="flex-1">
-          <h1 className="font-display font-extrabold text-2xl text-slate-900 dark:text-slate-100 tracking-tight">
-            Hey {currentUser?.firstName}.
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {activeTrips.length > 0
-              ? `${activeTrips.length} ongoing ${activeTrips.length === 1 ? 'plan' : 'plans'}.`
-              : 'Where the smart group meets.'}
-          </p>
-        </div>
-      </div>
-
-      <MascotCTA />
+      {/* Single hero card: greeting + create CTA merged (no redundancy) */}
+      <HeroCard currentUser={currentUser} activeCount={activeTrips.length} />
 
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-3">
         <button
@@ -658,11 +617,11 @@ function ReturningUserView({ currentUser, trips, tab, setTab, activeTrips, pastT
 }
 
 /**
- * MascotCTA — replaces the big "+ New Barry" tile with a friendly mascot
- * floating in a speech bubble asking if you need help. Click anywhere on it
- * to start a new Barry. The mascot wiggles to draw attention.
+ * HeroCard - single combined greeting + create-new-Barry CTA. Replaces the
+ * old "Hey Chloe" header + separate "Need help planning" tile, which were
+ * redundant and felt cluttered.
  */
-function MascotCTA() {
+function HeroCard({ currentUser, activeCount }: { currentUser: any; activeCount: number }) {
   const [hovered, setHovered] = useState(false);
   return (
     <Link href="/trips/new" className="block group mb-6">
@@ -680,17 +639,19 @@ function MascotCTA() {
             <BarryMascot mood="happy" size={68} animate={false} />
           </div>
           <div className="flex-1 min-w-0">
-            {/* Speech bubble effect */}
-            <div className="relative inline-block">
-              <p className="font-display font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100 leading-tight">
-                Need help planning something?
-              </p>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-snug">
-                Tap me, I&rsquo;ll set up your next Barry.
-              </p>
-            </div>
+            <h1 className="font-display font-extrabold text-xl sm:text-2xl text-slate-900 dark:text-slate-100 leading-tight tracking-tight">
+              Hey {currentUser?.firstName}.
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-snug">
+              {activeCount > 0
+                ? `You have ${activeCount} ongoing ${activeCount === 1 ? 'plan' : 'plans'}. Start another?`
+                : 'Tap me to plan your next Barry.'}
+            </p>
             <div className="flex items-center gap-1 mt-2 text-barry-blue text-xs font-bold">
-              <span>Let&rsquo;s go</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>New Barry</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="group-hover:translate-x-1 transition-transform">
                 <polyline points="9 18 15 12 9 6" />
               </svg>

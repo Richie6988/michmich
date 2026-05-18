@@ -80,7 +80,7 @@ export function CookieConsentBanner() {
               <p className="font-display font-bold text-sm text-slate-900 dark:text-slate-100 mb-1">We respect your data</p>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-snug">
                 We use essential cookies to keep you signed in and your trip data safe. With your consent, we&rsquo;d also like to use analytics to improve Barry. You can change your mind any time in settings.{' '}
-                <a href="/legal/data-rights" className="text-barry-blue font-bold hover:underline">Learn more</a>
+                <a href="/legal#data-rights" className="text-barry-blue font-bold hover:underline">Learn more</a>
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-shrink-0">

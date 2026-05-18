@@ -456,7 +456,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-[11px] text-slate-400 text-center mt-4">
-            By continuing you agree to Barry&rsquo;s <Link href="/legal/terms" className="underline">Terms</Link> and <Link href="/legal/privacy" className="underline">Privacy</Link>.
+            By continuing you agree to Barry&rsquo;s <Link href="/legal" className="underline">Terms & privacy</Link>.
           </p>
         </div>
       </main>

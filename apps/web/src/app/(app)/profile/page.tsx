@@ -8,17 +8,11 @@ import { geocode, type NominatimResult } from '@/lib/api/nominatim';
 import type { GeoPoint } from '@barry/shared-types';
 import { BarryMark } from '@/components/barry/brand';
 import { Avatar } from '@/components/ui/avatar';
+import { TRANSPORT_OPTIONS } from '@/lib/transport/transport-modes';
+import { StripeAddCard } from '@/components/payments/stripe-add-card';
+import { PayPalConnect } from '@/components/payments/paypal-connect';
 import { CARD_PROVIDERS } from '@/lib/data/reduction-cards';
 import type { ReductionCard } from '@barry/shared-types';
-
-const TRANSPORT_OPTIONS = [
-  { value: 'walk' as const, label: 'Walk' },
-  { value: 'bike' as const, label: 'Bike' },
-  { value: 'transit' as const, label: 'Public transit' },
-  { value: 'car' as const, label: 'Car' },
-  { value: 'train' as const, label: 'Train' },
-  { value: 'flight' as const, label: 'Flight' },
-];
 
 const LANGUAGE_OPTIONS = [
   { value: 'en' as const, label: 'English', supported: true },
@@ -127,19 +121,14 @@ export default function ProfilePage() {
               {currentUser.firstName} {currentUser.lastName}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{currentUser.email}</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="inline-block px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-barry-blue text-[10px] font-bold uppercase tracking-wider rounded-full">
-                Free plan
-              </span>
-              {currentUser.avatarUrl && (
-                <button
-                  onClick={() => updateCurrentUser({ avatarUrl: null })}
-                  className="text-[10px] text-rose-600 font-semibold hover:underline"
-                >
-                  Remove photo
-                </button>
-              )}
-            </div>
+            {currentUser.avatarUrl && (
+              <button
+                onClick={() => updateCurrentUser({ avatarUrl: null })}
+                className="mt-1 text-[10px] text-rose-600 font-semibold hover:underline"
+              >
+                Remove photo
+              </button>
+            )}
           </div>
         </div>
 
@@ -177,20 +166,32 @@ export default function ProfilePage() {
             open={openSection === 'transport'}
             onToggle={() => setOpenSection(openSection === 'transport' ? null : 'transport')}
           >
-            <div className="grid grid-cols-2 gap-1.5 pt-2">
-              {TRANSPORT_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => { updatePreferences({ defaultTransportMode: opt.value }); setOpenSection(null); }}
-                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                    preferences.defaultTransportMode === opt.value
-                      ? 'bg-barry-blue text-white'
-                      : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-2">
+              {TRANSPORT_OPTIONS.map(opt => {
+                const selected = preferences.defaultTransportMode === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => { updatePreferences({ defaultTransportMode: opt.value }); setOpenSection(null); }}
+                    className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl text-[11px] font-semibold transition-all border ${
+                      selected
+                        ? 'border-barry-blue bg-blue-50 dark:bg-blue-950/40'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600'
+                    }`}
+                  >
+                    <svg
+                      width="22" height="22" viewBox="0 0 24 24" fill="none"
+                      stroke={selected ? opt.color : '#94A3B8'}
+                      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      {opt.icon}
+                    </svg>
+                    <span className={selected ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'}>
+                      {opt.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </SettingRow>
 
@@ -281,21 +282,6 @@ export default function ProfilePage() {
               Auto follows your operating system's appearance setting.
             </p>
           </SettingRow>
-
-          {/* Reduce motion toggle (CRITICAL_REVIEW UX gap 9) */}
-          <SettingRow
-            label="Reduce motion"
-            value={preferences.reduceMotion ? 'On' : 'Off (use system setting)'}
-            open={false}
-          >
-            <Toggle
-              checked={!!preferences.reduceMotion}
-              onChange={v => updatePreferences({ reduceMotion: v })}
-            />
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 leading-snug">
-              Disables most animations site-wide. By default we follow your OS preference.
-            </p>
-          </SettingRow>
         </div>
 
         {/* SECTION: Travel preferences (defaults reused on every Barry setup) */}
@@ -306,32 +292,14 @@ export default function ProfilePage() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100">
           <SettingRow
             label="Email for booking reports"
-            value={preferences.defaultEmail || currentUser.email || 'Not set'}
-            open={openSection === 'travel-email'}
-            onToggle={() => setOpenSection(openSection === 'travel-email' ? null : 'travel-email')}
+            value={currentUser.email || 'Not set'}
           >
-            {(() => {
-              const e = preferences.defaultEmail || '';
-              const isValid = !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-              return (
-                <>
-                  <input
-                    type="email"
-                    value={e}
-                    onChange={ev => updatePreferences({ defaultEmail: ev.target.value })}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    inputMode="email"
-                    className={`w-full mt-2 bg-white dark:bg-slate-800 border text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 ${
-                      isValid ? 'border-slate-200 dark:border-slate-700' : 'border-rose-300'
-                    }`}
-                  />
-                  {!isValid && (
-                    <p className="text-[10px] text-rose-600 mt-1">Please enter a valid email address.</p>
-                  )}
-                </>
-              );
-            })()}
+            <div className="mt-2 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{currentUser.email}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                We use your account email. Change it from Account &gt; Email above.
+              </p>
+            </div>
           </SettingRow>
 
           {/* req 12: Default duration + budget removed - they're per-trip choices, not profile defaults */}
@@ -450,25 +418,13 @@ export default function ProfilePage() {
 
         {/* No subscription tiers. Barry is free. */}
 
-        {/* SECTION: Legal & RGPD compliance (req 15: merged) */}
+        {/* SECTION: Legal & privacy (consolidated into one page in Wave 25) */}
         <SectionHeader title="Legal & privacy" />
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100 dark:divide-slate-800">
-          <LinkRow href="/legal/terms" label="Terms of use" />
-          <LinkRow href="/legal/privacy" label="Privacy policy (GDPR)" />
-          <LinkRow href="/legal/cookies" label="Cookies" />
-          <LinkRow href="/legal/data-rights" label="My data: download or delete" />
-        </div>
-
-        {/* SECTION: About */}
-        <SectionHeader title="About" />
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 divide-y divide-slate-100 dark:divide-slate-800">
-          <LinkRow href="https://barry.app" label="barry.app" external />
+          <LinkRow href="/legal" label="Terms, privacy, cookies & my data" />
         </div>
 
         <p className="text-center text-[10px] text-slate-400 mt-6">
-          Barry v0.1 - Prototype - Made in Paris
-        </p>
-        <p className="text-center text-[10px] text-slate-400 mt-1">
           Need help? Open any trip and tap the (?) icon to message us in context.
         </p>
       </main>
@@ -586,29 +542,16 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 function AddCardSheet({ onClose, onAdd }: {
   onClose: () => void;
-  onAdd: (pm: { type: 'card'; last4: string; brand: string; label: string; isDefault: boolean }) => void;
+  onAdd: (pm: { type: 'card' | 'paypal'; last4: string; brand: string; label: string; isDefault: boolean; stripePaymentMethodId?: string; paypalBillingAgreementId?: string }) => void;
 }) {
-  const [number, setNumber] = useState('');
-  const [name, setName] = useState('');
-  const [exp, setExp] = useState('');
-  const [cvc, setCvc] = useState('');
-
-  const last4 = number.replace(/\s/g, '').slice(-4);
-  const canSubmit = last4.length === 4 && name.trim().length > 0 && exp.length >= 5 && cvc.length >= 3;
-
-  const detectBrand = (n: string): string => {
-    const cleaned = n.replace(/\s/g, '');
-    if (cleaned.startsWith('4')) return 'Visa';
-    if (cleaned.startsWith('5')) return 'Mastercard';
-    if (cleaned.startsWith('3')) return 'Amex';
-    return 'Card';
-  };
+  const { currentUser } = useAppStore();
+  const [tab, setTab] = useState<'card' | 'paypal'>('card');
 
   return (
     <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
       <div onClick={e => e.stopPropagation()} className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl max-h-[92vh] overflow-y-auto barry-scroll">
-        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
-          <h2 className="font-display font-bold text-lg text-slate-900 dark:text-slate-100">Add a card</h2>
+        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between z-10">
+          <h2 className="font-display font-bold text-lg text-slate-900 dark:text-slate-100">Add a payment method</h2>
           <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -616,79 +559,41 @@ function AddCardSheet({ onClose, onAdd }: {
           </button>
         </div>
 
-        <div className="p-4 space-y-3">
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Card number</label>
-            <input
-              type="text"
-              value={number}
-              onChange={e => setNumber(e.target.value.replace(/[^\d ]/g, '').slice(0, 19))}
-              placeholder="1234 5678 9012 3456"
-              inputMode="numeric"
-              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Cardholder name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Full name"
-              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Expiry</label>
-              <input
-                type="text"
-                value={exp}
-                onChange={e => {
-                  let v = e.target.value.replace(/[^\d]/g, '').slice(0, 4);
-                  if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
-                  setExp(v);
-                }}
-                placeholder="MM/YY"
-                inputMode="numeric"
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">CVC</label>
-              <input
-                type="text"
-                value={cvc}
-                onChange={e => setCvc(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
-                placeholder="123"
-                inputMode="numeric"
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 rounded-xl px-3.5 py-3 text-base font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
-            </div>
-          </div>
-
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-[11px] text-amber-800 leading-snug">
-            Demo mode: no real charge. In production this would use Stripe Connect with PCI-compliant tokenization.
+        {/* Tab switcher */}
+        <div className="px-4 pt-3">
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+            <button
+              onClick={() => setTab('card')}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
+                tab === 'card' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="2" y="6" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
+              Card
+            </button>
+            <button
+              onClick={() => setTab('paypal')}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
+                tab === 'paypal' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944 1.51A.641.641 0 015.572.97H13.4c2.625 0 4.45.546 5.273 1.62.748.973 1.005 2.412.764 4.273-.013.094-.027.19-.04.29-.014.092-.029.183-.045.273-.79 4.069-3.531 5.475-7.011 5.475H10.66c-.534 0-.985.388-1.067.916l-.738 4.683-.32 2.04a.327.327 0 01-.323.262z" /></svg>
+              PayPal
+            </button>
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4">
-          <button
-            disabled={!canSubmit}
-            onClick={() => onAdd({
-              type: 'card',
-              last4,
-              brand: detectBrand(number),
-              label: `${detectBrand(number)} ending in ${last4}`,
-              isDefault: false,
-            })}
-            className="w-full bg-gradient-to-r from-barry-blue to-blue-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-40"
-          >
-            Save card
-          </button>
+        <div className="p-4">
+          {tab === 'card' ? (
+            <StripeAddCard
+              onAdd={pm => onAdd(pm)}
+            />
+          ) : (
+            <PayPalConnect
+              userEmail={currentUser?.email}
+              onAdd={pm => onAdd(pm)}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -963,6 +868,8 @@ function ReductionCardsManager({
 // NOTIFICATIONS ROW (with browser permission flow)
 // ============================================================
 function NotificationsRow({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  const { preferences, updatePreferences } = useAppStore();
+  const channel = preferences.notificationChannel || 'webapp';
   const [permission, setPermission] = React.useState<'default' | 'granted' | 'denied' | 'unsupported'>('default');
 
   React.useEffect(() => {
@@ -985,84 +892,80 @@ function NotificationsRow({ checked, onChange }: { checked: boolean; onChange: (
     if (result === 'granted') onChange(true);
   };
 
-  const status = (() => {
-    if (permission === 'unsupported') return 'Not supported on this browser';
-    if (permission === 'denied') return 'Blocked in browser settings';
-    if (permission === 'granted' && checked) return 'On';
-    if (permission === 'granted') return 'Browser allowed · toggle to enable';
-    return 'Off';
-  })();
+  const valueLabel = !checked ? 'Off' : channel === 'email' ? 'On - email' : 'On - in app';
 
   return (
     <SettingRow
       label="Notifications"
-      value={status}
+      value={valueLabel}
       open={false}
     >
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          {permission === 'default' && (
-            <button
-              onClick={handleAskPermission}
-              className="px-3 py-1.5 bg-barry-blue text-white text-xs font-bold rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
-            >
-              Allow
-            </button>
-          )}
-          {permission === 'denied' && (
-            <span className="text-[10px] text-rose-600 font-medium">Enable in browser site settings</span>
-          )}
-          {(permission === 'granted' || permission === 'default') && permission !== 'unsupported' && (
-            <Toggle checked={checked && permission === 'granted'} onChange={onChange} />
-          )}
+        {/* On/Off master toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Receive notifications</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Chat replies, vote results, booking updates.</p>
+          </div>
+          <Toggle checked={checked} onChange={onChange} />
         </div>
 
-        {/* Explanation of what notifications mean (req 9) */}
-        <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">When we&rsquo;ll ping you</p>
-          <NotifTypeRow
-            color="text-cyan-600"
-            label="New chat messages"
-            desc="Someone in your group sent a message"
-          />
-          <NotifTypeRow
-            color="text-amber-600"
-            label="Setup reminder"
-            desc="You haven't set your starting point and the trip is waiting on you"
-          />
-          <NotifTypeRow
-            color="text-emerald-600"
-            label="Vote results"
-            desc="The group picked a zone, venue, or hotel"
-          />
-          <NotifTypeRow
-            color="text-violet-600"
-            label="Funds & payments"
-            desc="A funding request was created or you owe a contribution"
-          />
-          <NotifTypeRow
-            color="text-blue-600"
-            label="Booking updates"
-            desc="Your trip is booked, tickets are ready, or there's a change"
-          />
-          <p className="text-[10px] text-slate-400 pt-1">
-            We never send promotional messages.
-          </p>
-        </div>
+        {/* Channel selector - only shown when notifications are ON */}
+        {checked && (
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Where</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => updatePreferences({ notificationChannel: 'webapp' })}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                  channel === 'webapp'
+                    ? 'border-barry-blue bg-blue-50 dark:bg-blue-950/40'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-300'
+                }`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={channel === 'webapp' ? '#2563EB' : '#94A3B8'} strokeWidth="2" strokeLinecap="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-bold ${channel === 'webapp' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'}`}>In webapp</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">Browser push + in-app</p>
+                </div>
+              </button>
+              <button
+                onClick={() => updatePreferences({ notificationChannel: 'email' })}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                  channel === 'email'
+                    ? 'border-barry-blue bg-blue-50 dark:bg-blue-950/40'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-300'
+                }`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={channel === 'email' ? '#2563EB' : '#94A3B8'} strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-bold ${channel === 'email' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'}`}>By email</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">Daily digest</p>
+                </div>
+              </button>
+            </div>
+
+            {/* Browser permission helper - only relevant for webapp channel */}
+            {channel === 'webapp' && permission === 'default' && (
+              <button
+                onClick={handleAskPermission}
+                className="mt-2 w-full px-3 py-2 bg-barry-blue text-white text-xs font-bold rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
+              >
+                Allow browser notifications
+              </button>
+            )}
+            {channel === 'webapp' && permission === 'denied' && (
+              <p className="mt-2 text-[10px] text-rose-600 font-medium">Browser blocked - enable in site settings to receive push notifications</p>
+            )}
+            {channel === 'webapp' && permission === 'unsupported' && (
+              <p className="mt-2 text-[10px] text-amber-600 font-medium">This browser doesn&rsquo;t support push - you&rsquo;ll still see in-app notifications</p>
+            )}
+          </div>
+        )}
       </div>
     </SettingRow>
-  );
-}
-
-function NotifTypeRow({ color, label, desc }: { color: string; label: string; desc: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${color.replace('text-', 'bg-')}`} />
-      <div className="flex-1">
-        <p className={`text-[11px] font-bold ${color} dark:opacity-90`}>{label}</p>
-        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug">{desc}</p>
-      </div>
-    </div>
   );
 }
 
